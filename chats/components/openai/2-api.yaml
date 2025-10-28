@@ -1,0 +1,71 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: openai-api
+  namespace: chats
+spec:
+  title: "OpenAI API"
+  description: "OpenAI API spec"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: OPENAI_API_URL
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: openai-route
+  namespace: chats
+  annotations:
+    hub.traefik.io/api: openai-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: OPENAI_HOST_MATCH
+      services:
+        - name: openai
+          namespace: chats
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        - name: cc-authtoken
+    - kind: Rule
+      match: OPENAI_HOST_MATCH_COMPLETIONS
+      services:
+        - name: openai
+          namespace: chats
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        # - name: coraza-waf-block-all
+        - name: cc-authtoken
+        # - name: cc-semantic-cache
+        - name: cc-topic-control-guard
+        - name: cc-content-safety-guard
+        # - name: cc-jailbreak-detection-guard
+        - name: cc-content-guard
+        - name: openai-cc

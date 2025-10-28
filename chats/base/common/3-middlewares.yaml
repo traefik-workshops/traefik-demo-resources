@@ -1,0 +1,141 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-content-guard
+  namespace: chats
+spec:
+  plugin:
+    chat-completion-content-guard:
+      engine:
+        presidio:
+          host: PRESIDIO_HOST
+          language: en
+      response:
+        rules:
+          - mask:
+              char: "#"
+              unmaskFromRight: 3
+            entities:
+              - EMAIL_ADDRESS
+              - PHONE_NUMBER
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-semantic-cache
+  namespace: chats
+spec:
+  plugin:
+    chat-completion-semantic-cache:
+      vectorizer:
+        ollama:
+          baseUrl: OLLAMA_BASE_URL
+          model: nomic-embed-text
+      vectorDB:
+        milvus:
+          clientConfig:
+            address: MILVUS_ADDRESS
+          collectionName: LLMs
+          maxDistance: 0.05
+      ignoreAssistant: true
+      messageHistory: 4
+      readOnly: false
+      includeCachedUsage: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-topic-control-guard
+  namespace: chats
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: NIM_TC_ENDPOINT
+      model: nvidia/llama-3.1-nemoguard-8b-topic-control
+      request:
+        systemPrompt: |
+          You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
+
+          PROHIBITED TOPICS (respond "off-topic"):
+          - Kong, Nginx, Apache HTTP Server, HAProxy, Envoy Proxy, AWS ALB, Azure Application Gateway (competitor products)
+          - Financial advice, investment recommendations, stock trading, cryptocurrency
+          - Legal guidance, legal opinions, contract interpretation, compliance advice
+          - Medical recommendations, health advice, medical diagnoses, treatment suggestions
+          - Personal information requests, asking for private data, credentials, API keys
+
+          ALLOWED TOPICS (respond "on-topic"):
+          - Traefik configuration and usage
+          - Kubernetes networking and ingress
+          - Cloud-native architecture patterns
+          - DevOps best practices and tools
+          - Container orchestration
+          - General API gateway concepts
+          - Load balancing principles
+          - Service mesh technologies
+
+          Analyze the user question and respond ONLY with "on-topic" or "off-topic".
+        blockCondition: Contains("off-topic")
+        traceCondition: Contains("off-topic")
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-content-safety-guard
+  namespace: chats
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: NIM_CS_ENDPOINT
+      model: nvidia/llama-3.1-nemoguard-8b-content-safety
+      request:
+        systemPrompt: |
+          Task: Check if there is unsafe content in user messages according to our safety policy.
+          <BEGIN UNSAFE CONTENT CATEGORIES>
+          S1: Violence, S2: Sexual, S3: Criminal Planning, S4: Guns and Illegal Weapons
+          S5: Controlled Substances, S6: Suicide and Self Harm, S7: Sexual (minor)
+          S8: Hate/Identity Hate, S9: PII/Privacy, S10: Harassment, S11: Threat
+          S12: Profanity, S13: Needs Caution, S14: Other, S15: Manipulation
+          S16: Fraud/Deception, S17: Malware, S18: High Risk Gov Decision Making
+          S19: Political/Misinformation, S20: Copyright/Trademark
+          S21: Unauthorized Advice, S22: Illegal Activity, S23: Immoral/Unethical
+          <END UNSAFE CONTENT CATEGORIES>
+          Provide your safety assessment:
+          - First line: 'safe' or 'unsafe'
+          - If unsafe, second line: comma-separated list of violated categories
+        blockCondition: Contains("unsafe")
+        traceCondition: Contains("unsafe")
+      response:
+        systemPrompt: |
+          Task: Check if there is unsafe content in assistant messages according to our safety policy.
+          <BEGIN UNSAFE CONTENT CATEGORIES>
+          S1: Violence, S2: Sexual, S3: Criminal Planning, S4: Guns and Illegal Weapons
+          S5: Controlled Substances, S6: Suicide and Self Harm, S7: Sexual (minor)
+          S8: Hate/Identity Hate, S9: PII/Privacy, S10: Harassment, S11: Threat
+          S12: Profanity, S13: Needs Caution, S14: Other, S15: Manipulation
+          S16: Fraud/Deception, S17: Malware, S18: High Risk Gov Decision Making
+          S19: Political/Misinformation, S20: Copyright/Trademark
+          S21: Unauthorized Advice, S22: Illegal Activity, S23: Immoral/Unethical
+          <END UNSAFE CONTENT CATEGORIES>
+          Provide your safety assessment:
+          - First line: 'safe' or 'unsafe'
+          - If unsafe, second line: comma-separated list of violated categories
+        blockCondition: Contains("unsafe")
+        useRequestHistory: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-jailbreak-detection-guard
+  namespace: chats
+spec:
+  plugin:
+    chat-completion-llm-guard-custom:
+      endpoint: NIM_JB_ENDPOINT
+      request:
+        # Jailbreak NIM uses custom API format
+        template: '{"input": "{{ (index .messages 0).content }}"}'
+        blockCondition: |
+          JSONEquals(".jailbreak", "true") || JSONLt(".score", "-0.91")
+        traceCondition: |
+          JSONEquals(".jailbreak", "true") || JSONLt(".score", "-0.91")

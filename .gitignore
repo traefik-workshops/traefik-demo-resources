@@ -1,0 +1,26 @@
+# Kustomize build outputs
+*.yaml.bak
+kustomization.yaml.bak
+
+# Test outputs
+/tmp/
+preview*.yaml
+
+# Example/temp overlays
+overlays/example/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/terraform.tfvars
+terraform/*.tfplan
+chats/overlays/terraform/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store

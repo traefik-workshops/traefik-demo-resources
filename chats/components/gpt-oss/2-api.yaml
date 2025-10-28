@@ -1,0 +1,68 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: gpt-oss-api
+  namespace: chats
+spec:
+  title: "GPT OSS API"
+  description: "GPT OSS API spec"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: GPT_OSS_API_URL
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gpt-oss-route
+  namespace: chats
+  annotations:
+    hub.traefik.io/api: gpt-oss-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: GPT_OSS_HOST_MATCH
+      services:
+        - name: gpt-oss
+          namespace: chats
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+    - kind: Rule
+      match: GPT_OSS_HOST_MATCH_COMPLETIONS
+      services:
+        - name: gpt-oss
+          namespace: chats
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        # - name: coraza-waf-block-all
+        # - name: cc-semantic-cache
+        - name: cc-topic-control-guard
+        - name: cc-content-safety-guard
+        # - name: cc-jailbreak-detection-guard
+        - name: cc-content-guard
+        - name: gpt-oss-cc

@@ -1,0 +1,48 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIAuth
+metadata:
+  name: jwt-auth
+  namespace: chats
+spec:
+  isDefault: true
+  jwt:
+    appIdClaim: group
+    jwksUrl: KEYCLOAK_JWKS_URL
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIPortalAuth
+metadata:
+  name: oidc-portal-auth
+  namespace: chats
+spec:
+  oidc:
+    issuerUrl: KEYCLOAK_ISSUER_URL
+    secretName: oidc-credentials
+    scopes:
+      - openid
+      - profile
+      - email
+      - group
+    claims:
+      groups: group
+      userId: sub
+      email: email
+      firstname: given_name
+      lastname: family_name
+    syncedAttributes:
+      - groups
+      - email
+      - firstname
+      - lastname
+      - userId
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oidc-credentials
+  namespace: chats
+type: Opaque
+stringData:
+  clientId: OIDC_CLIENT_ID
+  clientSecret: OIDC_CLIENT_SECRET
