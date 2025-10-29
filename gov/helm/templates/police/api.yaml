@@ -63,7 +63,7 @@ spec:
               - PUT
               - DELETE
               - PATCH
-    cors:
+  cors:
     allowHeadersList:
       - "*"
     allowOriginsList:
