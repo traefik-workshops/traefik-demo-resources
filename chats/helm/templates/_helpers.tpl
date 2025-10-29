@@ -1,4 +1,16 @@
 {{/*
+Validate that at least one component is selected
+*/}}
+{{- define "chats.validateComponents" -}}
+{{- if not .Values.components }}
+{{- fail "Error: No components selected. Please enable at least one component (openai or gpt-oss) in values.yaml" }}
+{{- end }}
+{{- if eq (len .Values.components) 0 }}
+{{- fail "Error: No components selected. Please enable at least one component (openai or gpt-oss) in values.yaml" }}
+{{- end }}
+{{- end }}
+
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "chats.name" -}}

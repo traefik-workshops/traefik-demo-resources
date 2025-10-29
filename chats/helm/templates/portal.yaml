@@ -8,7 +8,13 @@ metadata:
     {{- include "chats.labels" . | nindent 4 }}
 spec:
   everyone: true
-  apis: []
+  apis:
+    {{- if has "openai" .Values.components }}
+    - name: "openai-api"
+    {{- end }}
+    {{- if has "gpt-oss" .Values.components }}
+    - name: "gpt-oss-api"
+    {{- end }}
   apiPlan:
     name: chat-plan
 ---
@@ -22,7 +28,13 @@ metadata:
 spec:
   groups:
     - admins
-  apis: []
+  apis:
+    {{- if has "openai" .Values.components }}
+    - name: "openai-api"
+    {{- end }}
+    {{- if has "gpt-oss" .Values.components }}
+    - name: "gpt-oss-api"
+    {{- end }}
   apiPlan:
     name: conversation-plan
 ---

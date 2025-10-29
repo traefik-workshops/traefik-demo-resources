@@ -54,7 +54,13 @@ metadata:
 spec:
   managedApplications:
     - name: "admin-application"
-  apis: []
+  apis:
+    {{- if has "openai" .Values.components }}
+    - name: "openai-api"
+    {{- end }}
+    {{- if has "gpt-oss" .Values.components }}
+    - name: "gpt-oss-api"
+    {{- end }}
   apiPlan:
     name: conversation-plan
   weight: 10
@@ -80,7 +86,13 @@ metadata:
 spec:
   managedApplications:
     - name: "developer-application"
-  apis: []
+  apis:
+    {{- if has "openai" .Values.components }}
+    - name: "openai-api"
+    {{- end }}
+    {{- if has "gpt-oss" .Values.components }}
+    - name: "gpt-oss-api"
+    {{- end }}
   apiPlan:
     name: chat-plan
   weight: 10
@@ -106,7 +118,13 @@ metadata:
 spec:
   managedApplications:
     - name: "agent-application"
-  apis: []
+  apis:
+    {{- if has "openai" .Values.components }}
+    - name: "openai-api"
+    {{- end }}
+    {{- if has "gpt-oss" .Values.components }}
+    - name: "gpt-oss-api"
+    {{- end }}
   apiPlan:
     name: chat-plan
   weight: 10

@@ -1,3 +1,4 @@
+{{- include "chats.validateComponents" . }}
 ---
 apiVersion: v1
 kind: Namespace
