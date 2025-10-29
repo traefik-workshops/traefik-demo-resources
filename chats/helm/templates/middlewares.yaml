@@ -144,7 +144,7 @@ spec:
       endpoint: {{ include "chats.nim.jailbreakDetection.endpoint" . }}
       request:
         # Jailbreak NIM uses custom API format
-        template: '{"input": "{{ (index .messages 0).content }}"}'
+        template: '{"input": "{{`{{ (index .messages 0).content }}`}}"}'
         blockCondition: |
           JSONEquals(".jailbreak", "true") || JSONLt(".score", "-0.91")
         traceCondition: |
