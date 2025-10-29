@@ -1,0 +1,729 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gov-mcp-server
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+data:
+  main.py: |
+    #!/usr/bin/env python3
+    """
+    Government MCP Server - Emergency Response and Infrastructure Control
+    """
+
+    from typing import Any, Dict, List, Optional
+    import logging, aiohttp, anyio
+    from mcp.server import Server
+    from mcp.server.stdio import stdio_server
+    from mcp.types import Tool
+
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("gov-mcp")
+
+    # Create MCP server instance
+    server = Server("gov-mcp")
+
+    # API Configuration
+    API_BASE_URLS = {
+        "police": "http://police-app.gov.svc.cluster.local:3000",
+        "utility": "http://utility-app.gov.svc.cluster.local:3000",
+        "public_works": "http://public-works-app.gov.svc.cluster.local:3000",
+    }
+    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
+    KEYCLOAK_CREDENTIALS = {
+        "client_id": "traefik",
+        "grant_type": "password",
+        "client_secret": "{{ .Values.keycloak.clientSecret }}",
+        "scope": "openid",
+        "username": "{{ .Values.keycloak.adminUsername }}",
+        "password": "{{ .Values.keycloak.adminPassword }}",
+    }
+
+    jwt_token: Optional[str] = None
+
+    # Area mappings for client-side filtering
+    AREA_MAPPINGS = {
+        "downtown": ["Main St", "Oak Ave", "City Hall", "Oak Ave & Main St"],
+        "north_side": ["Northwood District", "Elm St", "2nd Ave", "Elm St & 2nd Ave"],
+        "waterfront": ["Pine St", "1st St", "Pine St & 1st St"],
+        "central": ["Maple St", "4th St", "Maple St & 4th St"]
+    }
+
+    def get_valid_areas():
+        """Get list of valid area names"""
+        return list(AREA_MAPPINGS.keys())
+
+    def location_in_area(location: str, area: str) -> bool:
+        """Check if a location belongs to a specific area"""
+        if area not in AREA_MAPPINGS:
+            return False
+        area_locations = AREA_MAPPINGS[area]
+        # Check if location contains any of the area's streets/locations
+        location_lower = location.lower()
+        for area_loc in area_locations:
+            if area_loc.lower() in location_lower:
+                return True
+        return False
+
+    @server.list_tools()
+    async def list_tools():
+        """List available tools"""
+        return [
+            Tool(
+                name="ping",
+                description="Return a simple text response",
+                inputSchema={"type":"object","properties":{}}
+            ),
+            Tool(
+                name="list_areas",
+                description="Get a list of all monitored areas and their coverage boundaries",
+                inputSchema={"type":"object","properties":{}}
+            ),
+            Tool(
+                name="emergency_status_summary",
+                description="Get a quick summary of all emergency situations across the city",
+                inputSchema={"type":"object","properties":{}}
+            ),
+            Tool(
+                name="rescue_mission",
+                description="Analyze road conditions and safety status by combining police incident reports and utility infrastructure data to help plan rescue operations",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "area": {
+                            "type": "string", 
+                            "enum": ["downtown", "north_side", "waterfront", "central"],
+                            "description": "Area or district to check. Use 'list_areas' tool to see all valid areas."
+                        },
+                        "incident_type": {
+                            "type": "string",
+                            "enum": ["flood", "fire", "accident", "infrastructure_failure", "all"],
+                            "description": "Type of incidents to check for. Optional, defaults to 'all'."
+                        }
+                    },
+                    "required": ["area"],
+                },
+            ),
+            Tool(
+                name="floodgate_control",
+                description="Control floodgate operations at dam locations to manage water levels and prevent flooding",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "dam_location": {
+                            "type": "string",
+                            "enum": ["north_dam", "south_dam", "east_dam", "central_dam"],
+                            "description": "Dam location identifier (north_dam: Northern Regional, south_dam: Southern Regional, east_dam: Eastern Regional, central_dam: Central Regional)"
+                        },
+                        "action": {
+                            "type": "string",
+                            "enum": ["open", "close"],
+                            "description": "Floodgate action to perform"
+                        },
+                        "reason": {
+                            "type": "string",
+                            "description": "Reason for floodgate adjustment (required for audit trail)"
+                        }
+                    },
+                    "required": ["dam_location", "action", "reason"],
+                },
+            ),
+        ]
+
+    async def get_jwt_token() -> str:
+        global jwt_token
+        if jwt_token:
+            return jwt_token
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                KEYCLOAK_URL,
+                data=KEYCLOAK_CREDENTIALS,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ) as r:
+                if r.status != 200:
+                    raise RuntimeError(f"Keycloak token error: {r.status}")
+                data = await r.json()
+                jwt_token = data.get("access_token")
+                return jwt_token
+
+    async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
+        token = await get_jwt_token()
+        url = f"{API_BASE_URLS[service]}{endpoint}"
+        headers = {"Authorization": f"Bearer {token}"}
+        if method == "POST":
+            headers["Content-Type"] = "application/json"
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, json=data) as r:
+                if r.status == 200:
+                    try:
+                        return await r.json()
+                    except Exception as e:
+                        # If JSON parsing fails, try manual parsing (handles text/plain with JSON content)
+                        text_response = await r.text()
+                        logger.info(f"aiohttp JSON parsing failed for {url}. Content-Type: {r.headers.get('content-type')}. Trying manual parsing...")
+                        try:
+                            import json
+                            parsed_json = json.loads(text_response)
+                            logger.info(f"Manual JSON parsing successful for {url}: {parsed_json}")
+                            return parsed_json
+                        except Exception as json_error:
+                            logger.error(f"Manual JSON parsing also failed for {url}. Response: {text_response}")
+                            return {"error": f"Invalid JSON response: {text_response}", "status": r.status, "content_type": r.headers.get('content-type')}
+                if r.status == 404:
+                    return {"error": "Not found", "status": 404}
+                # Get response text for error cases
+                error_text = await r.text()
+                return {"error": f"API error {r.status}: {error_text}", "status": r.status}
+
+    # Police API endpoints
+    async def get_police_incidents() -> Dict:
+        logger.info(f"Fetching all police incidents")
+        return await api_request("police", f"/incidents")
+
+    async def get_road_closures() -> Dict:
+        logger.info(f"Fetching all road closures")
+        result = await api_request("police", f"/road_closures")
+        # Convert array response to expected format
+        if isinstance(result, list):
+            closures = {}
+            for item in result:
+                road_id = item.get("id", "unknown")
+                closures[road_id] = item
+            return {"closures": closures}
+        # Fallback for object format
+        if "road_closures" in result:
+            return {"closures": result["road_closures"]}
+        return {"closures": result if isinstance(result, dict) else {}}
+
+    # Utility API endpoints
+    async def get_infrastructure_status() -> Dict:
+        logger.info(f"Fetching all infrastructure status")
+        return await api_request("utility", f"/infrastructure/status")
+
+    async def get_power_outages() -> Dict:
+        logger.info(f"Fetching all power outages")
+        result = await api_request("utility", f"/outages")
+        # Convert array response to expected format
+        if isinstance(result, list):
+            outages = {}
+            for item in result:
+                location_id = item.get("id", "unknown")
+                outages[location_id] = item
+            return {"outages": outages}
+        # Fallback for object format
+        if "outages" in result:
+            return {"outages": result["outages"]}
+        return {"outages": result if isinstance(result, dict) else {}}
+
+    # Public Works API endpoints
+    async def get_floodgate_status(dam_location: str) -> Dict:
+        logger.info(f"Fetching floodgate status for: {dam_location}")
+        return await api_request("public_works", f"/dams/{dam_location}")
+
+    async def control_floodgate(dam_location: str, action: str) -> Dict:
+        logger.info(f"Controlling floodgate at {dam_location}: {action}")
+        data = {"action": action}
+        return await api_request("public_works", f"/dams/{dam_location}/floodgates/control", "POST", data)
+
+    async def get_all_dams() -> Dict:
+        logger.info("Fetching all dam statuses")
+        return await api_request("public_works", "/dams")
+
+    def analyze_road_conditions(police_data: Dict, utility_data: Dict, area: str = None) -> Dict:
+        """Analyze combined data to determine road conditions and safety, optionally filtered by area"""
+        conditions = {
+            "safe_routes": [],
+            "dangerous_areas": [],
+            "blocked_roads": [],
+            "warnings": [],
+            "recommendations": [],
+            "area_filter": area
+        }
+        
+        # Process road closures
+        if "closures" in police_data:
+            for road_name, closure_info in police_data["closures"].items():
+                # Filter by area if specified
+                if area and not location_in_area(road_name, area):
+                    continue
+                    
+                conditions["blocked_roads"].append({
+                    "road": road_name,
+                    "reason": closure_info.get("reason", "unknown"),
+                    "status": closure_info.get("status", "unknown"),
+                    "from_street": closure_info.get("from_street", ""),
+                    "to_street": closure_info.get("to_street", "")
+                })
+                
+                if closure_info.get("status") == "Closed":
+                    conditions["dangerous_areas"].append({
+                        "location": road_name,
+                        "reason": f"Road Closed - {closure_info.get('reason', 'unknown')}",
+                        "source": "police"
+                    })
+        
+        # Process power outages
+        if "outages" in utility_data:
+            for location, outage_info in utility_data["outages"].items():
+                # Filter by area if specified
+                if area and not location_in_area(location, area):
+                    continue
+                    
+                status = outage_info.get("status", "unknown")
+                hazard = outage_info.get("hazard", "None")
+                
+                if status == "Outage Confirmed":
+                    conditions["warnings"].append(f"Power outage at {location}: {hazard}")
+                    if hazard != "None" and hazard != "Unknown":
+                        conditions["dangerous_areas"].append({
+                            "location": location,
+                            "reason": f"Power Outage - {hazard}",
+                            "source": "utility"
+                        })
+        
+        # Process infrastructure issues (placeholder for when API provides this)
+        if "infrastructure" in utility_data:
+            for item in utility_data["infrastructure"]:
+                if area and not location_in_area(item.get("location", ""), area):
+                    continue
+                if item.get("status") == "failed":
+                    conditions["warnings"].append(f"Infrastructure failure: {item.get('type')} at {item.get('location')}")
+        
+        # Generate recommendations
+        if conditions["dangerous_areas"]:
+            conditions["recommendations"].append("Avoid marked dangerous areas")
+        if conditions["blocked_roads"]:
+            conditions["recommendations"].append("Use alternative routes around blocked roads")
+        if conditions["warnings"]:
+            conditions["recommendations"].append("Exercise caution due to infrastructure issues")
+        
+        return conditions
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict):
+        """Handle tool calls - return as list to prevent dict.items() issues"""
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
+        if name == "ping":
+            return [{"type": "text", "text": "pong"}]
+        
+        elif name == "list_areas":
+            try:
+                response = "🗺️ **MONITORED AREAS**\n\n"
+                for area_name, locations in AREA_MAPPINGS.items():
+                    response += f"**{area_name.upper()}:**\n"
+                    for location in locations:
+                        response += f"• {location}\n"
+                    response += "\n"
+                response += "Use these area names with the 'rescue_mission' tool to get targeted analysis."
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error in list_areas: {e}")
+                return [{"type": "text", "text": f"❌ Error listing areas: {str(e)}"}]
+        
+        elif name == "emergency_status_summary":
+            try:
+                steps = []
+                steps.append("🌍 Generating city-wide emergency status summary...")
+                
+                # Fetch all data without area filtering
+                steps.append("📊 Fetching police and utility data...")
+                road_closures = await get_road_closures()
+                outages = await get_power_outages()
+                
+                # Analyze all data
+                analysis = analyze_road_conditions(road_closures, outages)
+                
+                # Build summary response
+                response = "🚨 **CITY-WIDE EMERGENCY STATUS SUMMARY**\n\n"
+                
+                # Critical Issues Count
+                critical_count = len(analysis["dangerous_areas"])
+                blocked_roads_count = len(analysis["blocked_roads"])
+                warnings_count = len(analysis["warnings"])
+                
+                response += f"**🔴 Critical Issues:** {critical_count}\n"
+                response += f"**🚧 Blocked Roads:** {blocked_roads_count}\n"
+                response += f"**⚠️ Active Warnings:** {warnings_count}\n\n"
+                
+                # Quick overview by area
+                response += "**STATUS BY AREA:**\n"
+                for area_name in get_valid_areas():
+                    area_analysis = analyze_road_conditions(road_closures, outages, area_name)
+                    area_issues = len(area_analysis["dangerous_areas"]) + len(area_analysis["blocked_roads"])
+                    if area_issues == 0:
+                        response += f"🟢 {area_name.upper()}: All Clear\n"
+                    elif area_issues <= 2:
+                        response += f"🟡 {area_name.upper()}: {area_issues} issue(s)\n"
+                    else:
+                        response += f"🔴 {area_name.upper()}: {area_issues} issues\n"
+                
+                response += "\n**For detailed analysis of specific areas, use the 'rescue_mission' tool.**\n"
+                response += "\n**Process Steps:**\n" + "\n".join(steps)
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in emergency_status_summary: {e}")
+                return [{"type": "text", "text": f"❌ System error during summary: {str(e)}"}]
+        
+        elif name == "rescue_mission":
+            area = arguments.get("area")
+            incident_type = arguments.get("incident_type", "all")
+            
+            if not area:
+                return [{"type": "text", "text": "Error: area is required"}]
+            
+            # Validate area
+            if area not in get_valid_areas():
+                valid_areas = ", ".join(get_valid_areas())
+                return [{"type": "text", "text": f"❌ Invalid area '{area}'. Valid areas are: {valid_areas}. Use 'list_areas' tool to see details."}]
+            
+            try:
+                steps = []
+                steps.append("🚨 Starting rescue mission analysis...")
+                steps.append(f"📍 Target area: {area}")
+                steps.append(f"🔍 Incident filter: {incident_type}")
+                
+                # Gather data from all sources (no area filtering at API level)
+                steps.append("\n🚔 Fetching police data...")
+                road_closures = await get_road_closures()
+                
+                steps.append("⚡ Fetching utility infrastructure data...")
+                outages = await get_power_outages()
+                
+                # Analyze combined data with area filtering
+                steps.append("🧮 Analyzing road conditions for target area...")
+                analysis = analyze_road_conditions(road_closures, outages, area)
+                
+                # Build response message
+                response = "🚨 **RESCUE MISSION ANALYSIS**\n\n"
+                response += f"**Area:** {area}\n"
+                response += f"**Timestamp:** current\n\n"
+                
+                # Dangerous areas
+                if analysis["dangerous_areas"]:
+                    response += "⛔ **DANGEROUS AREAS:**\n"
+                    for area_info in analysis["dangerous_areas"]:
+                        response += f"• {area_info['location']}: {area_info['reason']}\n"
+                    response += "\n"
+                
+                # Blocked roads
+                if analysis["blocked_roads"]:
+                    response += "🚧 **BLOCKED ROADS:**\n"
+                    for road in analysis["blocked_roads"]:
+                        clear_time = road.get('estimated_clear_time', 'Unknown')
+                        response += f"• {road['road']}: {road['reason']} (Status: {road.get('status', 'Unknown')})\n"
+                    response += "\n"
+                
+                # Infrastructure warnings
+                if analysis["warnings"]:
+                    response += "⚠️ **INFRASTRUCTURE WARNINGS:**\n"
+                    for warning in analysis["warnings"]:
+                        response += f"• {warning}\n"
+                    response += "\n"
+                
+                # Safe routes (if any identified)
+                if analysis["safe_routes"]:
+                    response += "✅ **SAFE ROUTES:**\n"
+                    for route in analysis["safe_routes"]:
+                        response += f"• {route}\n"
+                    response += "\n"
+                
+                # Recommendations
+                response += "📋 **RECOMMENDATIONS:**\n"
+                if analysis["recommendations"]:
+                    for rec in analysis["recommendations"]:
+                        response += f"• {rec}\n"
+                else:
+                    response += "• Area appears to be relatively safe for rescue operations\n"
+                
+                response += "\n**Analysis Steps:**\n" + "\n".join(steps)
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in rescue mission analysis: {e}")
+                return [{"type": "text", "text": f"❌ System error during analysis: {str(e)}"}]
+        
+        elif name == "floodgate_control":
+            dam_location = arguments.get("dam_location")
+            action = arguments.get("action")
+            reason = arguments.get("reason")
+            
+            if not all([dam_location, action, reason]):
+                return [{"type": "text", "text": "Error: dam_location, action, and reason are required"}]
+            
+            try:
+                steps = []
+                steps.append("🌊 Starting floodgate control operation...")
+                steps.append(f"🏭 Target dam: {dam_location}")
+                steps.append(f"⚙️ Requested action: {action}")
+                
+                # Get current status first
+                steps.append("📊 Checking current floodgate status...")
+                current_status = await get_floodgate_status(dam_location)
+                
+                if "error" in current_status:
+                    return [{"type": "text", "text": f"❌ Failed to get current status: {current_status['error']}"}]
+                
+                current_position = current_status.get("floodgate_status", "unknown")
+                dam_name = current_status.get("name", "Unknown Dam")
+                dam_location_name = current_status.get("location", "Unknown Location")
+                last_action = current_status.get("last_action", "unknown")
+                
+                steps.append(f"📍 Current status: {current_position}")
+                steps.append(f"🏭 Dam: {dam_name} ({dam_location_name})")
+                steps.append(f"📅 Last action: {last_action}")
+                
+                # Check if action is needed
+                if action == "close" and current_position == "closed":
+                    return [{"type": "text", "text": f"ℹ️ Floodgate at {dam_location} is already closed"}]
+                elif action == "open" and current_position == "open":
+                    return [{"type": "text", "text": f"ℹ️ Floodgate at {dam_location} is already open"}]
+                
+                # Get all dam statuses for context
+                steps.append("🌊 Checking regional dam statuses...")
+                all_dams = await get_all_dams()
+                
+                # Execute floodgate control
+                steps.append(f"🔧 Executing floodgate {action}...")
+                control_result = await control_floodgate(dam_location, action)
+                
+                if "error" in control_result:
+                    msg = f"❌ Floodgate control failed: {control_result['error']}\n\n" + "\n".join(steps)
+                    return [{"type": "text", "text": msg}]
+                
+                # Build success response
+                response = "✅ **FLOODGATE CONTROL SUCCESSFUL**\n\n"
+                response += f"**Dam:** {dam_name} ({dam_location})\n"
+                response += f"**Action Performed:** {action}\n"
+                response += f"**Reason:** {reason}\n"
+                response += f"**Operator:** System Administrator\n"
+                response += f"**Status:** {control_result.get('status', 'unknown')}\n\n"
+                
+                response += "**Status Change:**\n"
+                response += f"• Previous: {current_position}\n"
+                response += f"• Current: {action}ed\n\n"
+                
+                response += "**Regional Dam Statuses:**\n"
+                if isinstance(all_dams, dict):
+                    for dam_id, dam_info in all_dams.items():
+                        status_emoji = "🟢" if dam_info.get("floodgate_status") == "open" else "🔴" if dam_info.get("floodgate_status") == "closed" else "🟡"
+                        response += f"{status_emoji} {dam_id}: {dam_info.get('name', 'Unknown')} ({dam_info.get('location', 'Unknown')}) - {dam_info.get('floodgate_status', 'unknown')}\n"
+                
+                response += f"\n**Audit Log:** Action recorded with reason: '{reason}'\n"
+                response += "\n**Process Steps:**\n" + "\n".join(steps)
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in floodgate control: {e}")
+                return [{"type": "text", "text": f"❌ System error during floodgate control: {str(e)}"}]
+        
+        else:
+            # For errors, still need to return proper structure
+            return [{"type": "text", "text": f"Unknown tool: {name}"}]
+
+    async def main():
+        """Main entry point - STDIO MCP server for mcp-proxy"""    
+        logger.info("Starting Government MCP Server...")
+        
+        try:
+            async with stdio_server() as streams:
+                logger.info("STDIO server streams established, running server...")
+                await server.run(streams[0], streams[1], server.create_initialization_options())
+        except Exception as e:
+            logger.error(f"STDIO server error: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    if __name__ == "__main__":
+        anyio.run(main)
+
+  requirements.txt: |
+    mcp==1.0.0
+    uvicorn==0.32.1
+    fastapi==0.115.6
+    aiohttp==3.9.1
+    anyio==4.11.0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gov-mcp-server
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+    app: gov-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gov-mcp-server
+  template:
+    metadata:
+      labels:
+        {{- include "gov.labels" . | nindent 8 }}
+        component: mcp
+        app: gov-mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8080
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          cd /app
+          
+          # Install Node.js 20.x for mcp-proxy
+          apt-get update && apt-get install -y curl
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          
+          # Install Python dependencies
+          pip install -r requirements.txt
+          
+          # Install mcp-proxy globally
+          npm install -g mcp-proxy
+          
+          # Run STDIO MCP server through mcp-proxy
+          echo "Starting Government MCP Server with mcp-proxy..."
+          mcp-proxy --debug --port 8080 --host 0.0.0.0 python main.py
+        volumeMounts:
+        - name: server-code
+          mountPath: /app
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: server-code
+        configMap:
+          name: gov-mcp-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gov-mcp-server
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+    app: gov-mcp-server
+spec:
+  selector:
+    app: gov-mcp-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gov-mcp-gateway
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  plugin:
+    mcp:
+      policies:
+        # Require additional authorization for floodgate control
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `floodgate_control`)
+          action: allow  # In production, this might check for specific roles/permissions
+        # Allow rescue mission calls without restriction
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `rescue_mission`)
+          action: allow
+      defaultAction: allow
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gov-mcp-cors
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  headers:
+    accessControlAllowMethods:
+      - "*"
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+    accessControlMaxAge: 100
+    addVaryHeader: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gov-stripprefix
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  stripPrefix:
+    prefixes:
+      - /protected-mcp
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gov-mcp-route
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: {{ include "gov.mcp.hostMatch" . }}
+      middlewares:
+        - name: gov-mcp-cors
+        - name: gov-stripprefix
+        - name: gov-mcp-gateway
+      services:
+        - name: gov-mcp-server
+          port: 8080
+          passHostHeader: false

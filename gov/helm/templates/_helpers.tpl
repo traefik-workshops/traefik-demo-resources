@@ -101,3 +101,10 @@ Utility Host Match
 {{- define "gov.utility.hostMatch" -}}
 {{- printf "Host(`utility-gov.%s`)" .Values.domain }}
 {{- end }}
+
+{{/*
+MCP Server Host Match
+*/}}
+{{- define "gov.mcp.hostMatch" -}}
+{{- printf "Host(`mcp-gov.%s`) && PathPrefix(`/protected-mcp`)" .Values.domain }}
+{{- end }}

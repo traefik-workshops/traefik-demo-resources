@@ -1,0 +1,663 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: higher-ed-mcp-server
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+data:
+  main.py: |
+    #!/usr/bin/env python3
+    """
+    Higher Education MCP Server - Student Services Integration
+    """
+
+    from typing import Any, Dict, List, Optional
+    import logging, aiohttp, anyio
+    from mcp.server import Server
+    from mcp.server.stdio import stdio_server
+    from mcp.types import Tool
+
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("higher-ed-mcp")
+
+    # Create MCP server instance
+    server = Server("higher-ed-mcp")
+
+    # API Configuration
+    API_BASE_URLS = {
+        "financial_aid": "http://financial-aid-app.higher-ed.svc.cluster.local:3000",
+        "scholarship": "http://scholarship-app.higher-ed.svc.cluster.local:3000",
+        "housing": "http://housing-assignment-app.higher-ed.svc.cluster.local:3000",
+    }
+    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
+    KEYCLOAK_CREDENTIALS = {
+        "client_id": "traefik",
+        "grant_type": "password",
+        "client_secret": "{{ .Values.keycloak.clientSecret }}",
+        "scope": "openid",
+        "username": "{{ .Values.keycloak.adminUsername }}",
+        "password": "{{ .Values.keycloak.adminPassword }}",
+    }
+
+    jwt_token: Optional[str] = None
+
+    @server.list_tools()
+    async def list_tools():
+        """List available tools"""
+        return [
+            Tool(
+                name="ping",
+                description="Return a simple text response",
+                inputSchema={"type":"object","properties":{}}
+            ),
+            Tool(
+                name="enroll_in_housing",
+                description="Enroll a student in housing after verifying financial aid and scholarships",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "student_id": {"type": "string", "description": "Student ID"},
+                        "preferred_building": {"type": "string", "enum": ["A", "B", "C"], "description": "Preferred building (A, B, or C). Optional."},
+                        "room_type": {"type": "string", "enum": ["single", "double", "quad"], "description": "Preferred room type. Optional."},
+                    },
+                    "required": ["student_id"],
+                },
+            ),
+            Tool(
+                name="unenroll_from_housing",
+                description="Remove a student from their current housing assignment",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "student_id": {"type": "string", "description": "Student ID to unenroll from housing"},
+                        "reason": {"type": "string", "description": "Reason for unenrollment (optional)"},
+                    },
+                    "required": ["student_id"],
+                },
+            ),
+            Tool(
+                name="get_scholarship_status",
+                description="Get the scholarship status and eligibility details for a student",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "student_id": {"type": "string", "description": "The student ID to check scholarship status for"}
+                    },
+                    "required": ["student_id"]
+                }
+            ),
+            Tool(
+                name="get_financial_aid_status",
+                description="Get the financial aid status including FAFSA status and aid package details for a student",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "student_id": {"type": "string", "description": "The student ID to check financial aid status for"}
+                    },
+                    "required": ["student_id"]
+                }
+            )
+        ]
+
+    async def get_jwt_token() -> str:
+        global jwt_token
+        if jwt_token:
+            return jwt_token
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                KEYCLOAK_URL,
+                data=KEYCLOAK_CREDENTIALS,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ) as r:
+                if r.status != 200:
+                    raise RuntimeError(f"Keycloak token error: {r.status}")
+                data = await r.json()
+                jwt_token = data.get("access_token")
+                return jwt_token
+
+    async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
+        token = await get_jwt_token()
+        url = f"{API_BASE_URLS[service]}{endpoint}"
+        headers = {"Authorization": f"Bearer {token}"}
+        if method == "POST":
+            headers["Content-Type"] = "application/json"
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, json=data) as r:
+                if r.status == 200:
+                    try:
+                        return await r.json()
+                    except Exception as e:
+                        # If JSON parsing fails, try manual parsing (handles text/plain with JSON content)
+                        text_response = await r.text()
+                        logger.info(f"aiohttp JSON parsing failed for {url}. Content-Type: {r.headers.get('content-type')}. Trying manual parsing...")
+                        try:
+                            import json
+                            parsed_json = json.loads(text_response)
+                            logger.info(f"Manual JSON parsing successful for {url}: {parsed_json}")
+                            return parsed_json
+                        except Exception as json_error:
+                            logger.error(f"Manual JSON parsing also failed for {url}. Response: {text_response}")
+                            return {"error": f"Invalid JSON response: {text_response}", "status": r.status, "content_type": r.headers.get('content-type')}
+                if r.status == 404:
+                    return {"error": "Not found", "status": 404}
+                # Get response text for error cases
+                error_text = await r.text()
+                return {"error": f"API error {r.status}: {error_text}", "status": r.status}
+
+    async def check_financial_aid_status(student_id: str) -> Dict:
+        logger.info(f"Checking financial aid for {student_id}")
+        result = await api_request("financial_aid", f"/financial-aid/{student_id}")
+        logger.info(f"Financial aid response for {student_id}: {result}")
+        return result
+
+    async def check_scholarship_status(student_id: str) -> Dict:
+        logger.info(f"Checking scholarships for {student_id}")
+        return await api_request("scholarship", f"/scholarships/{student_id}")
+
+    async def check_housing_assignment(student_id: str) -> Dict:
+        logger.info(f"Checking housing assignment for {student_id}")
+        return await api_request("housing", f"/housing/applicant/{student_id}")
+
+    async def get_vacant_housing() -> Dict:
+        logger.info("Getting vacant housing units")
+        return await api_request("housing", "/housing/status/vacant")
+
+    async def assign_housing(unit_id: str, student_id: str) -> Dict:
+        logger.info(f"Assigning {student_id} to {unit_id}")
+        return await api_request("housing", f"/housing/{unit_id}/assign", "POST", {"applicant_id": student_id})
+
+    async def remove_housing_assignment(unit_id: str, student_id: str) -> Dict:
+        logger.info(f"Removing {student_id} from unit {unit_id}")
+        return await api_request("housing", f"/housing/{unit_id}/unassign", "POST", {"applicant_id": student_id})
+
+    def is_eligible(fin_aid: Dict, scholarships: Dict) -> tuple[bool, str]:
+        if "error" in fin_aid:
+            return False, f"Financial aid check failed: {fin_aid.get('error')}"
+        aid_status = fin_aid.get("aid_package_status", "")
+        fafsa_status = fin_aid.get("fafsa_status", "")
+        outstanding = fin_aid.get("outstanding_issues", "")
+        if fafsa_status in {"Not Received", "Incomplete"}:
+            return False, f"FAFSA not ready: {fafsa_status}. Outstanding: {outstanding}"
+        if aid_status in {"Blocked", "N/A"}:
+            return False, f"Financial aid blocked: {aid_status}. Issues: {outstanding}"
+        total = 0
+        if "error" not in scholarships and "scholarships" in scholarships:
+            for details in scholarships["scholarships"].values():
+                if details.get("eligible"):
+                    total += details.get("amount", 0)
+        reasons = []
+        if fafsa_status in {"Received & Verified", "Processed"}:
+            reasons.append(f"FAFSA: {fafsa_status}")
+        if aid_status in {"Pending Review", "Awarded - Awaiting Acceptance", "On Hold"}:
+            reasons.append(f"Aid status: {aid_status}")
+        if total > 0:
+            reasons.append(f"Scholarships: ${total:,}")
+        return True, "; ".join(reasons)
+
+    def best_unit(vacant: Dict, pref_bld: str | None, room_type: str | None) -> str | None:
+        if not vacant or "error" in vacant:
+            return None
+        scored = []
+        for unit_id, info in vacant.items():
+            s = 0
+            if pref_bld:
+                b = (info.get("building", "").split()[-1] or "")
+                if b == pref_bld:
+                    s += 10
+            cap = info.get("capacity", 0)
+            if room_type == "single" and cap == 1:
+                s += 5
+            if room_type == "double" and cap == 2:
+                s += 5
+            if room_type == "quad" and cap == 4:
+                s += 5
+            am = info.get("amenities", [])
+            if "Private Bathroom" in am:
+                s += 3
+            if "Air Conditioning" in am:
+                s += 2
+            if "Shared Kitchen" in am:
+                s += 1
+            scored.append((unit_id, s))
+        if not scored:
+            return None
+        scored.sort(key=lambda x: (-x[1], x[0]))
+        return scored[0][0]
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict):
+        """Handle tool calls - return as list to prevent dict.items() issues"""
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
+        if name == "ping":
+            return [{"type": "text", "text": "pong"}]
+        
+        if name == "enroll_in_housing":
+            student_id = arguments.get("student_id")
+            preferred_building = arguments.get("preferred_building")
+            room_type = arguments.get("room_type")
+            
+            if not student_id:
+                return [{"type": "text", "text": "Error: student_id is required"}]
+
+            try:
+                steps = []
+                steps.append("🏠 Checking existing housing assignment...")
+                housing_check = await check_housing_assignment(student_id)
+                if "error" not in housing_check and housing_check.get("assigned"):
+                    a = (housing_check.get("assignments") or [{}])[0]
+                    msg = (f"❌ Student {student_id} is already assigned:\n"
+                           f"• Building: {a.get('building','Unknown')}\n"
+                           f"• Room: {a.get('room','Unknown')}\n"
+                           f"• Unit ID: {a.get('unit_id','Unknown')}")
+                    return [{"type": "text", "text": msg}]
+
+                steps.append("✅ No existing housing assignment found")
+                steps.append("💰 Checking financial aid status...")
+                financial_aid = await check_financial_aid_status(student_id)
+
+                steps.append("🎓 Checking scholarship status...")
+                scholarships = await check_scholarship_status(student_id)
+
+                steps.append("🔍 Evaluating eligibility...")
+                ok, reason = is_eligible(financial_aid, scholarships)
+                if not ok:
+                    msg = f"❌ Not eligible for housing:\n{reason}\n\n" + "\n".join(steps)
+                    return [{"type": "text", "text": msg}]
+
+                steps.append(f"✅ Student eligible: {reason}")
+                steps.append("🏠 Searching for available housing...")
+                vacant = await get_vacant_housing()
+                best = best_unit(vacant, preferred_building, room_type)
+                if not best:
+                    msg = f"❌ No suitable housing available for {student_id}\n\n" + "\n".join(steps)
+                    return [{"type": "text", "text": msg}]
+
+                info = vacant[best]
+                steps.append(f"✅ Found unit: {best} ({info.get('building')} {info.get('room')})")
+                steps.append(f"📝 Assigning student to {best}...")
+                assigned = await assign_housing(best, student_id)
+                if "error" in assigned:
+                    msg = f"❌ Assignment failed: {assigned.get('error')}\n\n" + "\n".join(steps)
+                    return [{"type": "text", "text": msg}]
+
+                steps.append("✅ Housing assignment successful!")
+                success_msg = f"🎉 **Housing Enrollment Successful**\n"
+                success_msg += f"**Student ID:** {student_id}\n"
+                success_msg += f"**Assigned Unit:** {assigned.get('unit_id')}\n"
+                success_msg += f"**Building:** {assigned.get('building')}\n"
+                success_msg += f"**Room:** {assigned.get('room')}\n"
+                success_msg += f"**Roommates:** {max(0, len(assigned.get('occupants', [])) - 1)}\n\n"
+                success_msg += f"**Eligibility Summary:**\n{reason}\n\n"
+                success_msg += f"**Process Steps:**\n" + "\n".join(steps)
+                msg = success_msg
+
+                return [{"type": "text", "text": msg}]
+            except Exception as e:
+                logger.error(f"Error in housing enrollment: {e}")
+                return [{"type": "text", "text": f"❌ System error: {e}"}]
+        
+        if name == "unenroll_from_housing":
+            student_id = arguments.get("student_id")
+            reason = arguments.get("reason", "No reason provided")
+            
+            if not student_id:
+                return [{"type": "text", "text": "Error: student_id is required"}]
+
+            try:
+                steps = []
+                steps.append("🏠 Checking current housing assignment...")
+                
+                # Check if student has housing assignment
+                housing_check = await check_housing_assignment(student_id)
+                if "error" in housing_check or not housing_check.get("assigned"):
+                    msg = f"❌ Student {student_id} is not currently assigned to housing"
+                    return [{"type": "text", "text": msg}]
+
+                # Get current assignment details for confirmation
+                current_assignment = (housing_check.get("assignments") or [{}])[0]
+                building = current_assignment.get('building', 'Unknown')
+                room = current_assignment.get('room', 'Unknown')
+                unit_id = current_assignment.get('unit_id', 'Unknown')
+                
+                steps.append(f"✅ Found housing assignment: {building} {room} (Unit: {unit_id})")
+                steps.append("📝 Removing housing assignment...")
+                
+                # Remove the housing assignment
+                removal_result = await remove_housing_assignment(unit_id, student_id)
+                if "error" in removal_result:
+                    msg = f"❌ Failed to remove housing assignment: {removal_result.get('error')}\n\n" + "\n".join(steps)
+                    return [{"type": "text", "text": msg}]
+
+                steps.append("✅ Housing assignment removed successfully!")
+                
+                # Create success message
+                success_msg = f"🎉 **Housing Unenrollment Successful**\n"
+                success_msg += f"**Student ID:** {student_id}\n"
+                success_msg += f"**Previous Assignment:** {building} {room} (Unit: {unit_id})\n"
+                success_msg += f"**Reason:** {reason}\n\n"
+                success_msg += f"**Process Steps:**\n" + "\n".join(steps)
+
+                return [{"type": "text", "text": success_msg}]
+            except Exception as e:
+                logger.error(f"Error in housing unenrollment: {e}")
+                return [{"type": "text", "text": f"❌ System error: {e}"}]
+        
+        if name == "get_scholarship_status":
+            student_id = arguments.get("student_id")
+            
+            if not student_id:
+                return [{"type": "text", "text": "Error: student_id is required"}]
+            
+            try:
+                logger.info(f"Fetching scholarship status for student {student_id}")
+                
+                # Get scholarship data from the API
+                scholarships = await check_scholarship_status(student_id)
+                
+                if "error" in scholarships:
+                    return [{"type": "text", "text": f"❌ Error fetching scholarship data: {scholarships['error']}"}]
+                
+                # Format the scholarship information
+                scholarship_entries = []
+                total_amount = 0
+                eligible_count = 0
+                
+                for scholarship_name, details in scholarships.items():
+                    eligible = details.get("eligible", False)
+                    amount = details.get("amount", 0)
+                    
+                    status_emoji = "✅" if eligible else "❌"
+                    status_text = "Eligible" if eligible else "Not Eligible"
+                    
+                    scholarship_entries.append(
+                        f"{status_emoji} **{scholarship_name}**\n"
+                        f"   • Status: {status_text}\n"
+                        f"   • Amount: ${amount:,}"
+                    )
+                    
+                    if eligible:
+                        total_amount += amount
+                        eligible_count += 1
+                
+                # Build response message
+                response_message = "📚 **Scholarship Status for Student " + str(student_id) + "**\n\n"
+                response_message += "**Total Scholarships:** " + str(len(scholarships)) + "\n"
+                response_message += "**Eligible Scholarships:** " + str(eligible_count) + "\n"
+                response_message += "**Total Award Amount:** $" + f"{total_amount:,}" + "\n\n"
+                response_message += "**Scholarship Details:**\n" + "\n\n".join(scholarship_entries)
+                
+                return [{"type": "text", "text": response_message}]
+                
+            except Exception as e:
+                logger.error(f"Error getting scholarship status: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        if name == "get_financial_aid_status":
+            student_id = arguments.get("student_id")
+            
+            if not student_id:
+                return [{"type": "text", "text": "Error: student_id is required"}]
+            
+            try:
+                logger.info(f"Fetching financial aid status for student {student_id}")
+                
+                # Get financial aid data from the API
+                financial_aid = await check_financial_aid_status(student_id)
+                
+                if "error" in financial_aid:
+                    return [{"type": "text", "text": f"❌ Error fetching financial aid data: {financial_aid['error']}"}]
+                
+                # Extract financial aid details
+                fafsa_status = financial_aid.get("fafsa_status", "Unknown")
+                outstanding_issues = financial_aid.get("outstanding_issues", "None")
+                aid_package_status = financial_aid.get("aid_package_status", "Not Available")
+                
+                # Determine status indicators
+                fafsa_emoji = "✅" if fafsa_status in ["Received & Verified", "Processed"] else "⚠️" if fafsa_status == "Selected for Verification" else "❌"
+                
+                aid_emoji = "✅" if aid_package_status in ["Awarded - Awaiting Acceptance", "Pending Review"] else "⚠️" if aid_package_status == "On Hold" else "❌"
+                
+                # Determine overall status
+                if fafsa_status in ["Received & Verified", "Processed"] and aid_package_status not in ["Blocked", "N/A", "Awarded - Declined"]:
+                    overall_status = "✅ **ELIGIBLE**"
+                elif fafsa_status == "Selected for Verification" or aid_package_status == "On Hold":
+                    overall_status = "⚠️ **PENDING ACTION**"
+                else:
+                    overall_status = "❌ **NOT ELIGIBLE**"
+                
+                # Build response message
+                response_message = "💰 **Financial Aid Status for Student " + str(student_id) + "**\n\n"
+                response_message += "**Overall Status:** " + overall_status + "\n\n"
+                response_message += "**FAFSA Information:**\n"
+                response_message += fafsa_emoji + " **Status:** " + fafsa_status + "\n"
+                response_message += "📋 **Outstanding Issues:** " + outstanding_issues + "\n\n"
+                response_message += "**Aid Package Information:**\n"
+                response_message += aid_emoji + " **Status:** " + aid_package_status + "\n\n"
+                
+                # Add guidance based on status
+                if fafsa_status == "Not Received":
+                    response_message += "**Next Steps:**\n• Complete and submit FAFSA application\n• Contact Financial Aid Office for assistance"
+                elif fafsa_status == "Incomplete":
+                    response_message += "**Next Steps:**\n• Review outstanding issues: " + outstanding_issues + "\n• Submit missing documentation\n• Contact Financial Aid Office if needed"
+                elif fafsa_status == "Selected for Verification":
+                    response_message += "**Next Steps:**\n• Submit required verification documents: " + outstanding_issues + "\n• Check student portal for document list\n• Contact Financial Aid Office with questions"
+                elif aid_package_status == "Awarded - Awaiting Acceptance":
+                    response_message += "**Next Steps:**\n• Review aid package details\n• Accept or decline aid awards\n• Complete any required loan counseling"
+                elif aid_package_status == "Blocked":
+                    response_message += "**Next Steps:**\n• Resolve outstanding issues: " + outstanding_issues + "\n• Contact Financial Aid Office immediately"
+                else:
+                    response_message += "**Next Steps:**\n• Monitor student portal for updates\n• Contact Financial Aid Office with questions"
+                
+                return [{"type": "text", "text": response_message}]
+                
+            except Exception as e:
+                logger.error(f"Error getting financial aid status: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        else:
+            # For errors, still need to return proper structure
+            return {
+                "content": [{"type": "text", "text": f"Unknown tool: {name}"}],
+                "isError": True
+            }
+
+    async def main():
+        """Main entry point - STDIO MCP server for mcp-proxy"""    
+        logger.info("Starting Higher-Ed MCP Server...")
+        
+        try:
+            async with stdio_server() as streams:
+                logger.info("STDIO server streams established, running server...")
+                await server.run(streams[0], streams[1], server.create_initialization_options())
+        except Exception as e:
+            logger.error(f"STDIO server error: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+
+    if __name__ == "__main__":
+        anyio.run(main)
+
+  requirements.txt: |
+    mcp==1.0.0
+    uvicorn==0.32.1
+    fastapi==0.115.6
+    aiohttp==3.9.1
+    anyio==4.11.0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: higher-ed-mcp-server
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+    app: higher-ed-mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: higher-ed-mcp-server
+  template:
+    metadata:
+      labels:
+        {{- include "higher-ed.labels" . | nindent 8 }}
+        component: mcp
+        app: higher-ed-mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: python:3.11-slim
+        ports:
+        - containerPort: 8080
+        command: ["/bin/bash"]
+        args:
+        - -c
+        - |
+          cd /app
+          
+          # Install Node.js 20.x for mcp-proxy
+          apt-get update && apt-get install -y curl
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          
+          # Install Python dependencies
+          pip install -r requirements.txt
+          
+          # Install mcp-proxy globally
+          npm install -g mcp-proxy
+          
+          # Run STDIO MCP server through mcp-proxy
+          echo "Starting Higher-Ed MCP Server with mcp-proxy..."
+          mcp-proxy --debug --port 8080 --host 0.0.0.0 python main.py
+        volumeMounts:
+        - name: server-code
+          mountPath: /app
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: server-code
+        configMap:
+          name: higher-ed-mcp-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: higher-ed-mcp-server
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+    app: higher-ed-mcp-server
+spec:
+  selector:
+    app: higher-ed-mcp-server
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: higher-ed-mcp-gateway
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  plugin:
+    mcp:
+      policies:
+        # Block housing unenrollment requests for security
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `unenroll_from_housing`)
+          action: deny
+      defaultAction: allow
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: higher-ed-mcp-cors
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  headers:
+    accessControlAllowMethods:
+      - "*"
+    accessControlAllowHeaders:
+      - "*"
+    accessControlAllowOriginList:
+      - "*"
+    accessControlExposeHeaders:
+      - "*"
+    accessControlMaxAge: 100
+    addVaryHeader: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: higher-ed-stripprefix
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  stripPrefix:
+    prefixes:
+      - /protected-mcp
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: higher-ed-mcp-route
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: {{ include "higher-ed.mcp.hostMatch" . }}
+      middlewares:
+        - name: higher-ed-mcp-cors
+        - name: higher-ed-stripprefix
+        - name: higher-ed-mcp-gateway
+      services:
+        - name: higher-ed-mcp-server
+          port: 8080
+          passHostHeader: false

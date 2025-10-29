@@ -101,3 +101,10 @@ Scholarship Host Match
 {{- define "higher-ed.scholarship.hostMatch" -}}
 {{- printf "Host(`scholarship-higher-ed.%s`)" .Values.domain }}
 {{- end }}
+
+{{/*
+MCP Server Host Match
+*/}}
+{{- define "higher-ed.mcp.hostMatch" -}}
+{{- printf "Host(`mcp-higher-ed.%s`) && PathPrefix(`/protected-mcp`)" .Values.domain }}
+{{- end }}
