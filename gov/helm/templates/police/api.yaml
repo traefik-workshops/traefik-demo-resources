@@ -16,54 +16,54 @@ spec:
     override:
       servers:
         - url: {{ include "gov.police.apiUrl" . }}
-  operationSets:
-    # Public read-only operations
-    - name: public-ops
-      matchers:
-        - path: /road_closures
-          methods:
-            - GET
-        - pathRegex: "/road_closures/[^/]+$"
-          methods:
-            - GET
-        - path: /areas
-          methods:
-            - GET
-    # EOC staff operations (includes incident viewing)
-    - name: eoc-ops
-      matchers:
-        - path: /road_closures
-          methods:
-            - GET
-        - pathRegex: "/road_closures/[^/]+$"
-          methods:
-            - GET
-        - path: /incidents
-          methods:
-            - GET
-        - pathRegex: "/incidents/[^/]+$"
-          methods:
-            - GET
-        - path: /areas
-          methods:
-            - GET
-    # Police officer operations (all read operations)
-    - name: officer-ops
-      matchers:
-        - pathPrefix: /
-          methods:
-            - GET
-    # Admin operations (full access)
-    - name: admin-ops
-      matchers:
-        - pathPrefix: /
-          methods:
-            - GET
-            - POST
-            - PUT
-            - DELETE
-            - PATCH
-  cors:
+    operationSets:
+      # Public read-only operations
+      - name: public-ops
+        matchers:
+          - path: /road_closures
+            methods:
+              - GET
+          - pathRegex: "/road_closures/[^/]+$"
+            methods:
+              - GET
+          - path: /areas
+            methods:
+              - GET
+      # EOC staff operations (includes incident viewing)
+      - name: eoc-ops
+        matchers:
+          - path: /road_closures
+            methods:
+              - GET
+          - pathRegex: "/road_closures/[^/]+$"
+            methods:
+              - GET
+          - path: /incidents
+            methods:
+              - GET
+          - pathRegex: "/incidents/[^/]+$"
+            methods:
+              - GET
+          - path: /areas
+            methods:
+              - GET
+      # Police officer operations (all read operations)
+      - name: officer-ops
+        matchers:
+          - pathPrefix: /
+            methods:
+              - GET
+      # Admin operations (full access)
+      - name: admin-ops
+        matchers:
+          - pathPrefix: /
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+    cors:
     allowHeadersList:
       - "*"
     allowOriginsList:
