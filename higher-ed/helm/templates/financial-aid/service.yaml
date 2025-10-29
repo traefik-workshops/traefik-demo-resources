@@ -1,0 +1,185 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financial-aid-data
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: financial-aid
+
+data:
+  api.json: |
+    {
+      "financial-aid": {
+        "78901": {"fafsa_status": "Received & Verified", "outstanding_issues": "None", "aid_package_status": "Pending Review"},
+        "12345": {"fafsa_status": "Incomplete", "outstanding_issues": "Missing Parent Signature", "aid_package_status": "Blocked"},
+        "67890": {"fafsa_status": "Selected for Verification", "outstanding_issues": "Requires 2024 Tax Documents", "aid_package_status": "On Hold"},
+        "11223": {"fafsa_status": "Received & Verified", "outstanding_issues": "None", "aid_package_status": "Awarded - Awaiting Acceptance"},
+        "44556": {"fafsa_status": "Not Received", "outstanding_issues": "FAFSA application not found", "aid_package_status": "N/A"},
+        "77889": {"fafsa_status": "Processed", "outstanding_issues": "Discrepancy in reported income", "aid_package_status": "On Hold"},
+        "99001": {"fafsa_status": "Received & Verified", "outstanding_issues": "None", "aid_package_status": "Awarded - Declined"},
+        "23456": {"fafsa_status": "Incomplete", "outstanding_issues": "Missing Student Signature", "aid_package_status": "Blocked"}
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: financial-aid-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: financial-aid
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: financial-aid-app
+  template:
+    metadata:
+      labels:
+        app: financial-aid-app
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/traefik/api-server:v1.0.0
+          args:
+            [
+              "-data",
+              "/api/api.json",
+              "-openapi",
+              "/public/openapi.yaml",
+            ]
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+      volumes:
+        - name: api-data
+          configMap:
+            name: financial-aid-data
+        - name: openapi
+          configMap:
+            name: financial-aid-app-openapispec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: financial-aid-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: financial-aid
+
+  labels:
+    app: financial-aid-app
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      name: api
+  selector:
+    app: financial-aid-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: financial-aid-app-openapispec
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: financial-aid
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Financial Aid Status API
+      description: Provides the status of student financial aid applications (e.g., FAFSA).
+    paths:
+      /financial-aid:
+        get:
+          summary: List all financial aid records
+          operationId: listAllFinancialAid
+          security:
+            - bearerAuth: []
+          responses:
+            '200':
+              description: A map of applicant IDs to their financial aid status
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/financialAidStatus"
+            '401':
+              $ref: '#/components/responses/unauthorized'
+            '500':
+              $ref: '#/components/responses/serverError'
+      /financial-aid/{applicant_id}:
+        get:
+          summary: Retrieve financial aid status for a specific applicant
+          operationId: getStatusByApplicantId
+          security:
+            - bearerAuth: []
+          parameters:
+            - name: applicant_id
+              in: path
+              description: The unique ID of the applicant
+              required: true
+              schema:
+                type: string
+              example: "78901"
+          responses:
+            '200':
+              description: A single financial aid status record
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/financialAidStatus"
+            '401':
+              $ref: '#/components/responses/unauthorized'
+            '404':
+              $ref: '#/components/responses/notFound'
+            '500':
+              $ref: '#/components/responses/serverError'
+    components:
+      responses:
+        notFound:
+          description: "Not found"
+        unauthorized:
+          description: "Access token is missing or invalid"
+        serverError:
+          description: "Internal server error"
+      schemas:
+        financialAidStatus:
+          type: object
+          required:
+            - fafsa_status
+          properties:
+            fafsa_status:
+              type: string
+              enum:
+                - "Received & Verified"
+                - "Incomplete"
+                - "Selected for Verification"
+                - "Not Received"
+                - "Processed"
+              example: "Received & Verified"
+            outstanding_issues:
+              type: string
+              example: "None"
+            aid_package_status:
+              type: string
+              example: "Pending Review"
+      securitySchemes:
+        bearerAuth:
+          description: "Bearer authentication for authorized system access"
+          type: http
+          scheme: bearer
+          bearerFormat: JWT

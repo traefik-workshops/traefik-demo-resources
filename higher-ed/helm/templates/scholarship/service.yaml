@@ -1,0 +1,174 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scholarship-data
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+data:
+  api.json: |
+    {
+      "scholarships": {
+        "78901": {
+          "Women in STEM Scholarship": {"eligible": true, "amount": 10000},
+          "Presidential Merit Award": {"eligible": true, "amount": 20000}
+        },
+        "12345": {
+          "First-Generation Scholars": {"eligible": true, "amount": 5000}
+        },
+        "67890": {
+          "Women in STEM Scholarship": {"eligible": false, "amount": 0}
+        },
+        "11223": {
+          "Alumni Legacy Scholarship": {"eligible": true, "amount": 2500}
+        },
+        "44556": {
+          "First-Generation Scholars": {"eligible": false, "amount": 0}
+        },
+        "99001": {
+          "Fine Arts Grant": {"eligible": true, "amount": 7500}
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scholarship-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scholarship-app
+  template:
+    metadata:
+      labels:
+        app: scholarship-app
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/traefik/api-server:v1.0.0
+          args: [ "-data", "/api/api.json", "-openapi", "/public/openapi.yaml" ]
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+      volumes:
+        - name: api-data
+          configMap:
+            name: scholarship-data
+        - name: openapi
+          configMap:
+            name: scholarship-app-openapispec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scholarship-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+spec:
+  ports:
+    - port: 3000
+      name: api
+  selector:
+    app: scholarship-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scholarship-app-openapispec
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Scholarship Eligibility API
+      description: Checks applicant eligibility for institutional scholarships.
+    paths:
+      /scholarships:
+        get:
+          summary: List all applicants and their scholarships
+          operationId: listAllScholarships
+          security:
+            - bearerAuth: ["scholarship:read"]
+          responses:
+            '200':
+              description: A map of applicant IDs to their scholarship records
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/scholarshipRecord"
+            '401':
+              $ref: '#/components/responses/unauthorized'
+      /scholarships/{applicant_id}:
+        get:
+          summary: Get all scholarships for a specific applicant
+          operationId: getScholarshipsByApplicant
+          security:
+            - bearerAuth: ["scholarship:read"]
+          parameters:
+            - name: applicant_id
+              in: path
+              required: true
+              description: The applicant's unique identifier
+              schema:
+                type: string
+              example: "78901"
+          responses:
+            '200':
+              description: All scholarship records for the specified applicant
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/scholarshipRecord"
+            '401':
+              $ref: '#/components/responses/unauthorized'
+            '404':
+              $ref: '#/components/responses/notFound'
+    components:
+      responses:
+        notFound: { description: "Applicant not found" }
+        unauthorized: { description: "Access token is missing or invalid" }
+      schemas:
+        scholarshipRecord:
+          type: object
+          properties:
+            eligible: 
+              type: boolean
+              example: true
+            amount: 
+              type: number
+              example: 10000
+        scholarshipsByApplicant:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/scholarshipRecord"
+      securitySchemes:
+        bearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT

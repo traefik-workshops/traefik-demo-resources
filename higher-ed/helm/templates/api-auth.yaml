@@ -1,0 +1,60 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIAuth
+metadata:
+  name: jwt-auth
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  isDefault: true
+  jwt:
+    appIdClaim: group
+    jwksUrl: {{ include "higher-ed.keycloak.jwksUrl" . }}
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIPortalAuth
+metadata:
+  name: oidc-portal-auth
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  oidc:
+    issuerUrl: {{ include "higher-ed.keycloak.issuerUrl" . }}
+    secretName: oidc-credentials
+    scopes:
+      - openid
+      - profile
+      - email
+      - group
+    claims:
+      groups: group
+      userId: sub
+      email: email
+      firstname: given_name
+      lastname: family_name
+    syncedAttributes:
+      - groups
+      - email
+      - firstname
+      - lastname
+      - userId
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oidc-credentials
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+type: Opaque
+stringData:
+  clientId: {{ .Values.oidc.clientId }}
+  clientSecret: {{ .Values.oidc.clientSecret }}

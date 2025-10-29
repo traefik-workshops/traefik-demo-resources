@@ -1,0 +1,606 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: housing-assignment-data
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+data:
+  server.js: |
+    const express = require('express');
+    const path = require('path');
+    const app = express();
+    app.use(express.json());
+
+    // In-memory housing data
+    const housing = {
+      "building-a-101": {
+        building: "Building A",
+        room: "101",
+        capacity: 2,
+        occupants: ["78901", "99001"],
+        status: "occupied",
+        amenities: ["WiFi", "Air Conditioning", "Shared Bathroom"]
+      },
+      "building-a-102": {
+        building: "Building A",
+        room: "102",
+        capacity: 2,
+        occupants: ["11223"],
+        status: "partially-occupied",
+        amenities: ["WiFi", "Air Conditioning", "Shared Bathroom"]
+      },
+      "building-a-103": {
+        building: "Building A",
+        room: "103",
+        capacity: 1,
+        occupants: [],
+        status: "vacant",
+        amenities: ["WiFi", "Air Conditioning", "Private Bathroom"]
+      },
+      "building-b-201": {
+        building: "Building B",
+        room: "201",
+        capacity: 2,
+        occupants: ["12345"],
+        status: "partially-occupied",
+        amenities: ["WiFi", "Shared Bathroom"]
+      },
+      "building-b-202": {
+        building: "Building B",
+        room: "202",
+        capacity: 2,
+        occupants: [],
+        status: "vacant",
+        amenities: ["WiFi", "Shared Bathroom"]
+      },
+      "building-b-203": {
+        building: "Building B",
+        room: "203",
+        capacity: 1,
+        occupants: [],
+        status: "vacant",
+        amenities: ["WiFi", "Private Bathroom"]
+      },
+      "building-c-301": {
+        building: "Building C",
+        room: "301",
+        capacity: 4,
+        occupants: ["67890", "23456"],
+        status: "partially-occupied",
+        amenities: ["WiFi", "Air Conditioning", "Shared Kitchen", "Shared Bathroom"]
+      },
+      "building-c-302": {
+        building: "Building C",
+        room: "302",
+        capacity: 2,
+        occupants: [],
+        status: "vacant",
+        amenities: ["WiFi", "Air Conditioning", "Shared Bathroom"]
+      },
+      "building-c-303": {
+        building: "Building C",
+        room: "303",
+        capacity: 1,
+        occupants: [],
+        status: "vacant",
+        amenities: ["WiFi", "Air Conditioning", "Private Bathroom"]
+      }
+    };
+
+    // GET all housing units
+    app.get('/housing', (req, res) => {
+      res.json(housing);
+    });
+
+    // GET specific housing unit
+    app.get('/housing/:unit_id', (req, res) => {
+      const { unit_id } = req.params;
+      const unit = housing[unit_id];
+      
+      if (!unit) {
+        return res.status(404).json({ error: "Housing unit not found" });
+      }
+      
+      res.json({
+        unit_id: unit_id,
+        ...unit
+      });
+    });
+
+    // GET housing assignment for a specific applicant
+    app.get('/housing/applicant/:applicant_id', (req, res) => {
+      const { applicant_id } = req.params;
+      
+      // Find which unit(s) the applicant is assigned to
+      const assignments = [];
+      Object.keys(housing).forEach(unit_id => {
+        if (housing[unit_id].occupants.includes(applicant_id)) {
+          assignments.push({
+            unit_id: unit_id,
+            building: housing[unit_id].building,
+            room: housing[unit_id].room,
+            capacity: housing[unit_id].capacity,
+            occupants: housing[unit_id].occupants,
+            amenities: housing[unit_id].amenities
+          });
+        }
+      });
+      
+      if (assignments.length === 0) {
+        return res.status(404).json({ 
+          applicant_id: applicant_id,
+          assigned: false,
+          message: "No housing assignment found"
+        });
+      }
+      
+      res.json({
+        applicant_id: applicant_id,
+        assigned: true,
+        assignments: assignments
+      });
+    });
+
+    // GET vacant housing units
+    app.get('/housing/status/vacant', (req, res) => {
+      const vacant = {};
+      Object.keys(housing).forEach(unit_id => {
+        if (housing[unit_id].status === 'vacant') {
+          vacant[unit_id] = housing[unit_id];
+        }
+      });
+      res.json(vacant);
+    });
+
+    // Serve OpenAPI spec
+    app.get('/openapi.yaml', (req, res) => {
+      res.sendFile(path.join('/openapi', 'openapi.yaml'));
+    });
+
+    // POST assign applicant to housing
+    app.post('/housing/:unit_id/assign', (req, res) => {
+      const { unit_id } = req.params;
+      const { applicant_id } = req.body;
+      
+      const unit = housing[unit_id];
+      
+      if (!unit) {
+        return res.status(404).json({ error: "Housing unit not found" });
+      }
+      
+      if (!applicant_id) {
+        return res.status(400).json({ error: "applicant_id is required" });
+      }
+      
+      // Check if applicant is already assigned to this unit
+      if (unit.occupants.includes(applicant_id)) {
+        return res.status(400).json({ error: "Applicant already assigned to this unit" });
+      }
+      
+      // Check if unit has capacity
+      if (unit.occupants.length >= unit.capacity) {
+        return res.status(400).json({ error: "Housing unit is at full capacity" });
+      }
+      
+      // Assign applicant
+      unit.occupants.push(applicant_id);
+      
+      // Update status
+      if (unit.occupants.length === unit.capacity) {
+        unit.status = "occupied";
+      } else {
+        unit.status = "partially-occupied";
+      }
+      
+      res.json({
+        unit_id: unit_id,
+        applicant_id: applicant_id,
+        status: "Assignment successful",
+        building: unit.building,
+        room: unit.room,
+        occupants: unit.occupants,
+        unit_status: unit.status
+      });
+    });
+
+    // POST unassign applicant from housing
+    app.post('/housing/:unit_id/unassign', (req, res) => {
+      const { unit_id } = req.params;
+      const { applicant_id } = req.body;
+      
+      const unit = housing[unit_id];
+      
+      if (!unit) {
+        return res.status(404).json({ error: "Housing unit not found" });
+      }
+      
+      if (!applicant_id) {
+        return res.status(400).json({ error: "applicant_id is required" });
+      }
+      
+      // Check if applicant is assigned to this unit
+      const index = unit.occupants.indexOf(applicant_id);
+      if (index === -1) {
+        return res.status(400).json({ error: "Applicant not assigned to this unit" });
+      }
+      
+      // Remove applicant
+      unit.occupants.splice(index, 1);
+      
+      // Update status
+      if (unit.occupants.length === 0) {
+        unit.status = "vacant";
+      } else if (unit.occupants.length < unit.capacity) {
+        unit.status = "partially-occupied";
+      }
+      
+      res.json({
+        unit_id: unit_id,
+        applicant_id: applicant_id,
+        status: "Unassignment successful",
+        building: unit.building,
+        room: unit.room,
+        occupants: unit.occupants,
+        unit_status: unit.status
+      });
+    });
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Housing Assignment API running on port ${PORT}`);
+    });
+
+  package.json: |
+    {
+      "name": "housing-assignment-api",
+      "version": "1.0.0",
+      "main": "server.js",
+      "dependencies": {
+        "express": "^4.18.2"
+      },
+      "scripts": {
+        "start": "node server.js"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: housing-assignment-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: housing-assignment-app
+  template:
+    metadata:
+      labels:
+        app: housing-assignment-app
+    spec:
+      initContainers:
+        - name: init-copy-app
+          image: alpine:3.19
+          command: ["sh", "-c", "cp -a /cm/. /work/"]
+          volumeMounts:
+            - name: app-code-cm
+              mountPath: /cm
+            - name: app-code
+              mountPath: /work
+      containers:
+        - name: api
+          image: node:18-alpine
+          command: ["sh", "-c", "cd /app && npm install && npm start"]
+          workingDir: /app
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+            - name: openapi-spec
+              mountPath: /openapi
+              readOnly: true
+          ports:
+            - containerPort: 3000
+      volumes:
+        - name: app-code
+          emptyDir: {}
+        - name: app-code-cm
+          configMap:
+            name: housing-assignment-data
+        - name: openapi-spec
+          configMap:
+            name: housing-assignment-app-openapispec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: housing-assignment-app
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      name: api
+  selector:
+    app: housing-assignment-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: housing-assignment-app-openapispec
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Housing Assignment API
+      description: Manages student housing assignments based on application status.
+    paths:
+      /housing:
+        get:
+          summary: List all housing units
+          operationId: listAllHousing
+          responses:
+            '200':
+              description: A map of unit IDs to their housing information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/housingUnit"
+      /housing/{unit_id}:
+        get:
+          summary: Get details of a specific housing unit
+          operationId: getHousingUnit
+          parameters:
+            - name: unit_id
+              in: path
+              required: true
+              description: The unique identifier for the housing unit
+              schema:
+                type: string
+              example: "building-a-101"
+          responses:
+            '200':
+              description: Details of the housing unit
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/housingUnitDetailed"
+            '404':
+              description: "Housing unit not found"
+      /housing/applicant/{applicant_id}:
+        get:
+          summary: Get housing assignment for a specific applicant
+          operationId: getApplicantHousing
+          parameters:
+            - name: applicant_id
+              in: path
+              required: true
+              description: The unique identifier for the applicant
+              schema:
+                type: string
+              example: "78901"
+          responses:
+            '200':
+              description: Housing assignment information for the applicant
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/applicantHousing"
+            '404':
+              description: "No housing assignment found for this applicant"
+      /housing/status/vacant:
+        get:
+          summary: List all vacant housing units
+          operationId: listVacantHousing
+          responses:
+            '200':
+              description: A map of vacant unit IDs to their housing information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: "#/components/schemas/housingUnit"
+      /housing/{unit_id}/assign:
+        post:
+          summary: Assign an applicant to a housing unit
+          operationId: assignHousing
+          parameters:
+            - name: unit_id
+              in: path
+              required: true
+              description: The unique identifier for the housing unit
+              schema:
+                type: string
+              example: "building-a-101"
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/assignmentRequest'
+          responses:
+            '200':
+              description: Assignment successful
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/assignmentResponse'
+            '400':
+              description: "Bad request - unit at capacity or applicant already assigned"
+            '404':
+              description: "Housing unit not found"
+      /housing/{unit_id}/unassign:
+        post:
+          summary: Unassign an applicant from a housing unit
+          operationId: unassignHousing
+          parameters:
+            - name: unit_id
+              in: path
+              required: true
+              description: The unique identifier for the housing unit
+              schema:
+                type: string
+              example: "building-a-101"
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/assignmentRequest'
+          responses:
+            '200':
+              description: Unassignment successful
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/assignmentResponse'
+            '400':
+              description: "Bad request - applicant not assigned to this unit"
+            '404':
+              description: "Housing unit not found"
+    components:
+      schemas:
+        housingUnit:
+          type: object
+          properties:
+            building:
+              type: string
+              example: "Building A"
+            room:
+              type: string
+              example: "101"
+            capacity:
+              type: integer
+              example: 2
+            occupants:
+              type: array
+              items:
+                type: string
+              example: ["78901", "99001"]
+            status:
+              type: string
+              enum: ["vacant", "partially-occupied", "occupied"]
+              example: "occupied"
+            amenities:
+              type: array
+              items:
+                type: string
+              example: ["WiFi", "Air Conditioning", "Shared Bathroom"]
+        housingUnitDetailed:
+          type: object
+          properties:
+            unit_id:
+              type: string
+              example: "building-a-101"
+            building:
+              type: string
+              example: "Building A"
+            room:
+              type: string
+              example: "101"
+            capacity:
+              type: integer
+              example: 2
+            occupants:
+              type: array
+              items:
+                type: string
+              example: ["78901", "99001"]
+            status:
+              type: string
+              enum: ["vacant", "partially-occupied", "occupied"]
+              example: "occupied"
+            amenities:
+              type: array
+              items:
+                type: string
+              example: ["WiFi", "Air Conditioning", "Shared Bathroom"]
+        applicantHousing:
+          type: object
+          properties:
+            applicant_id:
+              type: string
+              example: "78901"
+            assigned:
+              type: boolean
+              example: true
+            assignments:
+              type: array
+              items:
+                type: object
+                properties:
+                  unit_id:
+                    type: string
+                    example: "building-a-101"
+                  building:
+                    type: string
+                    example: "Building A"
+                  room:
+                    type: string
+                    example: "101"
+                  capacity:
+                    type: integer
+                    example: 2
+                  occupants:
+                    type: array
+                    items:
+                      type: string
+                    example: ["78901", "99001"]
+                  amenities:
+                    type: array
+                    items:
+                      type: string
+                    example: ["WiFi", "Air Conditioning"]
+        assignmentRequest:
+          type: object
+          required: [applicant_id]
+          properties:
+            applicant_id:
+              type: string
+              example: "44556"
+        assignmentResponse:
+          type: object
+          properties:
+            unit_id:
+              type: string
+              example: "building-a-103"
+            applicant_id:
+              type: string
+              example: "44556"
+            status:
+              type: string
+              example: "Assignment successful"
+            building:
+              type: string
+              example: "Building A"
+            room:
+              type: string
+              example: "103"
+            occupants:
+              type: array
+              items:
+                type: string
+              example: ["44556"]
+            unit_status:
+              type: string
+              enum: ["vacant", "partially-occupied", "occupied"]
+              example: "occupied"

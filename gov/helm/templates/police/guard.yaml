@@ -1,0 +1,38 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: content-guard-police
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+spec:
+  plugin:
+    content-guard:
+      engine:
+        presidio:
+          host: {{ .Values.presidio.host }}
+          language: en
+      response:
+        rules:
+          # Mask officer names in notes field using PERSON entity detection
+          - jsonQueries:
+              - ".[].notes"
+            mask:
+              char: "X"
+              unmaskFromLeft: 1
+              unmaskFromRight: 0
+            entities:
+              - PERSON
+          
+          # Mask witness contact - emails and phone numbers
+          - jsonQueries:
+              - ".[].witness_contact"
+            mask:
+              char: "X"
+              unmaskFromLeft: 1
+              unmaskFromRight: 0
+            entities:
+              - EMAIL_ADDRESS
+              - PHONE_NUMBER

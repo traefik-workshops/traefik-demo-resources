@@ -1,0 +1,336 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: public-works-data
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: public-works
+
+data:
+  server.js: |
+    const express = require('express');
+    const path = require('path');
+    const app = express();
+    app.use(express.json());
+
+    // In-memory dam data
+    const dams = {
+      "north_dam": {
+        name: "Northern Regional Dam",
+        location: "North District",
+        floodgate_status: "closed",
+        last_action: "2025-10-08 14:30:00"
+      },
+      "south_dam": {
+        name: "Southern Regional Dam", 
+        location: "South District",
+        floodgate_status: "open",
+        last_action: "2025-10-09 08:15:00"
+      },
+      "east_dam": {
+        name: "Eastern Regional Dam",
+        location: "East District", 
+        floodgate_status: "closed",
+        last_action: "2025-10-07 10:00:00"
+      },
+      "central_dam": {
+        name: "Central Regional Dam",
+        location: "Central District",
+        floodgate_status: "partial",
+        last_action: "2025-10-08 16:45:00"
+      }
+    };
+
+    // GET all dams
+    app.get('/dams', (req, res) => {
+      const result = {};
+      Object.keys(dams).forEach(dam_id => {
+        result[dam_id] = {
+          name: dams[dam_id].name,
+          location: dams[dam_id].location,
+          floodgate_status: dams[dam_id].floodgate_status,
+          last_action: dams[dam_id].last_action
+        };
+      });
+      res.json(result);
+    });
+
+    // GET dam status by ID
+    app.get('/dams/:dam_id', (req, res) => {
+      const { dam_id } = req.params;
+      const dam = dams[dam_id];
+      
+      if (!dam) {
+        return res.status(404).json({ error: "Dam not found" });
+      }
+      
+      res.json({
+        dam_id: dam_id,
+        name: dam.name,
+        location: dam.location,
+        floodgate_status: dam.floodgate_status,
+        last_action: dam.last_action
+      });
+    });
+
+    // POST control floodgates
+    app.post('/dams/:dam_id/floodgates/control', (req, res) => {
+      const { dam_id } = req.params;
+      const { action } = req.body;
+      
+      const dam = dams[dam_id];
+      
+      if (!dam) {
+        return res.status(404).json({ error: "Dam not found" });
+      }
+      
+      if (!action || !['open', 'close'].includes(action)) {
+        return res.status(400).json({ error: "Invalid action. Must be 'open' or 'close'" });
+      }
+      
+      // Update dam status
+      dam.floodgate_status = action === 'open' ? 'open' : 'closed';
+      dam.last_action = new Date().toISOString();
+      
+      res.json({
+        dam_id: dam_id,
+        status: "Action Initiated",
+        action: action,
+        floodgate_status: dam.floodgate_status,
+        timestamp: dam.last_action
+      });
+    });
+
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Public Works API running on port ${PORT}`);
+    });
+    
+    // Serve OpenAPI spec
+    app.get('/openapi.yaml', (req, res) => {
+      res.sendFile(path.join('/openapi', 'openapi.yaml'));
+    });
+
+  package.json: |
+    {
+      "name": "public-works-api",
+      "version": "1.0.0",
+      "main": "server.js",
+      "dependencies": {
+        "express": "^4.18.2"
+      },
+      "scripts": {
+        "start": "node server.js"
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: public-works-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: public-works
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: public-works-app
+  template:
+    metadata:
+      labels:
+        app: public-works-app
+    spec:
+      initContainers:
+        - name: init-copy-app
+          image: alpine:3.19
+          command: ["sh", "-c", "cp -a /cm/. /work/"]
+          volumeMounts:
+            - name: app-code-cm
+              mountPath: /cm
+            - name: app-code
+              mountPath: /work
+      containers:
+        - name: api
+          image: node:18-alpine
+          command: ["sh", "-c", "cd /app && npm install && npm start"]
+          workingDir: /app
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+            - name: openapi-spec
+              mountPath: /openapi
+              readOnly: true
+          ports:
+            - containerPort: 3000
+      volumes:
+        - name: app-code
+          emptyDir: {}
+        - name: app-code-cm
+          configMap:
+            name: public-works-data
+        - name: openapi-spec
+          configMap:
+            name: public-works-app-openapispec
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: public-works-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: public-works
+
+spec:
+  ports:
+    - port: 3000
+      name: api
+      targetPort: 3000
+  selector:
+    app: public-works-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: public-works-app-openapispec
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: public-works
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Public Works - Critical Infrastructure API
+      description: API for monitoring and controlling critical infrastructure like dams and floodgates. Authorization handled by API Gateway.
+    paths:
+      /dams:
+        get:
+          summary: List all dams and their status
+          operationId: listDams
+          responses:
+            '200':
+              description: A map of dam IDs to their status information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/damStatus'
+      /dams/{dam_id}:
+        get:
+          summary: Get the status of a specific dam
+          operationId: getDamStatus
+          parameters:
+            - name: dam_id
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "dam-001"
+          responses:
+            '200':
+              description: The current status of the dam
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/damStatusDetailed'
+            '404':
+              description: "Dam not found"
+      /dams/{dam_id}/floodgates/control:
+        post:
+          summary: Open or close a dam's floodgates
+          operationId: controlFloodgates
+          parameters:
+            - name: dam_id
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "dam-001"
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/controlAction'
+          responses:
+            '200':
+              description: Confirmation of the action
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/controlStatus'
+            '400':
+              description: "Bad request - invalid action"
+            '404':
+              description: "Dam not found"
+    components:
+      schemas:
+        damStatus:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Riverside Dam"
+            floodgate_status:
+              type: string
+              enum: ["open", "closed"]
+              example: "closed"
+            last_action:
+              type: string
+              format: "date-time"
+              example: "2025-10-08T14:30:00Z"
+        damStatusDetailed:
+          type: object
+          properties:
+            dam_id:
+              type: string
+              example: "dam-001"
+            name:
+              type: string
+              example: "Riverside Dam"
+            floodgate_status:
+              type: string
+              enum: ["open", "closed"]
+              example: "closed"
+            last_action:
+              type: string
+              format: "date-time"
+              example: "2025-10-08T14:30:00Z"
+        controlAction:
+          type: object
+          required: [action]
+          properties:
+            action:
+              type: string
+              enum: ["open", "close"]
+              example: "open"
+        controlStatus:
+          type: object
+          properties:
+            dam_id:
+              type: string
+              example: "dam-001"
+            status:
+              type: string
+              example: "Action Initiated"
+            action:
+              type: string
+              enum: ["open", "close"]
+              example: "open"
+            floodgate_status:
+              type: string
+              enum: ["open", "closed"]
+              example: "open"
+            timestamp:
+              type: string
+              format: "date-time"
+              example: "2025-10-09T15:45:30Z"

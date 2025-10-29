@@ -1,0 +1,77 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APICatalogItem
+metadata:
+  name: public-catalog
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  everyone: true
+  apis:
+    - name: police-api
+    - name: public-works-api
+    - name: utility-api
+  apiPlan:
+    name: public-plan
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APICatalogItem
+metadata:
+  name: sheriff-catalog
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  groups:
+    - admins
+  apis:
+    - name: police-api
+    - name: public-works-api
+    - name: utility-api
+  apiPlan:
+    name: sheriff-plan
+
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIPortal
+metadata:
+  name: gov-portal
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  title: Chat Portal
+  description: "API Portal for Chat"
+  trustedUrls:
+    - {{ include "gov.portal.url" . }}
+  auth:
+    name: oidc-portal-auth
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gov-portal
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: common
+
+  annotations:
+    hub.traefik.io/api-portal: gov-portal
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: {{ include "gov.portal.hostMatch" . }}
+    kind: Rule
+    services:
+    - name: apiportal
+      namespace: traefik
+      port: 9903

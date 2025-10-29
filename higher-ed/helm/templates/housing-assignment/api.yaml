@@ -1,0 +1,59 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: housing-assignment-api
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+spec:
+  title: "Housing Assignment API"
+  description: "Housing Assignment API spec"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: https://housing-education.demo.aiworld.traefikhub.dev
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: housing-assignment-route
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: housing-assignment
+
+  annotations:
+    hub.traefik.io/api: housing-assignment-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`housing-education.demo.aiworld.traefikhub.dev`)
+      services:
+        - name: housing-assignment-app
+          namespace: higher-ed
+          port: 3000
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      # middlewares:
+      #   - name: coraza-waf-block-all

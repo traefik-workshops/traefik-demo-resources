@@ -1,7 +1,7 @@
 # Default values for chats helm chart
 
 # Base domain for all services
-domain: demo.aiworld.traefikhub.dev
+domain: demo.traefikhub.dev
 
 # Components to enable
 components:

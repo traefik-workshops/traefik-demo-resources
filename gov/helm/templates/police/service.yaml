@@ -1,0 +1,375 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: police-data
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+data:
+  api.json: |
+    {
+      "road_closures": {
+        "Downtown_Bridge": {
+          "from_intersection": "Harbor Blvd & Federal Plaza", 
+          "to_intersection": "Harbor Blvd & Commerce Center",
+          "status": "Closed", 
+          "reason": "Multi-vehicle collision involving federal transport",
+          "area": "downtown",
+          "closure_type": "Full",
+          "estimated_duration": "4-6 hours",
+          "detour_route": "Use alternate route to bypass",
+          "notes": "Responding Officer: Sergeant Sarah Chen. Incident Commander: Captain Mike Rodriguez.",
+          "witness_contact": "john.smith@email.com, 555-123-4567"
+        },
+        "Riverside_Dr": {
+          "status": "Open", 
+          "reason": "Clear", 
+          "area": "waterfront",
+          "closure_type": "None",
+          "traffic_flow": "Normal"
+        },
+        "Medical_District_Ave": {
+          "from_intersection": "University Blvd & Hospital Way",
+          "to_intersection": "University Blvd & Research Center",
+          "status": "Restricted", 
+          "reason": "Active investigation - witness statements being collected",
+          "area": "north_side",
+          "closure_type": "Single Lane",
+          "estimated_duration": "2-3 hours",
+          "notes": "Responding Officer: Lieutenant James Rogers",
+          "witness_contact": "jane.doe@hospital.org, 555-234-5678"
+        },
+        "Tech_Campus_Loop": {
+          "status": "Use Caution", 
+          "reason": "Hazmat cleanup in progress",
+          "area": "central",
+          "closure_type": "Partial",
+          "safety_perimeter": "50 feet from spill site",
+          "notes": "Incident Commander: Commander Thomas McMaster, Responding Officer: Commander Max Kevin"
+        },
+        "Residential_Oak_St": {
+          "from_intersection": "Pine Avenue & Oak Street",
+          "to_intersection": "Maple Avenue & Oak Street", 
+          "status": "Closed", 
+          "reason": "Domestic incident - crime scene active",
+          "area": "north_side",
+          "closure_type": "Full",
+          "estimated_duration": "Unknown",
+          "notes": "Responding Officer: Detective Lisa Park, Incident Commander: Commander Tracy McGrady",
+          "victim_services": "Contact victim services for support"
+        }
+      },
+      "incidents": {
+        "INC-2024-1547": {
+          "type": "traffic_collision", 
+          "severity": "major", 
+          "location": "Harbor Blvd & Federal Plaza", 
+          "area": "downtown", 
+          "timestamp": "2024-01-15T14:23:17Z",
+          "notes": "Responding Officer: Sergeant Sarah Chen. Incident Commander: Captain Mike Rodriguez.",
+          "vehicles_involved": 3,
+          "injuries": "2 transported to General Hospital",
+          "witness_statements": 4,
+          "case_status": "Active Investigation"
+        },
+        "INC-2024-0892": {
+          "type": "domestic_disturbance", 
+          "severity": "high", 
+          "location": "Pine Avenue & Oak Street", 
+          "area": "north_side", 
+          "timestamp": "2024-01-15T11:45:33Z",
+          "notes": "Responding Officer: Detective Lisa Park",
+          "backup_units": 2,
+          "victim_services_contacted": true,
+          "protective_order": "Pending",
+          "case_status": "Under Investigation",
+          "social_worker": "Emily Johnson"
+        },
+        "INC-2024-1203": {
+          "type": "hazmat_spill", 
+          "severity": "medium", 
+          "location": "Tech Campus Loop", 
+          "area": "central", 
+          "timestamp": "2024-01-15T09:12:45Z",
+          "notes": "Incident Commander: Commander Thomas Williams",
+          "spill_type": "Industrial solvent",
+          "epa_notification": true,
+          "cleanup_contractor": "EnviroClean Services",
+          "air_quality_monitoring": "Normal levels"
+        }
+      },
+      "areas": {
+        "downtown": {
+          "streets": ["Harbor Blvd", "Federal Plaza", "Commerce Center"], 
+          "description": "Central business and government district",
+          "precinct": "Central Precinct",
+          "commander": "Mike Rodriguez"
+        },
+        "north_side": {
+          "streets": ["University Blvd", "Medical District Ave", "Pine Ave", "Oak St"], 
+          "description": "Medical and residential area",
+          "precinct": "North Precinct", 
+          "commander": "Captain Jennifer Walsh"
+        },
+        "waterfront": {
+          "streets": ["Riverside Dr", "Harbor Blvd"], 
+          "description": "Port and marina district",
+          "precinct": "Harbor Precinct",
+          "commander": "Captain Robert Kim"
+        },
+        "central": {
+          "streets": ["Tech Campus Loop", "Research Center"], 
+          "description": "Technology and innovation district",
+          "precinct": "Central Precinct",
+          "commander": "Mike Rodriguez"
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: police-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: police-app
+  template:
+    metadata:
+      labels:
+        app: police-app
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/traefik/api-server:v1.0.0
+          args: [ "-data", "/api/api.json", "-openapi", "/public/openapi.yaml" ]
+          volumeMounts:
+            - { name: api-data, mountPath: /api }
+            - { name: openapi, mountPath: /public }
+      volumes:
+        - { name: api-data, configMap: { name: police-data } }
+        - { name: openapi, configMap: { name: police-app-openapispec } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: police-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+spec:
+  ports:
+    - { port: 3000, name: api }
+  selector:
+    app: police-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: police-app-openapispec
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Police - Road Status API
+      description: Provides real-time road closure information for EOC use.
+    paths:
+      /road_closures:
+        get:
+          summary: List all road closures and statuses
+          operationId: listAllRoadStatuses
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: area
+              in: query
+              required: false
+              description: Filter by area (downtown, north_side, waterfront, central)
+              schema:
+                type: string
+                enum: ["downtown", "north_side", "waterfront", "central"]
+          responses:
+            '200':
+              description: A map of street names to their status information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/roadStatus'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+      /road_closures/{street_name}:
+        get:
+          summary: Get the status of a specific road
+          operationId: getRoadStatus
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: street_name
+              in: path
+              required: true
+              description: The name of the street
+              schema:
+                type: string
+              example: "Elm St"
+          responses:
+            '200':
+              description: The status of the specified road
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/roadStatus'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+            '404':
+              $ref: '#/components/responses/notFound'
+      /incidents:
+        get:
+          summary: List all police incidents
+          operationId: listAllIncidents
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: area
+              in: query
+              required: false
+              description: Filter by area (downtown, north_side, waterfront, central)
+              schema:
+                type: string
+                enum: ["downtown", "north_side", "waterfront", "central"]
+            - name: type
+              in: query
+              required: false
+              description: Filter by incident type
+              schema:
+                type: string
+                enum: ["flood", "fire", "accident", "infrastructure_failure"]
+          responses:
+            '200':
+              description: A map of incident IDs to their information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/incident'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+      /areas:
+        get:
+          summary: List all monitored areas
+          operationId: listAllAreas
+          security:
+            - bearerAuth: ["eoc:read"]
+          responses:
+            '200':
+              description: A map of area names to their information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/area'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+    components:
+      responses:
+        unauthorized: { description: "Unauthorized" }
+        notFound: { description: "Road not found" }
+      schemas:
+        roadStatus:
+          type: object
+          properties:
+            from_street: 
+              type: string
+              example: "1st St"
+            to_street: 
+              type: string
+              example: "3rd St"
+            status: 
+              type: string
+              enum: ["Open", "Closed", "Use Caution"]
+              example: "Closed"
+            reason: 
+              type: string
+              example: "Flooding"
+            area:
+              type: string
+              enum: ["downtown", "north_side", "waterfront", "central"]
+              example: "north_side"
+            notes:
+              type: string
+              example: "Responding Officer: Sergeant Sarah Chen (Badge: SC-2719). Incident Commander: Captain Mike Rodriguez (Badge: MR-4382)."
+        incident:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["flood", "fire", "accident", "infrastructure_failure"]
+              example: "flood"
+            severity:
+              type: string
+              enum: ["low", "medium", "high", "critical"]
+              example: "high"
+            location:
+              type: string
+              example: "Elm St"
+            area:
+              type: string
+              enum: ["downtown", "north_side", "waterfront", "central"]
+              example: "north_side"
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-01-15T10:30:00Z"
+            notes:
+              type: string
+              example: "Responding Officer: Sergeant Sarah Chen (Badge: SC-2719). Incident Commander: Captain Mike Rodriguez (Badge: MR-4382)."
+        area:
+          type: object
+          properties:
+            streets:
+              type: array
+              items:
+                type: string
+              example: ["Elm St", "2nd Ave"]
+            description:
+              type: string
+              example: "Northern residential area"
+            commander:
+              oneOf:
+                - type: string
+                - $ref: '#/components/schemas/officer'
+        officer:
+          type: object
+          required: [name, badge_number]
+          properties:
+            name:
+              type: string
+              example: "Sarah Chen"
+            badge_number:
+              type: string
+              example: "SC-2719"
+      securitySchemes:
+        bearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT

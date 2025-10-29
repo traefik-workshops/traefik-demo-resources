@@ -1,0 +1,247 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: utility-data
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: utility
+
+data:
+  api.json: |
+    {
+      "outages": {
+        "Elm St & 2nd Ave": {"status": "Outage Confirmed", "hazard": "Live Wires Reported", "area": "north_side", "affected_customers": 250},
+        "Oak Ave & Main St": {"status": "Operational", "hazard": "None", "area": "downtown", "affected_customers": 0},
+        "Northwood District": {"status": "Outage Reported", "hazard": "Unknown", "area": "north_side", "affected_customers": 150},
+        "City Hall": {"status": "Operational", "hazard": "None", "area": "downtown", "affected_customers": 0},
+        "Maple St & 4th St": {"status": "Restored", "hazard": "None", "area": "central", "affected_customers": 0},
+        "Pine St & 1st St": {"status": "Outage Confirmed", "hazard": "Transformer Fire", "area": "waterfront", "affected_customers": 75}
+      },
+      "infrastructure": {
+        "INFRA001": {"type": "power_substation", "location": "North Substation", "status": "operational", "area": "north_side", "capacity": "15MW"},
+        "INFRA002": {"type": "water_pump", "location": "Central Pump Station", "status": "operational", "area": "central", "capacity": "500GPM"},
+        "INFRA003": {"type": "transformer", "location": "Pine St Junction", "status": "failed", "area": "waterfront", "capacity": "5MW"}
+      },
+      "areas": {
+        "downtown": {"utilities": ["Oak Ave & Main St", "City Hall"], "description": "Central business district"},
+        "north_side": {"utilities": ["Elm St & 2nd Ave", "Northwood District"], "description": "Northern residential area"},
+        "waterfront": {"utilities": ["Pine St & 1st St"], "description": "Waterfront district"},
+        "central": {"utilities": ["Maple St & 4th St"], "description": "Central residential area"}
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: utility-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: utility
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: utility-app
+  template:
+    metadata:
+      labels:
+        app: utility-app
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/traefik/api-server:v1.0.0
+          args: [ "-data", "/api/api.json", "-openapi", "/public/openapi.yaml" ]
+          volumeMounts:
+            - { name: api-data, mountPath: /api }
+            - { name: openapi, mountPath: /public }
+      volumes:
+        - { name: api-data, configMap: { name: utility-data } }
+        - { name: openapi, configMap: { name: utility-app-openapispec } }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: utility-app
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: utility
+
+spec:
+  ports:
+    - { port: 3000, name: api }
+  selector:
+    app: utility-app
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: utility-app-openapispec
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: utility
+
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Utility Company - Power Outage API
+      description: Provides power outage status for specific locations.
+    paths:
+      /outages:
+        get:
+          summary: List all power outage statuses
+          operationId: listAllOutages
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: area
+              in: query
+              required: false
+              description: Filter by area (downtown, north_side, waterfront, central)
+              schema:
+                type: string
+                enum: ["downtown", "north_side", "waterfront", "central"]
+          responses:
+            '200':
+              description: A map of locations to their power status
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/powerStatus'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+      /outages/{location}:
+        get:
+          summary: Get power status for a specific location
+          operationId: getPowerStatus
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: location
+              in: path
+              required: true
+              description: The location to check power status for
+              schema:
+                type: string
+              example: "Elm St & 2nd Ave"
+          responses:
+            '200':
+              description: The power status for the specified location
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/powerStatus'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+            '404':
+              $ref: '#/components/responses/notFound'
+      /infrastructure/status:
+        get:
+          summary: List all infrastructure status
+          operationId: listAllInfrastructure
+          security:
+            - bearerAuth: ["eoc:read"]
+          parameters:
+            - name: area
+              in: query
+              required: false
+              description: Filter by area (downtown, north_side, waterfront, central)
+              schema:
+                type: string
+                enum: ["downtown", "north_side", "waterfront", "central"]
+          responses:
+            '200':
+              description: A map of infrastructure IDs to their status
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/infrastructureStatus'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+      /areas:
+        get:
+          summary: List all monitored utility areas
+          operationId: listAllUtilityAreas
+          security:
+            - bearerAuth: ["eoc:read"]
+          responses:
+            '200':
+              description: A map of area names to their utility information
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/utilityArea'
+            '401':
+              $ref: '#/components/responses/unauthorized'
+    components:
+      responses:
+        unauthorized: { description: "Unauthorized" }
+        notFound: { description: "Location not found" }
+      schemas:
+        powerStatus:
+          type: object
+          properties:
+            status: 
+              type: string
+              enum: ["Operational", "Outage Reported", "Outage Confirmed", "Restored"]
+              example: "Outage Confirmed"
+            hazard: 
+              type: string
+              example: "Live Wires Reported"
+            area:
+              type: string
+              enum: ["downtown", "north_side", "waterfront", "central"]
+              example: "north_side"
+            affected_customers:
+              type: integer
+              example: 250
+        infrastructureStatus:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: ["power_substation", "water_pump", "transformer", "generator"]
+              example: "transformer"
+            location:
+              type: string
+              example: "Pine St Junction"
+            status:
+              type: string
+              enum: ["operational", "failed", "maintenance", "offline"]
+              example: "failed"
+            area:
+              type: string
+              enum: ["downtown", "north_side", "waterfront", "central"]
+              example: "waterfront"
+            capacity:
+              type: string
+              example: "5MW"
+        utilityArea:
+          type: object
+          properties:
+            utilities:
+              type: array
+              items:
+                type: string
+              example: ["Elm St & 2nd Ave", "Northwood District"]
+            description:
+              type: string
+              example: "Northern residential area"
+      securitySchemes:
+        bearerAuth:
+          type: http
+          scheme: bearer
+          bearerFormat: JWT

@@ -1,0 +1,57 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: scholarship-api
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+spec:
+  title: "Scholarship API"
+  description: "Scholarship API spec"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: https://scholarship-education.demo.aiworld.traefikhub.dev
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: scholarship-route
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: scholarship
+
+  annotations:
+    hub.traefik.io/api: scholarship-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`scholarship-education.demo.aiworld.traefikhub.dev`)
+      services:
+        - name: scholarship-app
+          namespace: higher-ed
+          port: 3000
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed

@@ -1,0 +1,106 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: police-api
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+spec:
+  title: "Police API"
+  description: "Police API spec"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "gov.police.apiUrl" . }}
+  operationSets:
+    # Public read-only operations
+    - name: public-ops
+      matchers:
+        - path: /road_closures
+          methods:
+            - GET
+        - pathRegex: "/road_closures/[^/]+$"
+          methods:
+            - GET
+        - path: /areas
+          methods:
+            - GET
+    # EOC staff operations (includes incident viewing)
+    - name: eoc-ops
+      matchers:
+        - path: /road_closures
+          methods:
+            - GET
+        - pathRegex: "/road_closures/[^/]+$"
+          methods:
+            - GET
+        - path: /incidents
+          methods:
+            - GET
+        - pathRegex: "/incidents/[^/]+$"
+          methods:
+            - GET
+        - path: /areas
+          methods:
+            - GET
+    # Police officer operations (all read operations)
+    - name: officer-ops
+      matchers:
+        - pathPrefix: /
+          methods:
+            - GET
+    # Admin operations (full access)
+    - name: admin-ops
+      matchers:
+        - pathPrefix: /
+          methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - PATCH
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: police-route
+  namespace: gov
+  labels:
+    {{- include "gov.labels" . | nindent 4 }}
+    component: police
+
+  annotations:
+    hub.traefik.io/api: police-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: {{ include "gov.police.hostMatch" . }}
+      services:
+        - name: police-app
+          namespace: gov
+          port: 3000
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        - name: content-guard-police

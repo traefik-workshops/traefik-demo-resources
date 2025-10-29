@@ -1,6 +1,6 @@
 apiVersion: v2
 name: gov
-description: Traefik Government Use Case
+description: Traefik Government Use Case - Police, Public Works, Utility APIs
 type: application
 version: 1.0.0
 appVersion: "1.0.0"

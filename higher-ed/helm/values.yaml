@@ -1,2 +1,15 @@
 # Default values for higher-ed helm chart
-# Add higher-ed-specific configuration here
+
+# Base domain for all services
+domain: demo.traefikhub.dev
+
+# Keycloak user IDs
+keycloak:
+  adminId: ""  # admin@traefik.io
+  developerId: ""  # developer@traefik.io
+  agentId: ""  # agent@traefik.io
+
+# OIDC credentials
+oidc:
+  clientId: "traefik"
+  clientSecret: ""

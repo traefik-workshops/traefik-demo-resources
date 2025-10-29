@@ -1,0 +1,77 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APICatalogItem
+metadata:
+  name: lower-ed-catalog
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  everyone: true
+  apis:
+    - name: financial-aid-api
+    - name: housing-assignment-api
+    - name: scholarship-api
+  apiPlan:
+    name: lower-ed-plan
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APICatalogItem
+metadata:
+  name: higher-ed-catalog
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  groups:
+    - admins
+  apis:
+    - name: financial-aid-api
+    - name: housing-assignment-api
+    - name: scholarship-api
+  apiPlan:
+    name: higher-ed-plan
+
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIPortal
+metadata:
+  name: higher-ed-portal
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+spec:
+  title: Chat Portal
+  description: "API Portal for Chat"
+  trustedUrls:
+    - {{ include "higher-ed.portal.url" . }}
+  auth:
+    name: oidc-portal-auth
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: higher-ed-portal
+  namespace: higher-ed
+  labels:
+    {{- include "higher-ed.labels" . | nindent 4 }}
+    component: common
+
+  annotations:
+    hub.traefik.io/api-portal: higher-ed-portal
+spec:
+  entryPoints:
+    - websecure
+  routes:
+  - match: {{ include "higher-ed.portal.hostMatch" . }}
+    kind: Rule
+    services:
+    - name: apiportal
+      namespace: traefik
+      port: 9903
