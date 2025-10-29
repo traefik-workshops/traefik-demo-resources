@@ -50,14 +50,14 @@ Keycloak Issuer URL
 Portal URL
 */}}
 {{- define "gov.portal.url" -}}
-{{- printf "https://gov-portal.%s" .Values.domain }}
+{{- printf "https://gov.portal.%s" .Values.domain }}
 {{- end }}
 
 {{/*
 Portal Host Match
 */}}
 {{- define "gov.portal.hostMatch" -}}
-{{- printf "Host(`gov-portal.%s`)" .Values.domain }}
+{{- printf "Host(`gov.portal.%s`)" .Values.domain }}
 {{- end }}
 
 {{/*
