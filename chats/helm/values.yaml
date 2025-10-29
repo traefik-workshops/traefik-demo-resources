@@ -62,3 +62,15 @@ gptOss:
   apiUrl: ""  # Will be constructed from domain if empty
   hostMatch: ""  # Will be constructed from domain if empty
   hostMatchCompletions: ""  # Will be constructed from domain if empty
+
+# Middleware configuration
+middlewares:
+  # LLM Guards (topic control, content safety, jailbreak detection)
+  llmGuards:
+    enabled: true
+  # Semantic cache for response caching
+  semanticCache:
+    enabled: false
+  # Content guard (PII detection with Presidio)
+  contentGuard:
+    enabled: true

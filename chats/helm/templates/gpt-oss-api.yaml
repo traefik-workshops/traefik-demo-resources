@@ -66,8 +66,16 @@ spec:
       observability:
         traceVerbosity: detailed
       middlewares:
+        {{- if .Values.middlewares.semanticCache.enabled }}
+        - name: cc-semantic-cache
+        {{- end }}
+        {{- if .Values.middlewares.contentGuard.enabled }}
+        - name: cc-content-guard
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.enabled }}
         - name: cc-topic-control-guard
         - name: cc-content-safety-guard
-        - name: cc-content-guard
+        - name: cc-jailbreak-guard
+        {{- end }}
         - name: gpt-oss-cc
 {{- end }}

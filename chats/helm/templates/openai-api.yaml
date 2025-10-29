@@ -69,8 +69,16 @@ spec:
         traceVerbosity: detailed
       middlewares:
         - name: cc-authtoken
+        {{- if .Values.middlewares.semanticCache.enabled }}
+        - name: cc-semantic-cache
+        {{- end }}
+        {{- if .Values.middlewares.contentGuard.enabled }}
+        - name: cc-content-guard
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.enabled }}
         - name: cc-topic-control-guard
         - name: cc-content-safety-guard
-        - name: cc-content-guard
+        - name: cc-jailbreak-guard
+        {{- end }}
         - name: openai-cc
 {{- end }}
