@@ -60,6 +60,12 @@ spec:
       endpoint: {{ include "chats.nim.topicControl.endpoint" . }}
       model: nvidia/llama-3.1-nemoguard-8b-topic-control
       request:
+        blockConditions:
+          - reason: "off-topic request"
+            condition: Contains("off-topic")
+        traceConditions:
+          - reason: "off-topic detected"
+            condition: Contains("off-topic")
         systemPrompt: |
           You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
 
@@ -81,8 +87,6 @@ spec:
           - Service mesh technologies
 
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
-        blockCondition: Contains("off-topic")
-        traceCondition: Contains("off-topic")
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -97,6 +101,12 @@ spec:
       endpoint: {{ include "chats.nim.contentSafety.endpoint" . }}
       model: nvidia/llama-3.1-nemoguard-8b-content-safety
       request:
+        blockConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        traceConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
         systemPrompt: |
           Task: Check if there is unsafe content in user messages according to our safety policy.
           <BEGIN UNSAFE CONTENT CATEGORIES>
@@ -111,9 +121,14 @@ spec:
           Provide your safety assessment:
           - First line: 'safe' or 'unsafe'
           - If unsafe, second line: comma-separated list of violated categories
-        blockCondition: Contains("unsafe")
-        traceCondition: Contains("unsafe")
       response:
+        useRequestHistory: true
+        blockConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        traceConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
         systemPrompt: |
           Task: Check if there is unsafe content in assistant messages according to our safety policy.
           <BEGIN UNSAFE CONTENT CATEGORIES>
@@ -128,8 +143,6 @@ spec:
           Provide your safety assessment:
           - First line: 'safe' or 'unsafe'
           - If unsafe, second line: comma-separated list of violated categories
-        blockCondition: Contains("unsafe")
-        useRequestHistory: true
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -145,7 +158,9 @@ spec:
       request:
         # Jailbreak NIM uses custom API format
         template: '{"input": "{{`{{ (index .messages 0).content }}`}}"}'
-        blockCondition: |
-          JSONEquals(".jailbreak", "true") || JSONLt(".score", "-0.91")
-        traceCondition: |
-          JSONEquals(".jailbreak", "true") || JSONLt(".score", "-0.91")
+        blockConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
+        traceConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
