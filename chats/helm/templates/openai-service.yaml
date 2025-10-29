@@ -1,11 +1,16 @@
+{{- if has "openai" .Values.components }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: openai
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: openai
 spec:
   type: ExternalName
   externalName: api.openai.com
   ports:
     - port: 443
+{{- end }}

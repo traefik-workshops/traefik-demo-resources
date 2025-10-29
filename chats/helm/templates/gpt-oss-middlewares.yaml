@@ -1,9 +1,13 @@
+{{- if has "gpt-oss" .Values.components }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: gpt-oss-cc
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: gpt-oss
 spec:
   plugin:
     chat-completion:
@@ -18,3 +22,4 @@ spec:
         maxTokens: 2048
         frequencyPenalty: 0
         presencePenalty: 0
+{{- end }}

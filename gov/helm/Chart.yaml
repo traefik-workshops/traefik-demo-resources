@@ -1,0 +1,6 @@
+apiVersion: v2
+name: gov
+description: Traefik Government Use Case
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

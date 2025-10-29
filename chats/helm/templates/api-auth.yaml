@@ -4,20 +4,24 @@ kind: APIAuth
 metadata:
   name: jwt-auth
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   isDefault: true
   jwt:
     appIdClaim: group
-    jwksUrl: KEYCLOAK_JWKS_URL
+    jwksUrl: {{ include "chats.keycloak.jwksUrl" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPortalAuth
 metadata:
   name: oidc-portal-auth
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   oidc:
-    issuerUrl: KEYCLOAK_ISSUER_URL
+    issuerUrl: {{ include "chats.keycloak.issuerUrl" . }}
     secretName: oidc-credentials
     scopes:
       - openid
@@ -42,7 +46,9 @@ kind: Secret
 metadata:
   name: oidc-credentials
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 type: Opaque
 stringData:
-  clientId: OIDC_CLIENT_ID
-  clientSecret: OIDC_CLIENT_SECRET
+  clientId: {{ .Values.oidc.clientId }}
+  clientSecret: {{ .Values.oidc.clientSecret }}

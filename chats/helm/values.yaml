@@ -1,0 +1,64 @@
+# Default values for chats helm chart
+
+# Base domain for all services
+domain: demo.aiworld.traefikhub.dev
+
+# Components to enable
+components:
+  - openai
+  - gpt-oss
+
+# Keycloak configuration
+keycloak:
+  jwksUrl: ""  # Will be constructed from domain if empty
+  issuerUrl: ""  # Will be constructed from domain if empty
+  adminId: "admin-user-id"
+  developerId: "developer-user-id"
+  agentId: "agent-user-id"
+
+# OIDC configuration
+oidc:
+  clientId: "traefik"
+  clientSecret: "change-me"
+
+# NIM endpoints (RunPod)
+nim:
+  topicControl:
+    podId: "nim-tc-pod-12345"
+    endpoint: ""  # Will be constructed from podId if empty
+  contentSafety:
+    podId: "nim-cs-pod-67890"
+    endpoint: ""  # Will be constructed from podId if empty
+  jailbreakDetection:
+    podId: "nim-jb-pod-11111"
+    endpoint: ""  # Will be constructed from podId if empty
+
+# Portal configuration
+portal:
+  url: ""  # Will be constructed from domain if empty
+  hostMatch: ""  # Will be constructed from domain if empty
+
+# AI Services
+presidio:
+  host: "http://presidio.traefik-ai.svc:3000"
+
+ollama:
+  baseUrl: "http://ollama.traefik-ai.svc:11434"
+
+milvus:
+  address: "milvus.traefik-ai.svc:19530"
+
+# OpenAI component
+openai:
+  apiUrl: ""  # Will be constructed from domain if empty
+  hostMatch: ""  # Will be constructed from domain if empty
+  hostMatchCompletions: ""  # Will be constructed from domain if empty
+  authHeader: "Bearer sk-your-api-key"
+
+# GPT-OSS component
+gptOss:
+  podId: "gpt-oss-pod-12345"
+  externalName: ""  # Will be constructed from podId if empty
+  apiUrl: ""  # Will be constructed from domain if empty
+  hostMatch: ""  # Will be constructed from domain if empty
+  hostMatchCompletions: ""  # Will be constructed from domain if empty

@@ -4,9 +4,11 @@ kind: APICatalogItem
 metadata:
   name: chat-plan
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   everyone: true
-  apis: []  # Will be populated by component replacements
+  apis: []
   apiPlan:
     name: chat-plan
 ---
@@ -15,24 +17,27 @@ kind: APICatalogItem
 metadata:
   name: conversation-plan
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   groups:
     - admins
-  apis: []  # Will be populated by component replacements
+  apis: []
   apiPlan:
     name: conversation-plan
-
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPortal
 metadata:
   name: chats-portal
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   title: Chats Portal
   description: "API Portal for Chat LLMs"
   trustedUrls:
-    - PORTAL_URL
+    - {{ include "chats.portal.url" . }}
   auth:
     name: oidc-portal-auth
 ---
@@ -41,13 +46,15 @@ kind: IngressRoute
 metadata:
   name: chats-portal
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
   annotations:
     hub.traefik.io/api-portal: chats-portal
 spec:
   entryPoints:
     - websecure
   routes:
-  - match: PORTAL_HOST_MATCH
+  - match: {{ include "chats.portal.hostMatch" . }}
     kind: Rule
     services:
     - name: apiportal

@@ -4,6 +4,8 @@ kind: APIPlan
 metadata:
   name: chat-plan
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   title: "Chat Plan"
   description: "A plan with **lower** rate limits and quotas"
@@ -19,6 +21,8 @@ kind: APIPlan
 metadata:
   name: conversation-plan
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   title: "Deep Conversation Plan"
   description: "A plan with **higher** rate limits and quotas"
@@ -34,19 +38,23 @@ kind: ManagedApplication
 metadata:
   name: admin-application
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   appId: "admins"
-  owner: KEYCLOAK_ADMIN_ID
+  owner: {{ .Values.keycloak.adminId }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedSubscription
 metadata:
   name: admin-subscription
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   managedApplications:
     - name: "admin-application"
-  apis: []  # Will be populated by component replacements
+  apis: []
   apiPlan:
     name: conversation-plan
   weight: 10
@@ -56,19 +64,23 @@ kind: ManagedApplication
 metadata:
   name: developer-application
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   appId: "developers"
-  owner: KEYCLOAK_DEVELOPER_ID
+  owner: {{ .Values.keycloak.developerId }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedSubscription
 metadata:
   name: chat-subscription
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   managedApplications:
     - name: "developer-application"
-  apis: []  # Will be populated by component replacements
+  apis: []
   apiPlan:
     name: chat-plan
   weight: 10
@@ -78,19 +90,23 @@ kind: ManagedApplication
 metadata:
   name: agent-application
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   appId: "agents"
-  owner: KEYCLOAK_AGENT_ID
+  owner: {{ .Values.keycloak.agentId }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedSubscription
 metadata:
   name: agent-subscription
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
 spec:
   managedApplications:
     - name: "agent-application"
-  apis: []  # Will be populated by component replacements
+  apis: []
   apiPlan:
     name: chat-plan
   weight: 10

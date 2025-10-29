@@ -1,0 +1,16 @@
+{{- if has "gpt-oss" .Values.components }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpt-oss
+  namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: gpt-oss
+spec:
+  type: ExternalName
+  externalName: {{ include "chats.gptOss.externalName" . }}
+  ports:
+    - port: 443
+{{- end }}

@@ -1,0 +1,7 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}

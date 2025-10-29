@@ -1,9 +1,13 @@
+{{- if has "gpt-oss" .Values.components }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
 metadata:
   name: gpt-oss-api
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: gpt-oss
 spec:
   title: "GPT OSS API"
   description: "GPT OSS API spec"
@@ -11,7 +15,7 @@ spec:
     url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
     override:
       servers:
-        - url: GPT_OSS_API_URL
+        - url: {{ include "chats.gptOss.apiUrl" . }}
   cors:
     allowHeadersList:
       - "*"
@@ -32,6 +36,9 @@ kind: IngressRoute
 metadata:
   name: gpt-oss-route
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: gpt-oss
   annotations:
     hub.traefik.io/api: gpt-oss-api
 spec:
@@ -39,7 +46,7 @@ spec:
     - websecure
   routes:
     - kind: Rule
-      match: GPT_OSS_HOST_MATCH
+      match: {{ include "chats.gptOss.hostMatch" . }}
       services:
         - name: gpt-oss
           namespace: chats
@@ -49,7 +56,7 @@ spec:
       observability:
         traceVerbosity: detailed
     - kind: Rule
-      match: GPT_OSS_HOST_MATCH_COMPLETIONS
+      match: {{ include "chats.gptOss.hostMatchCompletions" . }}
       services:
         - name: gpt-oss
           namespace: chats
@@ -59,10 +66,8 @@ spec:
       observability:
         traceVerbosity: detailed
       middlewares:
-        # - name: coraza-waf-block-all
-        # - name: cc-semantic-cache
         - name: cc-topic-control-guard
         - name: cc-content-safety-guard
-        # - name: cc-jailbreak-detection-guard
         - name: cc-content-guard
         - name: gpt-oss-cc
+{{- end }}

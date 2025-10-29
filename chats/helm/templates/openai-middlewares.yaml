@@ -1,9 +1,13 @@
+{{- if has "openai" .Values.components }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: openai-cc
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: openai
 spec:
   plugin:
     chat-completion:
@@ -24,7 +28,11 @@ kind: Middleware
 metadata:
   name: cc-authtoken
   namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+    component: openai
 spec:
   headers:
     customRequestHeaders:
-      Authorization: OPENAI_AUTH_HEADER
+      Authorization: {{ .Values.openai.authHeader }}
+{{- end }}

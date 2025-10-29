@@ -1,0 +1,13 @@
+apiVersion: v2
+name: chats
+description: Traefik AI Chats Demo - LLM Gateway with Guards and Caching
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - traefik
+  - ai
+  - llm
+  - openai
+maintainers:
+  - name: Traefik Labs
