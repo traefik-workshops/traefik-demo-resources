@@ -40,7 +40,9 @@ spec:
         milvus:
           clientConfig:
             address: {{ .Values.milvus.address }}
-          collectionName: LLMs
+          collection:
+            Name: LLMs
+            MaxVarCharLength: 262140
           maxDistance: 0.05
       ignoreAssistant: true
       messageHistory: 4
@@ -164,3 +166,42 @@ spec:
         traceConditions:
           - reason: "jailbreak detected"
             condition: JSONGt(".score", "0.85")
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-llmguard-chain
+  namespace: chats
+spec:
+  plugin:
+    hub-chain:
+      parallel: true
+      middlewares:
+        - name: cc-topic-control-guard
+          needsRequestBody: true
+          request:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        - name: cc-content-safety-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          request:
+            execute: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        - name: cc-jailbreak-detection-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0

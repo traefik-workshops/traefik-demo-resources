@@ -74,8 +74,6 @@ spec:
         - name: cc-content-guard
         {{- end }}
         {{- if .Values.middlewares.llmGuards.enabled }}
-        - name: cc-topic-control-guard
-        - name: cc-content-safety-guard
-        - name: cc-jailbreak-detection-guard
+        - name: cc-llmguard-chain
         {{- end }}
 {{- end }}
