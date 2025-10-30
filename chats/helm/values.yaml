@@ -45,8 +45,8 @@ presidio:
 ollama:
   baseUrl: "http://ollama.traefik-ai.svc:11434"
 
-milvus:
-  address: "milvus.traefik-ai.svc:19530"
+weaviate:
+  address: "weaviate.traefik-ai.svc:19530"
 
 # OpenAI component
 openai:

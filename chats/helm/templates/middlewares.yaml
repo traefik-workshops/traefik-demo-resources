@@ -37,9 +37,10 @@ spec:
           baseUrl: {{ .Values.ollama.baseUrl }}
           model: nomic-embed-text
       vectorDB:
-        milvus:
+        weaviate:
           clientConfig:
-            address: {{ .Values.milvus.address }}
+            host: {{ .Values.weaviate.address }}
+            scheme: http
           collectionName: LLMs
           maxDistance: 0.05
       ignoreAssistant: true
