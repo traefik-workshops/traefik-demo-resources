@@ -40,9 +40,7 @@ spec:
         milvus:
           clientConfig:
             address: {{ .Values.milvus.address }}
-          collection:
-            Name: LLMs
-            MaxVarCharLength: 262140
+          collectionName: LLMs
           maxDistance: 0.05
       ignoreAssistant: true
       messageHistory: 4
