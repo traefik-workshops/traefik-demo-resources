@@ -46,7 +46,7 @@ ollama:
   baseUrl: "http://ollama.traefik-ai.svc:11434"
 
 weaviate:
-  address: "weaviate.traefik-ai.svc:19530"
+  address: "weaviate.traefik-ai.svc:80"
 
 # OpenAI component
 openai:
