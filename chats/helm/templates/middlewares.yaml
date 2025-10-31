@@ -175,6 +175,7 @@ spec:
     hub-chain:
       parallel: true
       middlewares:
+        {{- if .Values.middlewares.llmGuards.topicGuard.enabled }}
         - name: cc-topic-control-guard
           needsRequestBody: true
           request:
@@ -183,6 +184,8 @@ spec:
             skip: true
             retry:
               attempts: 0
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.contentGuard.enabled }}
         - name: cc-content-safety-guard
           needsRequestBody: true
           needsResponseBody: true
@@ -194,6 +197,8 @@ spec:
             skip: true
             retry:
               attempts: 0
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.jailbreakGuard.enabled }}
         - name: cc-jailbreak-detection-guard
           needsRequestBody: true
           needsResponseBody: true
@@ -203,3 +208,4 @@ spec:
             skip: true
             retry:
               attempts: 0
+        {{- end }}

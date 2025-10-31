@@ -74,6 +74,18 @@ spec:
         - name: cc-content-guard
         {{- end }}
         {{- if .Values.middlewares.llmGuards.enabled }}
+        {{- if .Values.middlewares.llmGuards.useHubChain }}
         - name: cc-llmguard-chain
+        {{- else }}
+        {{- if .Values.middlewares.llmGuards.topicGuard.enabled }}
+        - name: cc-topic-control-guard
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.contentGuard.enabled }}
+        - name: cc-content-safety-guard
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.jailbreakGuard.enabled }}
+        - name: cc-jailbreak-detection-guard
+        {{- end }}
+        {{- end }}
         {{- end }}
 {{- end }}

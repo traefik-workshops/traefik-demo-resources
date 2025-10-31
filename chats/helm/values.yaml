@@ -68,6 +68,13 @@ middlewares:
   # LLM Guards (topic control, content safety, jailbreak detection)
   llmGuards:
     enabled: true
+    useHubChain: false
+    topicGuard:
+      enabled: true
+    contentGuard:
+      enabled: true
+    jailbreakGuard:
+      enabled: true
   # Semantic cache for response caching
   semanticCache:
     enabled: false
