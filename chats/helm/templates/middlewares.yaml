@@ -38,9 +38,8 @@ spec:
           model: nomic-embed-text
       vectorDB:
         weaviate:
-          clientConfig:
-            host: {{ .Values.weaviate.address }}
-            scheme: http
+          host: {{ .Values.weaviate.address }}
+          scheme: http
           collectionName: LLMs
           maxDistance: 0.05
       ignoreAssistant: true
