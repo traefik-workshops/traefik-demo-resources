@@ -69,15 +69,15 @@ middlewares:
   llmGuards:
     enabled: true
     useHubChain: false
-    topicGuard:
+    topicControlGuard:
       enabled: true
-    contentGuard:
+    contentSafetyGuard:
       enabled: true
-    jailbreakGuard:
+    jailbreakDetectionGuard:
       enabled: true
   # Semantic cache for response caching
   semanticCache:
-    enabled: false
+    enabled: true
   # Content guard (PII detection with Presidio)
   contentGuard:
     enabled: true
