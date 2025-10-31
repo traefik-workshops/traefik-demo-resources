@@ -45,8 +45,8 @@ presidio:
 ollama:
   baseUrl: "http://ollama.traefik-ai.svc:11434"
 
-milvus:
-  address: "milvus.traefik-ai.svc:19530"
+weaviate:
+  address: "weaviate.traefik-ai.svc:80"
 
 # OpenAI component
 openai:
@@ -68,6 +68,13 @@ middlewares:
   # LLM Guards (topic control, content safety, jailbreak detection)
   llmGuards:
     enabled: true
+    useHubChain: false
+    topicGuard:
+      enabled: true
+    contentGuard:
+      enabled: true
+    jailbreakGuard:
+      enabled: true
   # Semantic cache for response caching
   semanticCache:
     enabled: false

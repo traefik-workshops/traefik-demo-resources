@@ -37,9 +37,9 @@ spec:
           baseUrl: {{ .Values.ollama.baseUrl }}
           model: nomic-embed-text
       vectorDB:
-        milvus:
-          clientConfig:
-            address: {{ .Values.milvus.address }}
+        weaviate:
+          host: {{ .Values.weaviate.address }}
+          scheme: http
           collectionName: LLMs
           maxDistance: 0.05
       ignoreAssistant: true
@@ -164,3 +164,48 @@ spec:
         traceConditions:
           - reason: "jailbreak detected"
             condition: JSONGt(".score", "0.85")
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-llmguard-chain
+  namespace: chats
+spec:
+  plugin:
+    hub-chain:
+      parallel: true
+      middlewares:
+        {{- if .Values.middlewares.llmGuards.topicGuard.enabled }}
+        - name: cc-topic-control-guard
+          needsRequestBody: true
+          request:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.contentGuard.enabled }}
+        - name: cc-content-safety-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          request:
+            execute: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.jailbreakGuard.enabled }}
+        - name: cc-jailbreak-detection-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
