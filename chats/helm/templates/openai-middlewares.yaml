@@ -14,6 +14,7 @@ spec:
       model: gpt-4.1-nano
       allowModelOverride: true
       allowParamsOverride: false
+      gracefulErrors: true
       customResponseHeaderMetrics:
         cache_status: "X-Cache-Status"
       params:

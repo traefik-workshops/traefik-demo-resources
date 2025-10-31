@@ -14,6 +14,7 @@ spec:
       model: openai/gpt-oss-20b
       allowModelOverride: false
       allowParamsOverride: false
+      gracefulErrors: true
       customResponseHeaderMetrics:
         cache_status: "X-Cache-Status"
       params:
