@@ -589,7 +589,11 @@ data:
             return f"✅ Floodgate {action}ed at {dam_location}. Reason: {reason}"
         
         logger.info("Starting Government MCP Server with streamable-http...")
-        mcp_app.run(transport="streamable-http", host="0.0.0.0", port=8080)
+        # Configure uvicorn settings for FastMCP
+        import os
+        os.environ["UVICORN_HOST"] = "0.0.0.0"
+        os.environ["UVICORN_PORT"] = "8080"
+        mcp_app.run(transport="streamable-http")
 
   requirements.txt: |
     mcp>=1.3.0
