@@ -532,11 +532,10 @@ data:
             return f"💰 FAFSA: {fafsa}, Aid Package: {aid_pkg}"
         
         logger.info("Starting Higher-Ed MCP Server with streamable-http...")
-        # Configure uvicorn settings for FastMCP
-        import os
-        os.environ["UVICORN_HOST"] = "0.0.0.0"
-        os.environ["UVICORN_PORT"] = "8080"
-        mcp_app.run(transport="streamable-http")
+        # Use uvicorn directly to control host and port
+        import uvicorn
+        app = mcp_app.streamable_http_app()
+        uvicorn.run(app, host="0.0.0.0", port=8080)
 
   requirements.txt: |
     mcp>=1.3.0
