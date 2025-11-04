@@ -534,7 +534,8 @@ data:
         import uvicorn
         
         # Convert low-level server to FastMCP for streamable-http support
-        mcp_app = FastMCP("gov-mcp", stateless_http=True)
+        # json_response=True returns pure JSON instead of SSE format
+        mcp_app = FastMCP("gov-mcp", stateless_http=True, json_response=True)
         
         # Re-register tools with FastMCP
         @mcp_app.tool()

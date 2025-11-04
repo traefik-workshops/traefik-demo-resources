@@ -471,7 +471,8 @@ data:
         import uvicorn
         
         # Convert to FastMCP for streamable-http support
-        mcp_app = FastMCP("higher-ed-mcp", stateless_http=True)
+        # json_response=True returns pure JSON instead of SSE format
+        mcp_app = FastMCP("higher-ed-mcp", stateless_http=True, json_response=True)
         
         # Re-register tools
         @mcp_app.tool()
