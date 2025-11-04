@@ -106,5 +106,5 @@ Scholarship Host Match
 MCP Server Host Match
 */}}
 {{- define "higher-ed.mcp.hostMatch" -}}
-{{- printf "Host(`mcp-higher-ed.%s`) && PathPrefix(`/protected-mcp`)" .Values.domain }}
+{{- printf "Host(`mcp-higher-ed.%s`)" .Values.domain }}
 {{- end }}

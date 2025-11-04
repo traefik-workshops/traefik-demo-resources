@@ -627,7 +627,6 @@ spec:
       - name: server-code
         configMap:
           name: gov-mcp-server
-
 ---
 apiVersion: v1
 kind: Service
@@ -646,7 +645,6 @@ spec:
     targetPort: 8080
     protocol: TCP
   type: ClusterIP
-
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -667,7 +665,6 @@ spec:
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `rescue_mission`)
           action: allow
       defaultAction: allow
-
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -689,21 +686,6 @@ spec:
       - "*"
     accessControlMaxAge: 100
     addVaryHeader: true
-
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: gov-stripprefix
-  namespace: gov
-  labels:
-    {{- include "gov.labels" . | nindent 4 }}
-    component: mcp
-spec:
-  stripPrefix:
-    prefixes:
-      - /protected-mcp
-
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -721,7 +703,6 @@ spec:
       match: {{ include "gov.mcp.hostMatch" . }}
       middlewares:
         - name: gov-mcp-cors
-        - name: gov-stripprefix
         - name: gov-mcp-gateway
       services:
         - name: gov-mcp-server

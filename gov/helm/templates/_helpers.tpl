@@ -106,5 +106,5 @@ Utility Host Match
 MCP Server Host Match
 */}}
 {{- define "gov.mcp.hostMatch" -}}
-{{- printf "Host(`mcp-gov.%s`) && PathPrefix(`/protected-mcp`)" .Values.domain }}
+{{- printf "Host(`mcp-gov.%s`)" .Values.domain }}
 {{- end }}
