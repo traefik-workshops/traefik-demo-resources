@@ -529,29 +529,74 @@ data:
             # For errors, still need to return proper structure
             return [{"type": "text", "text": f"Unknown tool: {name}"}]
 
-    async def main():
-        """Main entry point - STDIO MCP server for mcp-proxy"""    
-        logger.info("Starting Government MCP Server...")
-        
-        try:
-            async with stdio_server() as streams:
-                logger.info("STDIO server streams established, running server...")
-                await server.run(streams[0], streams[1], server.create_initialization_options())
-        except Exception as e:
-            logger.error(f"STDIO server error: {e}")
-            import traceback
-            traceback.print_exc()
-            raise
-
     if __name__ == "__main__":
-        anyio.run(main)
+        from mcp.server.fastmcp import FastMCP
+        import uvicorn
+        
+        # Convert low-level server to FastMCP for streamable-http support
+        mcp_app = FastMCP("gov-mcp", stateless_http=True)
+        
+        # Re-register tools with FastMCP
+        @mcp_app.tool()
+        async def ping() -> str:
+            """Return a simple text response"""
+            return "pong"
+        
+        @mcp_app.tool()
+        async def list_areas() -> str:
+            """Get a list of all monitored areas"""
+            response = "🗺️ **MONITORED AREAS**\n\n"
+            for area_name, locations in AREA_MAPPINGS.items():
+                response += f"**{area_name.upper()}:**\n"
+                for location in locations:
+                    response += f"• {location}\n"
+                response += "\n"
+            return response
+        
+        @mcp_app.tool()
+        async def emergency_status_summary() -> str:
+            """Get emergency status summary"""
+            road_closures = await get_road_closures()
+            outages = await get_power_outages()
+            analysis = analyze_road_conditions(road_closures, outages)
+            return f"🚨 Critical: {len(analysis['dangerous_areas'])}, Blocked: {len(analysis['blocked_roads'])}"
+        
+        @mcp_app.tool()
+        async def rescue_mission(area: str, incident_type: str = "all") -> str:
+            """Analyze rescue mission for area"""
+            if area not in get_valid_areas():
+                return f"❌ Invalid area '{area}'"
+            road_closures = await get_road_closures()
+            outages = await get_power_outages()
+            analysis = analyze_road_conditions(road_closures, outages, area)
+            response = f"🚨 **RESCUE MISSION: {area}**\n\n"
+            response += f"Dangerous areas: {len(analysis['dangerous_areas'])}\n"
+            response += f"Blocked roads: {len(analysis['blocked_roads'])}\n"
+            return response
+        
+        @mcp_app.tool()
+        async def floodgate_control(dam_location: str, action: str, reason: str) -> str:
+            """Control floodgate operations"""
+            valid_dams = ["north_dam", "south_dam", "east_dam", "central_dam"]
+            if dam_location not in valid_dams:
+                return f"❌ Invalid dam: {dam_location}"
+            if action not in ["open", "close"]:
+                return f"❌ Invalid action: {action}"
+            current = await get_floodgate_status(dam_location)
+            if "error" in current:
+                return f"❌ Error: {current['error']}"
+            result = await control_floodgate(dam_location, action)
+            return f"✅ Floodgate {action}ed at {dam_location}. Reason: {reason}"
+        
+        logger.info("Starting Government MCP Server with streamable-http...")
+        mcp_app.run(transport="streamable-http", host="0.0.0.0", port=8080)
 
   requirements.txt: |
-    mcp==1.0.0
-    uvicorn==0.32.1
-    fastapi==0.115.6
+    mcp>=1.3.0
+    uvicorn>=0.32.1
     aiohttp==3.9.1
     anyio==4.11.0
+    httpx>=0.27.0
 
 ---
 apiVersion: apps/v1
@@ -586,20 +631,12 @@ spec:
         - |
           cd /app
           
-          # Install Node.js 20.x for mcp-proxy
-          apt-get update && apt-get install -y curl
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-          
           # Install Python dependencies
           pip install -r requirements.txt
           
-          # Install mcp-proxy globally
-          npm install -g mcp-proxy
-          
-          # Run STDIO MCP server through mcp-proxy
-          echo "Starting Government MCP Server with mcp-proxy..."
-          mcp-proxy --debug --port 8080 --host 0.0.0.0 python main.py
+          # Run MCP server with streamable-http
+          echo "Starting Government MCP Server with streamable-http..."
+          python main.py
         volumeMounts:
         - name: server-code
           mountPath: /app
