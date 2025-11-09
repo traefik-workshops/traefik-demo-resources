@@ -15,6 +15,7 @@ spec:
       allowModelOverride: false
       allowParamsOverride: false
       gracefulErrors: true
+      mockStreaming: true
       customResponseHeaderMetrics:
         cache_status: "X-Cache-Status"
       params:
