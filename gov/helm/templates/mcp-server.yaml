@@ -705,7 +705,7 @@ spec:
         # Allow rescue mission calls without restriction
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `rescue_mission`)
           action: allow
-      defaultAction: allow
+      defaultAction: deny
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
