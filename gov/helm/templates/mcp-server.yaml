@@ -132,6 +132,79 @@ data:
                     "required": ["dam_location", "action", "reason"],
                 },
             ),
+            Tool(
+                name="list_all_road_closures",
+                description="Get a list of all current road closures and their status. Useful for browsing all road conditions.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_incidents",
+                description="Get a list of all active police incidents. Useful for browsing all emergency situations.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_outages",
+                description="Get a list of all power outages and their status. Useful for browsing all utility issues.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_infrastructure",
+                description="Get a list of all infrastructure status including substations, pumps, and transformers.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_dams",
+                description="Get a list of all dam floodgate statuses. Useful for monitoring regional water management.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="get_road_closure_details",
+                description="Get detailed information about a specific road closure by street name.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "street_name": {"type": "string", "description": "The street name to get details for"}
+                    },
+                    "required": ["street_name"]
+                }
+            ),
+            Tool(
+                name="get_incident_details",
+                description="Get detailed information about a specific police incident by incident ID.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "incident_id": {"type": "string", "description": "The incident ID (e.g., 'INC-2024-1547')"}
+                    },
+                    "required": ["incident_id"]
+                }
+            ),
+            Tool(
+                name="get_outage_details",
+                description="Get detailed information about a power outage at a specific location.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "location": {"type": "string", "description": "The location to check for power outage"}
+                    },
+                    "required": ["location"]
+                }
+            ),
+            Tool(
+                name="get_dam_status",
+                description="Get the current status of a specific dam's floodgates.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "dam_location": {
+                            "type": "string",
+                            "enum": ["north_dam", "south_dam", "east_dam", "central_dam"],
+                            "description": "Dam location identifier"
+                        }
+                    },
+                    "required": ["dam_location"]
+                }
+            )
         ]
 
     async def get_jwt_token() -> str:
@@ -183,6 +256,13 @@ data:
     async def get_police_incidents() -> Dict:
         logger.info(f"Fetching all police incidents")
         return await api_request("police", f"/incidents")
+    
+    async def get_police_incident_by_id(incident_id: str) -> Dict:
+        logger.info(f"Fetching police incident {incident_id}")
+        incidents = await get_police_incidents()
+        if incident_id in incidents:
+            return incidents[incident_id]
+        return {"error": "Incident not found", "status": 404}
 
     async def get_road_closures() -> Dict:
         logger.info(f"Fetching all road closures")
@@ -198,6 +278,14 @@ data:
         if "road_closures" in result:
             return {"closures": result["road_closures"]}
         return {"closures": result if isinstance(result, dict) else {}}
+    
+    async def get_road_closure_by_name(street_name: str) -> Dict:
+        logger.info(f"Fetching road closure for {street_name}")
+        return await api_request("police", f"/road_closures/{street_name}")
+    
+    async def get_police_areas() -> Dict:
+        logger.info("Fetching all police areas")
+        return await api_request("police", "/areas")
 
     # Utility API endpoints
     async def get_infrastructure_status() -> Dict:
@@ -218,6 +306,14 @@ data:
         if "outages" in result:
             return {"outages": result["outages"]}
         return {"outages": result if isinstance(result, dict) else {}}
+    
+    async def get_power_outage_by_location(location: str) -> Dict:
+        logger.info(f"Fetching power outage for {location}")
+        return await api_request("utility", f"/outages/{location}")
+    
+    async def get_utility_areas() -> Dict:
+        logger.info("Fetching all utility areas")
+        return await api_request("utility", "/areas")
 
     # Public Works API endpoints
     async def get_floodgate_status(dam_location: str) -> Dict:
@@ -525,6 +621,260 @@ data:
                 logger.error(f"Error in floodgate control: {e}")
                 return [{"type": "text", "text": f"❌ System error during floodgate control: {str(e)}"}]
         
+        elif name == "list_all_road_closures":
+            try:
+                road_closures = await get_road_closures()
+                if "error" in road_closures:
+                    return [{"type": "text", "text": f"❌ Error fetching road closures: {road_closures['error']}"}]
+                
+                response = "🚔 **ALL ROAD CLOSURES**\n\n"
+                closures = road_closures.get("closures", {})
+                response += f"**Total Roads:** {len(closures)}\n\n"
+                
+                for street_name, closure_info in closures.items():
+                    status = closure_info.get("status", "Unknown")
+                    reason = closure_info.get("reason", "Unknown")
+                    area = closure_info.get("area", "Unknown")
+                    
+                    status_emoji = "🔴" if status == "Closed" else "🟡" if status == "Restricted" else "🟢"
+                    response += f"{status_emoji} **{street_name}** ({area})\n"
+                    response += f"   • Status: {status}\n"
+                    response += f"   • Reason: {reason}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing road closures: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "list_all_incidents":
+            try:
+                incidents = await get_police_incidents()
+                if "error" in incidents:
+                    return [{"type": "text", "text": f"❌ Error fetching incidents: {incidents['error']}"}]
+                
+                response = "🚨 **ALL POLICE INCIDENTS**\n\n"
+                response += f"**Total Incidents:** {len(incidents)}\n\n"
+                
+                for incident_id, incident_info in incidents.items():
+                    incident_type = incident_info.get("type", "unknown")
+                    severity = incident_info.get("severity", "unknown")
+                    location = incident_info.get("location", "Unknown")
+                    area = incident_info.get("area", "Unknown")
+                    
+                    severity_emoji = "🔴" if severity in ["critical", "major"] else "🟡" if severity in ["high", "medium"] else "🟢"
+                    response += f"{severity_emoji} **{incident_id}** - {incident_type}\n"
+                    response += f"   • Severity: {severity}\n"
+                    response += f"   • Location: {location} ({area})\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing incidents: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "list_all_outages":
+            try:
+                outages = await get_power_outages()
+                if "error" in outages:
+                    return [{"type": "text", "text": f"❌ Error fetching outages: {outages['error']}"}]
+                
+                response = "⚡ **ALL POWER OUTAGES**\n\n"
+                outage_data = outages.get("outages", {})
+                response += f"**Total Locations:** {len(outage_data)}\n\n"
+                
+                for location, outage_info in outage_data.items():
+                    status = outage_info.get("status", "Unknown")
+                    hazard = outage_info.get("hazard", "None")
+                    area = outage_info.get("area", "Unknown")
+                    affected = outage_info.get("affected_customers", 0)
+                    
+                    status_emoji = "🔴" if status == "Outage Confirmed" else "🟡" if status == "Outage Reported" else "🟢"
+                    response += f"{status_emoji} **{location}** ({area})\n"
+                    response += f"   • Status: {status}\n"
+                    response += f"   • Hazard: {hazard}\n"
+                    response += f"   • Affected Customers: {affected}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing outages: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "list_all_infrastructure":
+            try:
+                infrastructure = await get_infrastructure_status()
+                if "error" in infrastructure:
+                    return [{"type": "text", "text": f"❌ Error fetching infrastructure: {infrastructure['error']}"}]
+                
+                response = "🏗️ **ALL INFRASTRUCTURE STATUS**\n\n"
+                response += f"**Total Infrastructure:** {len(infrastructure)}\n\n"
+                
+                for infra_id, infra_info in infrastructure.items():
+                    infra_type = infra_info.get("type", "unknown")
+                    location = infra_info.get("location", "Unknown")
+                    status = infra_info.get("status", "unknown")
+                    area = infra_info.get("area", "Unknown")
+                    capacity = infra_info.get("capacity", "Unknown")
+                    
+                    status_emoji = "🟢" if status == "operational" else "🔴" if status == "failed" else "🟡"
+                    response += f"{status_emoji} **{infra_id}** - {infra_type}\n"
+                    response += f"   • Location: {location} ({area})\n"
+                    response += f"   • Status: {status}\n"
+                    response += f"   • Capacity: {capacity}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing infrastructure: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "list_all_dams":
+            try:
+                dams = await get_all_dams()
+                if "error" in dams:
+                    return [{"type": "text", "text": f"❌ Error fetching dams: {dams['error']}"}]
+                
+                response = "🌊 **ALL DAM STATUSES**\n\n"
+                response += f"**Total Dams:** {len(dams)}\n\n"
+                
+                for dam_id, dam_info in dams.items():
+                    name = dam_info.get("name", "Unknown")
+                    location = dam_info.get("location", "Unknown")
+                    floodgate_status = dam_info.get("floodgate_status", "unknown")
+                    last_action = dam_info.get("last_action", "Unknown")
+                    
+                    status_emoji = "🟢" if floodgate_status == "open" else "🔴" if floodgate_status == "closed" else "🟡"
+                    response += f"{status_emoji} **{name}** ({dam_id})\n"
+                    response += f"   • Location: {location}\n"
+                    response += f"   • Floodgate: {floodgate_status}\n"
+                    response += f"   • Last Action: {last_action}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing dams: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "get_road_closure_details":
+            street_name = arguments.get("street_name")
+            if not street_name:
+                return [{"type": "text", "text": "Error: street_name is required"}]
+            
+            try:
+                closure = await get_road_closure_by_name(street_name)
+                if "error" in closure:
+                    return [{"type": "text", "text": f"❌ Error: {closure['error']}"}]
+                
+                status = closure.get("status", "Unknown")
+                reason = closure.get("reason", "Unknown")
+                area = closure.get("area", "Unknown")
+                closure_type = closure.get("closure_type", "Unknown")
+                from_int = closure.get("from_intersection", "N/A")
+                to_int = closure.get("to_intersection", "N/A")
+                duration = closure.get("estimated_duration", "Unknown")
+                notes = closure.get("notes", "None")
+                
+                response = f"🚔 **ROAD CLOSURE DETAILS: {street_name}**\n\n"
+                response += f"**Status:** {status}\n"
+                response += f"**Reason:** {reason}\n"
+                response += f"**Area:** {area}\n"
+                response += f"**Closure Type:** {closure_type}\n"
+                response += f"**From:** {from_int}\n"
+                response += f"**To:** {to_int}\n"
+                response += f"**Duration:** {duration}\n"
+                response += f"**Notes:** {notes}\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error getting road closure details: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "get_incident_details":
+            incident_id = arguments.get("incident_id")
+            if not incident_id:
+                return [{"type": "text", "text": "Error: incident_id is required"}]
+            
+            try:
+                incident = await get_police_incident_by_id(incident_id)
+                if "error" in incident:
+                    return [{"type": "text", "text": f"❌ Error: {incident['error']}"}]
+                
+                incident_type = incident.get("type", "unknown")
+                severity = incident.get("severity", "unknown")
+                location = incident.get("location", "Unknown")
+                area = incident.get("area", "Unknown")
+                timestamp = incident.get("timestamp", "Unknown")
+                notes = incident.get("notes", "None")
+                
+                response = f"🚨 **INCIDENT DETAILS: {incident_id}**\n\n"
+                response += f"**Type:** {incident_type}\n"
+                response += f"**Severity:** {severity}\n"
+                response += f"**Location:** {location}\n"
+                response += f"**Area:** {area}\n"
+                response += f"**Timestamp:** {timestamp}\n"
+                response += f"**Notes:** {notes}\n"
+                
+                # Add type-specific details
+                if "vehicles_involved" in incident:
+                    response += f"**Vehicles Involved:** {incident['vehicles_involved']}\n"
+                if "injuries" in incident:
+                    response += f"**Injuries:** {incident['injuries']}\n"
+                if "case_status" in incident:
+                    response += f"**Case Status:** {incident['case_status']}\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error getting incident details: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "get_outage_details":
+            location = arguments.get("location")
+            if not location:
+                return [{"type": "text", "text": "Error: location is required"}]
+            
+            try:
+                outage = await get_power_outage_by_location(location)
+                if "error" in outage:
+                    return [{"type": "text", "text": f"❌ Error: {outage['error']}"}]
+                
+                status = outage.get("status", "Unknown")
+                hazard = outage.get("hazard", "None")
+                area = outage.get("area", "Unknown")
+                affected = outage.get("affected_customers", 0)
+                
+                response = f"⚡ **POWER OUTAGE DETAILS: {location}**\n\n"
+                response += f"**Status:** {status}\n"
+                response += f"**Hazard:** {hazard}\n"
+                response += f"**Area:** {area}\n"
+                response += f"**Affected Customers:** {affected}\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error getting outage details: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        elif name == "get_dam_status":
+            dam_location = arguments.get("dam_location")
+            if not dam_location:
+                return [{"type": "text", "text": "Error: dam_location is required"}]
+            
+            try:
+                dam = await get_floodgate_status(dam_location)
+                if "error" in dam:
+                    return [{"type": "text", "text": f"❌ Error: {dam['error']}"}]
+                
+                name = dam.get("name", "Unknown")
+                location = dam.get("location", "Unknown")
+                floodgate_status = dam.get("floodgate_status", "unknown")
+                last_action = dam.get("last_action", "Unknown")
+                
+                response = f"🌊 **DAM STATUS: {name}**\n\n"
+                response += f"**Dam ID:** {dam_location}\n"
+                response += f"**Location:** {location}\n"
+                response += f"**Floodgate Status:** {floodgate_status}\n"
+                response += f"**Last Action:** {last_action}\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error getting dam status: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
         else:
             # For errors, still need to return proper structure
             return [{"type": "text", "text": f"Unknown tool: {name}"}]
@@ -588,6 +938,80 @@ data:
                 return f"❌ Error: {current['error']}"
             result = await control_floodgate(dam_location, action)
             return f"✅ Floodgate {action}ed at {dam_location}. Reason: {reason}"
+        
+        @mcp_app.tool()
+        async def list_all_road_closures() -> str:
+            """List all road closures"""
+            data = await get_road_closures()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            closures = data.get("closures", {})
+            return f"🚔 {len(closures)} road closures found"
+        
+        @mcp_app.tool()
+        async def list_all_incidents() -> str:
+            """List all police incidents"""
+            data = await get_police_incidents()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🚨 {len(data)} incidents found"
+        
+        @mcp_app.tool()
+        async def list_all_outages() -> str:
+            """List all power outages"""
+            data = await get_power_outages()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            outages = data.get("outages", {})
+            return f"⚡ {len(outages)} outages found"
+        
+        @mcp_app.tool()
+        async def list_all_infrastructure() -> str:
+            """List all infrastructure"""
+            data = await get_infrastructure_status()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🏗️ {len(data)} infrastructure items found"
+        
+        @mcp_app.tool()
+        async def list_all_dams() -> str:
+            """List all dams"""
+            data = await get_all_dams()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🌊 {len(data)} dams found"
+        
+        @mcp_app.tool()
+        async def get_road_closure_details(street_name: str) -> str:
+            """Get road closure details"""
+            data = await get_road_closure_by_name(street_name)
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🚔 {street_name}: {data.get('status', 'Unknown')}"
+        
+        @mcp_app.tool()
+        async def get_incident_details(incident_id: str) -> str:
+            """Get incident details"""
+            data = await get_police_incident_by_id(incident_id)
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🚨 {incident_id}: {data.get('type', 'Unknown')}"
+        
+        @mcp_app.tool()
+        async def get_outage_details(location: str) -> str:
+            """Get outage details"""
+            data = await get_power_outage_by_location(location)
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"⚡ {location}: {data.get('status', 'Unknown')}"
+        
+        @mcp_app.tool()
+        async def get_dam_status(dam_location: str) -> str:
+            """Get dam status"""
+            data = await get_floodgate_status(dam_location)
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🌊 {data.get('name', 'Unknown')}: {data.get('floodgate_status', 'unknown')}"
         
         logger.info("Starting Government MCP Server with streamable-http...")
         # Use uvicorn directly to control host and port
@@ -699,11 +1123,20 @@ spec:
   plugin:
     mcp:
       policies:
-        # Require additional authorization for floodgate control
+        # Allow all read-only list/browse operations
+        - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `list_all_road_closures`) || Equals(`mcp.params.name`, `list_all_incidents`) || Equals(`mcp.params.name`, `list_all_outages`) || Equals(`mcp.params.name`, `list_all_infrastructure`) || Equals(`mcp.params.name`, `list_all_dams`) || Equals(`mcp.params.name`, `list_areas`))
+          action: allow
+        # Allow all read-only detail lookups
+        - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `get_road_closure_details`) || Equals(`mcp.params.name`, `get_incident_details`) || Equals(`mcp.params.name`, `get_outage_details`) || Equals(`mcp.params.name`, `get_dam_status`))
+          action: allow
+        # Allow emergency analysis operations
+        - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `emergency_status_summary`) || Equals(`mcp.params.name`, `rescue_mission`))
+          action: allow
+        # Require special authorization for write operations like floodgate control
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `floodgate_control`)
-          action: allow  # In production, this might check for specific roles/permissions
-        # Allow rescue mission calls without restriction
-        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `rescue_mission`)
+          action: allow  # In production, this should check for specific roles/permissions via JWT claims
+        # Allow utility operations
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `ping`)
           action: allow
       defaultAction: deny
 ---

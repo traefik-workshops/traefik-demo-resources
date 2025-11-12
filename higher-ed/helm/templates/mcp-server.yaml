@@ -100,6 +100,37 @@ data:
                     },
                     "required": ["student_id"]
                 }
+            ),
+            Tool(
+                name="list_all_financial_aid",
+                description="Get a list of all financial aid records for all students. Useful for browsing or searching across all applicants.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_scholarships",
+                description="Get a list of all scholarship records for all students. Useful for finding students with specific scholarships or browsing all awards.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_all_housing",
+                description="Get a list of all housing units with their details including occupancy status, capacity, and amenities.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="list_vacant_housing",
+                description="Get a list of only vacant housing units available for assignment.",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="get_housing_unit_details",
+                description="Get detailed information about a specific housing unit by its unit ID.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "unit_id": {"type": "string", "description": "The housing unit ID (e.g., 'building-a-101')"}
+                    },
+                    "required": ["unit_id"]
+                }
             )
         ]
 
@@ -165,6 +196,22 @@ data:
     async def get_vacant_housing() -> Dict:
         logger.info("Getting vacant housing units")
         return await api_request("housing", "/housing/status/vacant")
+    
+    async def get_all_financial_aid() -> Dict:
+        logger.info("Getting all financial aid records")
+        return await api_request("financial_aid", "/financial-aid")
+    
+    async def get_all_scholarships() -> Dict:
+        logger.info("Getting all scholarship records")
+        return await api_request("scholarship", "/scholarships")
+    
+    async def get_all_housing() -> Dict:
+        logger.info("Getting all housing units")
+        return await api_request("housing", "/housing")
+    
+    async def get_housing_unit(unit_id: str) -> Dict:
+        logger.info(f"Getting housing unit details for {unit_id}")
+        return await api_request("housing", f"/housing/{unit_id}")
 
     async def assign_housing(unit_id: str, student_id: str) -> Dict:
         logger.info(f"Assigning {student_id} to {unit_id}")
@@ -459,6 +506,183 @@ data:
                 logger.error(f"Error getting financial aid status: {e}")
                 return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
         
+        if name == "list_all_financial_aid":
+            try:
+                logger.info("Fetching all financial aid records")
+                financial_aid_data = await get_all_financial_aid()
+                
+                if "error" in financial_aid_data:
+                    return [{"type": "text", "text": f"❌ Error fetching financial aid data: {financial_aid_data['error']}"}]
+                
+                # Format the response
+                response = "💰 **ALL FINANCIAL AID RECORDS**\n\n"
+                response += f"**Total Records:** {len(financial_aid_data)}\n\n"
+                
+                for applicant_id, aid_info in financial_aid_data.items():
+                    fafsa_status = aid_info.get("fafsa_status", "Unknown")
+                    aid_status = aid_info.get("aid_package_status", "N/A")
+                    issues = aid_info.get("outstanding_issues", "None")
+                    
+                    status_emoji = "✅" if fafsa_status in ["Received & Verified", "Processed"] else "⚠️"
+                    response += f"{status_emoji} **Student {applicant_id}**\n"
+                    response += f"   • FAFSA: {fafsa_status}\n"
+                    response += f"   • Aid Package: {aid_status}\n"
+                    response += f"   • Issues: {issues}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing financial aid: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        if name == "list_all_scholarships":
+            try:
+                logger.info("Fetching all scholarship records")
+                scholarship_data = await get_all_scholarships()
+                
+                if "error" in scholarship_data:
+                    return [{"type": "text", "text": f"❌ Error fetching scholarship data: {scholarship_data['error']}"}]
+                
+                # Format the response
+                response = "🎓 **ALL SCHOLARSHIP RECORDS**\n\n"
+                response += f"**Total Students:** {len(scholarship_data)}\n\n"
+                
+                for applicant_id, scholarships in scholarship_data.items():
+                    eligible_count = sum(1 for s in scholarships.values() if s.get("eligible"))
+                    total_amount = sum(s.get("amount", 0) for s in scholarships.values() if s.get("eligible"))
+                    
+                    response += f"📚 **Student {applicant_id}**\n"
+                    response += f"   • Eligible Scholarships: {eligible_count}/{len(scholarships)}\n"
+                    response += f"   • Total Award: ${total_amount:,}\n"
+                    
+                    for scholarship_name, details in scholarships.items():
+                        if details.get("eligible"):
+                            response += f"   • ✅ {scholarship_name}: ${details.get('amount', 0):,}\n"
+                    response += "\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing scholarships: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        if name == "list_all_housing":
+            try:
+                logger.info("Fetching all housing units")
+                housing_data = await get_all_housing()
+                
+                if "error" in housing_data:
+                    return [{"type": "text", "text": f"❌ Error fetching housing data: {housing_data['error']}"}]
+                
+                # Format the response
+                response = "🏠 **ALL HOUSING UNITS**\n\n"
+                response += f"**Total Units:** {len(housing_data)}\n\n"
+                
+                # Group by building
+                buildings = {}
+                for unit_id, unit_info in housing_data.items():
+                    building = unit_info.get("building", "Unknown")
+                    if building not in buildings:
+                        buildings[building] = []
+                    buildings[building].append((unit_id, unit_info))
+                
+                for building_name in sorted(buildings.keys()):
+                    response += f"**{building_name}**\n"
+                    for unit_id, unit_info in sorted(buildings[building_name]):
+                        status = unit_info.get("status", "unknown")
+                        capacity = unit_info.get("capacity", 0)
+                        occupants = len(unit_info.get("occupants", []))
+                        room = unit_info.get("room", "Unknown")
+                        
+                        status_emoji = "🟢" if status == "vacant" else "🟡" if status == "partially-occupied" else "🔴"
+                        response += f"{status_emoji} Room {room} ({unit_id}): {occupants}/{capacity} - {status}\n"
+                    response += "\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing housing: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        if name == "list_vacant_housing":
+            try:
+                logger.info("Fetching vacant housing units")
+                housing_data = await get_vacant_housing()
+                
+                if "error" in housing_data:
+                    return [{"type": "text", "text": f"❌ Error fetching vacant housing: {housing_data['error']}"}]
+                
+                # Format the response
+                response = "🏠 **VACANT HOUSING UNITS**\n\n"
+                response += f"**Available Units:** {len(housing_data)}\n\n"
+                
+                if not housing_data:
+                    response += "No vacant housing units available.\n"
+                else:
+                    # Group by building
+                    buildings = {}
+                    for unit_id, unit_info in housing_data.items():
+                        building = unit_info.get("building", "Unknown")
+                        if building not in buildings:
+                            buildings[building] = []
+                        buildings[building].append((unit_id, unit_info))
+                    
+                    for building_name in sorted(buildings.keys()):
+                        response += f"**{building_name}**\n"
+                        for unit_id, unit_info in sorted(buildings[building_name]):
+                            capacity = unit_info.get("capacity", 0)
+                            room = unit_info.get("room", "Unknown")
+                            amenities = unit_info.get("amenities", [])
+                            
+                            response += f"🟢 Room {room} ({unit_id})\n"
+                            response += f"   • Capacity: {capacity} {'person' if capacity == 1 else 'people'}\n"
+                            response += f"   • Amenities: {', '.join(amenities)}\n\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error listing vacant housing: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        if name == "get_housing_unit_details":
+            unit_id = arguments.get("unit_id")
+            
+            if not unit_id:
+                return [{"type": "text", "text": "Error: unit_id is required"}]
+            
+            try:
+                logger.info(f"Fetching housing unit details for {unit_id}")
+                unit_data = await get_housing_unit(unit_id)
+                
+                if "error" in unit_data:
+                    return [{"type": "text", "text": f"❌ Error fetching housing unit: {unit_data['error']}"}]
+                
+                # Format the response
+                building = unit_data.get("building", "Unknown")
+                room = unit_data.get("room", "Unknown")
+                capacity = unit_data.get("capacity", 0)
+                occupants = unit_data.get("occupants", [])
+                status = unit_data.get("status", "unknown")
+                amenities = unit_data.get("amenities", [])
+                
+                status_emoji = "🟢" if status == "vacant" else "🟡" if status == "partially-occupied" else "🔴"
+                
+                response = f"🏠 **HOUSING UNIT DETAILS**\n\n"
+                response += f"**Unit ID:** {unit_id}\n"
+                response += f"**Building:** {building}\n"
+                response += f"**Room:** {room}\n"
+                response += f"{status_emoji} **Status:** {status}\n"
+                response += f"**Capacity:** {capacity} {'person' if capacity == 1 else 'people'}\n"
+                response += f"**Current Occupants:** {len(occupants)}/{capacity}\n"
+                
+                if occupants:
+                    response += f"**Occupant IDs:** {', '.join(occupants)}\n"
+                
+                response += f"\n**Amenities:**\n"
+                for amenity in amenities:
+                    response += f"• {amenity}\n"
+                
+                return [{"type": "text", "text": response}]
+            except Exception as e:
+                logger.error(f"Error getting housing unit details: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
         else:
             # For errors, still need to return proper structure
             return {
@@ -531,6 +755,49 @@ data:
             fafsa = aid.get('fafsa_status', 'Unknown')
             aid_pkg = aid.get('aid_package_status', 'N/A')
             return f"💰 FAFSA: {fafsa}, Aid Package: {aid_pkg}"
+        
+        @mcp_app.tool()
+        async def list_all_financial_aid() -> str:
+            """List all financial aid records"""
+            data = await get_all_financial_aid()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"💰 {len(data)} financial aid records found"
+        
+        @mcp_app.tool()
+        async def list_all_scholarships() -> str:
+            """List all scholarship records"""
+            data = await get_all_scholarships()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🎓 {len(data)} scholarship records found"
+        
+        @mcp_app.tool()
+        async def list_all_housing() -> str:
+            """List all housing units"""
+            data = await get_all_housing()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🏠 {len(data)} housing units found"
+        
+        @mcp_app.tool()
+        async def list_vacant_housing() -> str:
+            """List vacant housing units"""
+            data = await get_vacant_housing()
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            return f"🏠 {len(data)} vacant units available"
+        
+        @mcp_app.tool()
+        async def get_housing_unit_details(unit_id: str) -> str:
+            """Get housing unit details"""
+            data = await get_housing_unit(unit_id)
+            if "error" in data:
+                return f"❌ Error: {data['error']}"
+            building = data.get('building', 'Unknown')
+            room = data.get('room', 'Unknown')
+            status = data.get('status', 'unknown')
+            return f"🏠 {building} Room {room} - Status: {status}"
         
         logger.info("Starting Higher-Ed MCP Server with streamable-http...")
         # Use uvicorn directly to control host and port
@@ -641,10 +908,22 @@ spec:
   plugin:
     mcp:
       policies:
-        # Block housing unenrollment requests for security
+        # Allow all read-only list/browse operations
+        - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `list_all_financial_aid`) || Equals(`mcp.params.name`, `list_all_scholarships`) || Equals(`mcp.params.name`, `list_all_housing`) || Equals(`mcp.params.name`, `list_vacant_housing`))
+          action: allow
+        # Allow all read-only detail lookups
+        - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `get_scholarship_status`) || Equals(`mcp.params.name`, `get_financial_aid_status`) || Equals(`mcp.params.name`, `get_housing_unit_details`))
+          action: allow
+        # Allow housing enrollment (requires student eligibility check in production)
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `enroll_in_housing`)
+          action: allow  # In production, verify student eligibility and housing availability
+        # Block housing unenrollment requests - requires manual admin approval
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `unenroll_from_housing`)
-          action: deny
-      defaultAction: allow
+          action: deny  # Sensitive operation: students must go through proper channels
+        # Allow utility operations
+        - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `ping`)
+          action: allow
+      defaultAction: deny
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
