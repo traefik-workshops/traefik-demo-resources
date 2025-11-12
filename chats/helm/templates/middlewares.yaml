@@ -85,18 +85,35 @@ spec:
           - General API gateway concepts
           - Load balancing principles
           - Service mesh technologies
-          - Emergency management and response systems
-          - Police incidents, road closures, and public safety
-          - Power outages and utility infrastructure monitoring
-          - Dam operations, floodgate control, and water management
-          - Public works and critical infrastructure management
-          - Emergency services coordination and rescue operations
-          - Student services and administration systems
-          - Financial aid, FAFSA processing, and aid packages
-          - Scholarship management, eligibility, and awards
-          - Housing assignments, occupancy, and facilities management
-          - Student enrollment, registration, and campus resources
-          - Government and higher education service integration
+          
+          GOVERNMENT SERVICES (all queries, details, and follow-ups):
+          - Road closures, street conditions, traffic incidents, affected intersections, locations
+          - Police incidents, public safety alerts, incident details, areas, zones
+          - Power outages, electrical service, grid status, affected locations, neighborhoods
+          - Infrastructure status, facility conditions, equipment, systems
+          - Dam operations, water levels, floodgate control, reservoir status
+          - Public works, critical infrastructure, maintenance, repairs
+          - Emergency services, rescue missions, emergency analysis, response coordination
+          - Utility areas, service zones, monitored regions, geographic coverage
+          - Details about closures, outages, incidents (what, where, when, which, how many)
+          - Follow-up questions about government services (more details, specific locations, status updates)
+          
+          HIGHER EDUCATION SERVICES (all queries, details, and follow-ups):
+          - Financial aid status, FAFSA processing, aid packages, disbursement, eligibility
+          - Scholarship management, awards, eligibility criteria, application status, amounts
+          - Housing assignments, dormitories, residence halls, room types, vacancies
+          - Student enrollment, housing applications, unenrollment, waitlists
+          - Campus facilities, housing units, building details, amenities
+          - Student records, applicant information, enrollment status
+          - Details about scholarships, aid, housing (amounts, dates, requirements, availability)
+          - Follow-up questions about student services (specific details, status, eligibility)
+          
+          GENERAL QUERIES:
+          - Questions asking for "details", "more information", "which", "what", "where" about allowed topics
+          - Follow-up questions continuing previous allowed conversations
+          - Requests for specific data, locations, names, dates related to allowed services
+          - Status inquiries, availability checks, listing requests for allowed topics
+          - Any question about data retrievable from government or higher-ed MCP tools
 
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
 ---
