@@ -1123,6 +1123,13 @@ spec:
   plugin:
     mcp:
       policies:
+        # Allow MCP protocol handshake and tool discovery
+        - match: Equals(`mcp.method`, `initialize`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/list`)
+          action: allow
+        - match: Equals(`mcp.method`, `ping`)
+          action: allow
         # Allow all read-only list/browse operations
         - match: Equals(`mcp.method`, `tools/call`) && (Equals(`mcp.params.name`, `list_all_road_closures`) || Equals(`mcp.params.name`, `list_all_incidents`) || Equals(`mcp.params.name`, `list_all_outages`) || Equals(`mcp.params.name`, `list_all_infrastructure`) || Equals(`mcp.params.name`, `list_all_dams`) || Equals(`mcp.params.name`, `list_areas`))
           action: allow
@@ -1135,7 +1142,7 @@ spec:
         # Require special authorization for write operations like floodgate control
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `floodgate_control`)
           action: allow  # In production, this should check for specific roles/permissions via JWT claims
-        # Allow utility operations
+        # Allow utility tool operations
         - match: Equals(`mcp.method`, `tools/call`) && Equals(`mcp.params.name`, `ping`)
           action: allow
       defaultAction: deny
