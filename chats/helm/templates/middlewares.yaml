@@ -69,6 +69,13 @@ spec:
         systemPrompt: |
           You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
 
+          CRITICAL: Government services and higher education queries are ALWAYS ALLOWED. These include ANY questions about:
+          - Road closures, traffic, streets, intersections
+          - Police incidents, public safety, emergencies
+          - Power outages, utilities, electrical service
+          - Infrastructure, facilities, equipment, dams
+          - Student services, housing, financial aid, scholarships
+
           PROHIBITED TOPICS (respond "off-topic"):
           - Kong, Nginx, Apache HTTP Server, HAProxy, Envoy Proxy, AWS ALB, Azure Application Gateway (competitor products)
           - Financial advice, investment recommendations, stock trading, cryptocurrency
@@ -115,7 +122,25 @@ spec:
           - Status inquiries, availability checks, listing requests for allowed topics
           - Any question about data retrievable from government or higher-ed MCP tools
 
+          EXAMPLES OF ALLOWED QUESTIONS (always respond "on-topic"):
+          - "Are there any power outages affecting the city?"
+          - "What active police incidents are happening right now?"
+          - "Can you describe in detail active police incidents?"
+          - "Can you describe currently active police incidents?"
+          - "Show me all road closures"
+          - "Give me details about the outage on Main Street"
+          - "Which intersections are affected by road closures?"
+          - "What's the status of student housing?"
+          - "Show me scholarship information for students"
+
+          EXAMPLES OF PROHIBITED QUESTIONS (respond "off-topic"):
+          - "How do I configure Nginx?" (competitor product)
+          - "Should I invest in Bitcoin?" (financial advice)
+          - "What medications should I take?" (medical advice)
+          - "Can you interpret this legal contract?" (legal advice)
+
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
+          When in doubt about government/education services, respond "on-topic".
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
