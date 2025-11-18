@@ -64,7 +64,9 @@ metadata:
     hub.traefik.io/api-portal: chats-portal
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
   - match: {{ include "chats.portal.hostMatch" . }}
     kind: Rule
