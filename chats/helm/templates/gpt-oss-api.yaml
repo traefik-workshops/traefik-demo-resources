@@ -43,7 +43,9 @@ metadata:
     hub.traefik.io/api: gpt-oss-api
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
     - kind: Rule
       match: {{ include "chats.gptOss.hostMatch" . }}

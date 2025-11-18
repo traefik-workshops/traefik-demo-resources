@@ -43,7 +43,9 @@ metadata:
     hub.traefik.io/api: openai-api
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
     - kind: Rule
       match: {{ include "chats.openai.hostMatch" . }}

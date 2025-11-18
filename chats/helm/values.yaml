@@ -3,6 +3,9 @@
 # Base domain for all services
 domain: demo.traefikhub.dev
 
+entryPoints:
+  - websecure
+
 # Components to enable
 components:
   - openai
