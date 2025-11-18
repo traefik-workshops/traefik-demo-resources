@@ -91,7 +91,9 @@ metadata:
     hub.traefik.io/api: police-api
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
     - kind: Rule
       match: {{ include "gov.police.hostMatch" . }}

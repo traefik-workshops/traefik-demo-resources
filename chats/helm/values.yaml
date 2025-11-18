@@ -2,6 +2,7 @@
 
 # Base domain for all services
 domain: demo.traefikhub.dev
+protocol: https
 
 entryPoints:
   - websecure

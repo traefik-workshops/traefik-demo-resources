@@ -36,21 +36,21 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Keycloak JWKS URL
 */}}
 {{- define "higher-ed.keycloak.jwksUrl" -}}
-{{- printf "https://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Keycloak Issuer URL
 */}}
 {{- define "higher-ed.keycloak.issuerUrl" -}}
-{{- printf "https://keycloak.traefik.%s/realms/traefik" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Portal URL
 */}}
 {{- define "higher-ed.portal.url" -}}
-{{- printf "https://higher-ed.portal.%s" .Values.domain }}
+{{- printf "%s://higher-ed.portal.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -64,7 +64,7 @@ Portal Host Match
 Financial Aid API URL
 */}}
 {{- define "higher-ed.financialAid.apiUrl" -}}
-{{- printf "https://financial-aid-higher-ed.%s" .Values.domain }}
+{{- printf "%s://financial-aid-higher-ed.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -78,7 +78,7 @@ Financial Aid Host Match
 Housing Assignment API URL
 */}}
 {{- define "higher-ed.housingAssignment.apiUrl" -}}
-{{- printf "https://housing-assignment-higher-ed.%s" .Values.domain }}
+{{- printf "%s://housing-assignment-higher-ed.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -92,7 +92,7 @@ Housing Assignment Host Match
 Scholarship API URL
 */}}
 {{- define "higher-ed.scholarship.apiUrl" -}}
-{{- printf "https://scholarship-higher-ed.%s" .Values.domain }}
+{{- printf "%s://scholarship-higher-ed.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*

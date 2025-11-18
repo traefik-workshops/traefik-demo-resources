@@ -67,7 +67,9 @@ metadata:
     hub.traefik.io/api-portal: higher-ed-portal
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
   - match: {{ include "higher-ed.portal.hostMatch" . }}
     kind: Rule

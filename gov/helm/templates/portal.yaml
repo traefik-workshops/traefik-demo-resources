@@ -67,7 +67,9 @@ metadata:
     hub.traefik.io/api-portal: gov-portal
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
   - match: {{ include "gov.portal.hostMatch" . }}
     kind: Rule

@@ -44,7 +44,9 @@ metadata:
     hub.traefik.io/api: scholarship-api
 spec:
   entryPoints:
-    - websecure
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
   routes:
     - kind: Rule
       match: Host(`scholarship-education.demo.aiworld.traefikhub.dev`)

@@ -67,7 +67,7 @@ Keycloak JWKS URL
 {{- if .Values.keycloak.jwksUrl }}
 {{- .Values.keycloak.jwksUrl }}
 {{- else }}
-{{- printf "https://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -78,7 +78,7 @@ Keycloak Issuer URL
 {{- if .Values.keycloak.issuerUrl }}
 {{- .Values.keycloak.issuerUrl }}
 {{- else }}
-{{- printf "https://keycloak.traefik.%s/realms/traefik" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -89,7 +89,7 @@ NIM Topic Control Endpoint
 {{- if .Values.nim.topicControl.endpoint }}
 {{- .Values.nim.topicControl.endpoint }}
 {{- else }}
-{{- printf "https://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.nim.topicControl.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.nim.topicControl.podId }}
 {{- end }}
 {{- end }}
 
@@ -100,7 +100,7 @@ NIM Content Safety Endpoint
 {{- if .Values.nim.contentSafety.endpoint }}
 {{- .Values.nim.contentSafety.endpoint }}
 {{- else }}
-{{- printf "https://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.nim.contentSafety.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.nim.contentSafety.podId }}
 {{- end }}
 {{- end }}
 
@@ -111,7 +111,7 @@ NIM Jailbreak Detection Endpoint
 {{- if .Values.nim.jailbreakDetection.endpoint }}
 {{- .Values.nim.jailbreakDetection.endpoint }}
 {{- else }}
-{{- printf "https://%s-8000.proxy.runpod.net/v1/classify" .Values.nim.jailbreakDetection.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/classify" .Values.protocol .Values.nim.jailbreakDetection.podId }}
 {{- end }}
 {{- end }}
 
@@ -122,7 +122,7 @@ Portal URL
 {{- if .Values.portal.url }}
 {{- .Values.portal.url }}
 {{- else }}
-{{- printf "https://chats.portal.%s" .Values.domain }}
+{{- printf "%s://chats.portal.%s" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -144,7 +144,7 @@ OpenAI API URL
 {{- if .Values.openai.apiUrl }}
 {{- .Values.openai.apiUrl }}
 {{- else }}
-{{- printf "https://openai.%s" .Values.domain }}
+{{- printf "%s://openai.%s" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -188,7 +188,7 @@ GPT-OSS API URL
 {{- if .Values.gptOss.apiUrl }}
 {{- .Values.gptOss.apiUrl }}
 {{- else }}
-{{- printf "https://gpt.%s" .Values.domain }}
+{{- printf "%s://gpt.%s" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 

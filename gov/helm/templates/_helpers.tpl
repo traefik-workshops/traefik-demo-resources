@@ -36,21 +36,21 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Keycloak JWKS URL
 */}}
 {{- define "gov.keycloak.jwksUrl" -}}
-{{- printf "https://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Keycloak Issuer URL
 */}}
 {{- define "gov.keycloak.issuerUrl" -}}
-{{- printf "https://keycloak.traefik.%s/realms/traefik" .Values.domain }}
+{{- printf "%s://keycloak.traefik.%s/realms/traefik" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Portal URL
 */}}
 {{- define "gov.portal.url" -}}
-{{- printf "https://gov.portal.%s" .Values.domain }}
+{{- printf "%s://gov.portal.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -64,7 +64,7 @@ Portal Host Match
 Police API URL
 */}}
 {{- define "gov.police.apiUrl" -}}
-{{- printf "https://police-gov.%s" .Values.domain }}
+{{- printf "%s://police-gov.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -78,7 +78,7 @@ Police Host Match
 Public Works API URL
 */}}
 {{- define "gov.publicWorks.apiUrl" -}}
-{{- printf "https://public-works-gov.%s" .Values.domain }}
+{{- printf "%s://public-works-gov.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
@@ -92,7 +92,7 @@ Public Works Host Match
 Utility API URL
 */}}
 {{- define "gov.utility.apiUrl" -}}
-{{- printf "https://utility-gov.%s" .Values.domain }}
+{{- printf "%s://utility-gov.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
