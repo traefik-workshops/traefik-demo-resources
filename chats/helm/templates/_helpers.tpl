@@ -119,8 +119,8 @@ NIM Jailbreak Detection Endpoint
 Granite Guard Endpoint
 */}}
 {{- define "chats.middlewares.llmGuards.graniteGuard.endpoint" -}}
-{{- if .Values.graniteGuard.endpoint }}
-{{- .Values.graniteGuard.endpoint }}
+{{- if .Values.middlewares.llmGuards.graniteGuard.endpoint }}
+{{- .Values.middlewares.llmGuards.graniteGuard.endpoint }}
 {{- else }}
 {{- printf "%s://%s-8000.proxy.runpod.net/v1/classify" .Values.protocol .Values.middlewares.llmGuards.graniteGuard.podId }}
 {{- end }}
