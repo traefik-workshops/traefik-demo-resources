@@ -118,7 +118,7 @@ NIM Jailbreak Detection Endpoint
 {{/*
 Granite Guard Endpoint
 */}}
-{{- define "chats.graniteGuard.endpoint" -}}
+{{- define "chats.middlewares.llmGuards.graniteGuard.endpoint" -}}
 {{- if .Values.graniteGuard.endpoint }}
 {{- .Values.graniteGuard.endpoint }}
 {{- else }}
