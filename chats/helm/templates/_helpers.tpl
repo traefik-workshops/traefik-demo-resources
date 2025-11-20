@@ -122,7 +122,7 @@ Granite Guard Endpoint
 {{- if .Values.graniteGuard.endpoint }}
 {{- .Values.graniteGuard.endpoint }}
 {{- else }}
-{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.graniteGuard.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/classify" .Values.protocol .Values.middlewares.llmGuards.graniteGuard.podId }}
 {{- end }}
 {{- end }}
 
