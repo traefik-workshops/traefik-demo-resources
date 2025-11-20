@@ -85,33 +85,44 @@ Keycloak Issuer URL
 {{/*
 NIM Topic Control Endpoint
 */}}
-{{- define "chats.nim.topicControl.endpoint" -}}
-{{- if .Values.nim.topicControl.endpoint }}
-{{- .Values.nim.topicControl.endpoint }}
+{{- define "chats.middlewares.llmGuards.topicControlGuard.endpoint" -}}
+{{- if .Values.middlewares.llmGuards.topicControlGuard.endpoint }}
+{{- .Values.middlewares.llmGuards.topicControlGuard.endpoint }}
 {{- else }}
-{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.nim.topicControl.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.middlewares.llmGuards.topicControlGuard.podId }}
 {{- end }}
 {{- end }}
 
 {{/*
 NIM Content Safety Endpoint
 */}}
-{{- define "chats.nim.contentSafety.endpoint" -}}
-{{- if .Values.nim.contentSafety.endpoint }}
-{{- .Values.nim.contentSafety.endpoint }}
+{{- define "chats.middlewares.llmGuards.contentSafetyGuard.endpoint" -}}
+{{- if .Values.middlewares.llmGuards.contentSafetyGuard.endpoint }}
+{{- .Values.middlewares.llmGuards.contentSafetyGuard.endpoint }}
 {{- else }}
-{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.nim.contentSafety.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.middlewares.llmGuards.contentSafetyGuard.podId }}
 {{- end }}
 {{- end }}
 
 {{/*
 NIM Jailbreak Detection Endpoint
 */}}
-{{- define "chats.nim.jailbreakDetection.endpoint" -}}
-{{- if .Values.nim.jailbreakDetection.endpoint }}
-{{- .Values.nim.jailbreakDetection.endpoint }}
+{{- define "chats.middlewares.llmGuards.jailbreakDetectionGuard.endpoint" -}}
+{{- if .Values.middlewares.llmGuards.jailbreakDetectionGuard.endpoint }}
+{{- .Values.middlewares.llmGuards.jailbreakDetectionGuard.endpoint }}
 {{- else }}
-{{- printf "%s://%s-8000.proxy.runpod.net/v1/classify" .Values.protocol .Values.nim.jailbreakDetection.podId }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/classify" .Values.protocol .Values.middlewares.llmGuards.jailbreakDetectionGuard.podId }}
+{{- end }}
+{{- end }}
+
+{{/*
+Granite Guard Endpoint
+*/}}
+{{- define "chats.graniteGuard.endpoint" -}}
+{{- if .Values.graniteGuard.endpoint }}
+{{- .Values.graniteGuard.endpoint }}
+{{- else }}
+{{- printf "%s://%s-8000.proxy.runpod.net/v1/chat/completions" .Values.protocol .Values.graniteGuard.podId }}
 {{- end }}
 {{- end }}
 

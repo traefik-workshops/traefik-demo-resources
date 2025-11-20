@@ -57,7 +57,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard:
-      endpoint: {{ include "chats.nim.topicControl.endpoint" . }}
+      endpoint: {{ include "chats.middlewares.llmGuards.topicControlGuard.endpoint" . }}
       model: nvidia/llama-3.1-nemoguard-8b-topic-control
       request:
         blockConditions:
@@ -152,7 +152,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard:
-      endpoint: {{ include "chats.nim.contentSafety.endpoint" . }}
+      endpoint: {{ include "chats.middlewares.llmGuards.contentSafetyGuard.endpoint" . }}
       model: nvidia/llama-3.1-nemoguard-8b-content-safety
       request:
         blockConditions:
@@ -208,7 +208,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard-custom:
-      endpoint: {{ include "chats.nim.jailbreakDetection.endpoint" . }}
+      endpoint: {{ include "chats.middlewares.llmGuards.jailbreakDetectionGuard.endpoint" . }}
       request:
         # Jailbreak NIM uses custom API format
         template: '{"input": "{{`{{ (index .messages 0).content }}`}}"}'
@@ -218,6 +218,26 @@ spec:
         traceConditions:
           - reason: "jailbreak detected"
             condition: JSONGt(".score", "0.85")
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-granite-guard
+  namespace: chats
+  labels:
+    {{- include "chats.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-llm-guard-custom:
+      endpoint: {{ include "chats.middlewares.llmGuards.graniteGuard.endpoint" . }}
+      clientConfig: 
+        headers:
+          Content-Type: application/json
+      request:
+        template: '{"messages": [ {"role": "user", "content": "{{ (index .messages 0).content }}"} ]}'
+        blockConditions:
+          - condition: JSONStringContains(".choices[0].message.content", "yes")
+            reason: request blocked
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -254,6 +274,17 @@ spec:
         {{- end }}
         {{- if .Values.middlewares.llmGuards.jailbreakDetectionGuard.enabled }}
         - name: cc-jailbreak-detection-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.middlewares.llmGuards.graniteGuard.enabled }}
+        - name: cc-granite-guard
           needsRequestBody: true
           needsResponseBody: true
           response:

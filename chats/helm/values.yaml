@@ -14,8 +14,8 @@ components:
 
 # Keycloak configuration
 keycloak:
-  jwksUrl: ""  # Will be constructed from domain if empty
-  issuerUrl: ""  # Will be constructed from domain if empty
+  jwksUrl: "" # Will be constructed from domain if empty
+  issuerUrl: "" # Will be constructed from domain if empty
   adminId: "admin-user-id"
   developerId: "developer-user-id"
   agentId: "agent-user-id"
@@ -25,22 +25,10 @@ oidc:
   clientId: "traefik"
   clientSecret: "change-me"
 
-# NIM endpoints (RunPod)
-nim:
-  topicControl:
-    podId: "nim-tc-pod-12345"
-    endpoint: ""  # Will be constructed from podId if empty
-  contentSafety:
-    podId: "nim-cs-pod-67890"
-    endpoint: ""  # Will be constructed from podId if empty
-  jailbreakDetection:
-    podId: "nim-jb-pod-11111"
-    endpoint: ""  # Will be constructed from podId if empty
-
 # Portal configuration
 portal:
-  url: ""  # Will be constructed from domain if empty
-  hostMatch: ""  # Will be constructed from domain if empty
+  url: "" # Will be constructed from domain if empty
+  hostMatch: "" # Will be constructed from domain if empty
 
 # AI Services
 presidio:
@@ -54,18 +42,18 @@ weaviate:
 
 # OpenAI component
 openai:
-  apiUrl: ""  # Will be constructed from domain if empty
-  hostMatch: ""  # Will be constructed from domain if empty
-  hostMatchCompletions: ""  # Will be constructed from domain if empty
+  apiUrl: "" # Will be constructed from domain if empty
+  hostMatch: "" # Will be constructed from domain if empty
+  hostMatchCompletions: "" # Will be constructed from domain if empty
   authHeader: "Bearer sk-your-api-key"
 
 # GPT-OSS component
 gptOss:
   podId: "gpt-oss-pod-12345"
-  externalName: ""  # Will be constructed from podId if empty
-  apiUrl: ""  # Will be constructed from domain if empty
-  hostMatch: ""  # Will be constructed from domain if empty
-  hostMatchCompletions: ""  # Will be constructed from domain if empty
+  externalName: "" # Will be constructed from podId if empty
+  apiUrl: "" # Will be constructed from domain if empty
+  hostMatch: "" # Will be constructed from domain if empty
+  hostMatchCompletions: "" # Will be constructed from domain if empty
 
 # Middleware configuration
 middlewares:
@@ -75,10 +63,20 @@ middlewares:
     useHubChain: false
     topicControlGuard:
       enabled: true
+      podId: "nim-tc-pod-11111"
+      endpoint: "" # Will be constructed from podId if empty
     contentSafetyGuard:
       enabled: true
+      podId: "nim-cs-pod-11111"
+      endpoint: "" # Will be constructed from podId if empty
     jailbreakDetectionGuard:
       enabled: true
+      podId: "nim-jb-pod-11111"
+      endpoint: "" # Will be constructed from podId if empty
+    graniteGuard:
+      enabled: true
+      podId: "nim-gr-pod-11111"
+      endpoint: "" # Will be constructed from podId if empty
   # Semantic cache for response caching
   semanticCache:
     enabled: true
