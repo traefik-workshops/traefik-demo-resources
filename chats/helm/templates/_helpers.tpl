@@ -133,7 +133,7 @@ Portal URL
 {{- if .Values.portal.url }}
 {{- .Values.portal.url }}
 {{- else }}
-{{- printf "%s://chats.portal.%s" .Values.protocol .Values.domain }}
+{{- printf "%s://chats-portal.%s" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -144,7 +144,7 @@ Portal Host Match
 {{- if .Values.portal.hostMatch }}
 {{- .Values.portal.hostMatch }}
 {{- else }}
-{{- printf "Host(`chats.portal.%s`)" .Values.domain }}
+{{- printf "Host(`chats-portal.%s`)" .Values.domain }}
 {{- end }}
 {{- end }}
 

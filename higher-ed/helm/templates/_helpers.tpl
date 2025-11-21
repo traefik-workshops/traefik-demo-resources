@@ -50,14 +50,14 @@ Keycloak Issuer URL
 Portal URL
 */}}
 {{- define "higher-ed.portal.url" -}}
-{{- printf "%s://higher-ed.portal.%s" .Values.protocol .Values.domain }}
+{{- printf "%s://higher-ed-portal.%s" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Portal Host Match
 */}}
 {{- define "higher-ed.portal.hostMatch" -}}
-{{- printf "Host(`higher-ed.portal.%s`)" .Values.domain }}
+{{- printf "Host(`higher-ed-portal.%s`)" .Values.domain }}
 {{- end }}
 
 {{/*
