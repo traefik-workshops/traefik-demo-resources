@@ -36,14 +36,14 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Keycloak JWKS URL
 */}}
 {{- define "higher-ed.keycloak.jwksUrl" -}}
-{{- printf "%s://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
+{{- printf "%s://keycloak.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*
 Keycloak Issuer URL
 */}}
 {{- define "higher-ed.keycloak.issuerUrl" -}}
-{{- printf "%s://keycloak.traefik.%s/realms/traefik" .Values.protocol .Values.domain }}
+{{- printf "%s://keycloak.%s/realms/traefik" .Values.protocol .Values.domain }}
 {{- end }}
 
 {{/*

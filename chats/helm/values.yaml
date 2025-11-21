@@ -1,7 +1,7 @@
 # Default values for chats helm chart
 
 # Base domain for all services
-domain: demo.traefikhub.dev
+domain: demo.traefik.ai
 protocol: https
 
 entryPoints:

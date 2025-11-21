@@ -67,7 +67,7 @@ Keycloak JWKS URL
 {{- if .Values.keycloak.jwksUrl }}
 {{- .Values.keycloak.jwksUrl }}
 {{- else }}
-{{- printf "%s://keycloak.traefik.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
+{{- printf "%s://keycloak.%s/realms/traefik/protocol/openid-connect/certs" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 
@@ -78,7 +78,7 @@ Keycloak Issuer URL
 {{- if .Values.keycloak.issuerUrl }}
 {{- .Values.keycloak.issuerUrl }}
 {{- else }}
-{{- printf "%s://keycloak.traefik.%s/realms/traefik" .Values.protocol .Values.domain }}
+{{- printf "%s://keycloak.%s/realms/traefik" .Values.protocol .Values.domain }}
 {{- end }}
 {{- end }}
 

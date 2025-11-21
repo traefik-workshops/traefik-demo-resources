@@ -1,7 +1,7 @@
 # Default values for gov helm chart
 
 # Base domain for all services
-domain: demo.traefikhub.dev
+domain: demo.traefik.ai
 
 protocol: https
 
@@ -10,9 +10,9 @@ entryPoints:
 
 # Keycloak user IDs and credentials
 keycloak:
-  adminId: ""  # admin@traefik.io
-  developerId: ""  # developer@traefik.io
-  agentId: ""  # agent@traefik.io
+  adminId: "" # admin@traefik.io
+  developerId: "" # developer@traefik.io
+  agentId: "" # agent@traefik.io
   clientSecret: "NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0"
   adminUsername: "admin@traefik.io"
   adminPassword: "topsecretpassword"

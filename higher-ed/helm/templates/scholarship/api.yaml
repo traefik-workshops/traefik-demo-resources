@@ -15,7 +15,7 @@ spec:
     path: /openapi.yaml
     override:
       servers:
-        - url: https://scholarship-education.demo.aiworld.traefikhub.dev
+        - url: https://scholarship-education.demo.aiworld.traefik.ai
   cors:
     allowHeadersList:
       - "*"
@@ -49,7 +49,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`scholarship-education.demo.aiworld.traefikhub.dev`)
+      match: Host(`scholarship-education.demo.aiworld.traefik.ai`)
       services:
         - name: scholarship-app
           namespace: higher-ed

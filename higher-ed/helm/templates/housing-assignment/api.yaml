@@ -15,7 +15,7 @@ spec:
     path: /openapi.yaml
     override:
       servers:
-        - url: https://housing-education.demo.aiworld.traefikhub.dev
+        - url: https://housing-education.demo.aiworld.traefik.ai
   cors:
     allowHeadersList:
       - "*"
@@ -49,7 +49,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`housing-education.demo.aiworld.traefikhub.dev`)
+      match: Host(`housing-education.demo.aiworld.traefik.ai`)
       services:
         - name: housing-assignment-app
           namespace: higher-ed

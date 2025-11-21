@@ -15,7 +15,7 @@ spec:
     path: /openapi.yaml
     override:
       servers:
-        - url: https://financial-aid-education.demo.aiworld.traefikhub.dev
+        - url: https://financial-aid-education.demo.aiworld.traefik.ai
   cors:
     allowHeadersList:
       - "*"
@@ -49,7 +49,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`financial-aid-education.demo.aiworld.traefikhub.dev`)
+      match: Host(`financial-aid-education.demo.aiworld.traefik.ai`)
       services:
         - name: financial-aid-app
           namespace: higher-ed
