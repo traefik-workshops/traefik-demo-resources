@@ -14,6 +14,11 @@ tokens:
   userAssistance: ""
   partnerAssistance: ""
 
+keycloak:
+  adminId: "admin-user-id"
+  developerId: "developer-user-id"
+  agentId: "agent-user-id"
+
 replicaCount: 1
 
 image:
