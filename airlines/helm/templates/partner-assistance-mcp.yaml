@@ -31,10 +31,10 @@ data:
     server = Server("partner-assistance-mcp")
 
     API_BASE_URLS = {
-        "flights": "{{ include 'airlines.flights.apiUrl' . }}",
-        "bookings": "{{ include 'airlines.bookings.apiUrl' . }}",
-        "pricing": "{{ include 'airlines.pricing.apiUrl' . }}",
-        "notifications": "{{ include 'airlines.notifications.apiUrl' . }}",
+        'flights': '{{ include "airlines.flights.apiUrl" . }}',
+        'bookings': '{{ include "airlines.bookings.apiUrl" . }}',
+        'pricing': '{{ include "airlines.pricing.apiUrl" . }}',
+        'notifications': '{{ include "airlines.notifications.apiUrl" . }}',
     }
     
     # Static JWT Token passed from Helm/Terraform
