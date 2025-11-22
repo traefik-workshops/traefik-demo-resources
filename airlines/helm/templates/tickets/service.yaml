@@ -727,18 +727,12 @@ data:
           responses:
             '200':
               description: List of tickets
-      /tickets/{ticketId}:
+      /tickets/TK789012:
         get:
           summary: Get ticket details
           operationId: getTicket
           tags:
             - tickets
-          parameters:
-            - name: ticketId
-              in: path
-              required: true
-              schema:
-                type: string
           responses:
             '200':
               description: Ticket details

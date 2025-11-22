@@ -390,22 +390,16 @@ data:
     servers:
       - url: {{ include "airlines.loyalty.apiUrl" . }}
     paths:
-      /loyalty/{passengerId}:
+      /loyalty/P10001:
         get:
           summary: Get loyalty status by passenger ID
           operationId: getLoyaltyByPassenger
           tags:
             - loyalty
-          parameters:
-            - name: passengerId
-              in: path
-              required: true
-              schema:
-                type: string
           responses:
             '200':
               description: Loyalty status
-      /loyalty/member/{memberId}:
+      /loyalty/member/LM10001:
         get:
           summary: Get loyalty member details
           operationId: getLoyaltyMember

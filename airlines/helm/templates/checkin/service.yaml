@@ -393,17 +393,6 @@ data:
         post:
           summary: Perform check‑in
           operationId: performCheckin
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    booking_id:
-                      type: string
-                    seat:
-                      type: string
           responses:
             '200':
               description: Check‑in successful

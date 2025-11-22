@@ -45,17 +45,6 @@ data:
         post:
           summary: Send notification
           operationId: sendNotification
-          requestBody:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    type: {type: string}
-                    recipient: {type: string}
-                    booking_id: {type: string}
-                    flight_id: {type: string}
-                    bag_tag: {type: string}
           responses:
             '200':
               description: Notification sent

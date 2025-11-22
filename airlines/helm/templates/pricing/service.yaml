@@ -37,9 +37,6 @@ data:
       /pricing/FL123:
         get:
           responses:
-          responses:
-            '200':
-              description: Calculated pricing
             '200':
               description: Calculated pricing
       /pricing/calculate:
