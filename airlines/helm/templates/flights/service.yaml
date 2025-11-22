@@ -327,7 +327,7 @@ data:
                 type: string
                 pattern: '^[A-Z]{3}$'
                 example: 'JFK'
-            - name: dest
+            - name: destination
               in: query
               description: Destination airport code (IATA)
               required: true
