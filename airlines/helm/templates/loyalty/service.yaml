@@ -12,6 +12,13 @@ data:
   api.json: |
     {
       "members": {
+        "FF123456": {
+          "member_id": "FF123456",
+          "passenger_id": "P10001",
+          "tier": "Gold",
+          "miles_balance": 50000,
+          "status": "active"
+        },
         "LM10000": {
           "member_id": "LM10000",
           "passenger_id": "P10000",

@@ -12,6 +12,13 @@ data:
   api.json: |
     {
       "tickets": {
+        "TK789012": {
+          "ticket_id": "TK789012",
+          "booking_id": "BK123456",
+          "passenger_name": "John Doe",
+          "price": 450,
+          "status": "issued"
+        },
         "TK8535570851": {
           "ticket_id": "TK8535570851",
           "booking_id": "BK159936",
@@ -705,6 +712,25 @@ data:
     servers:
       - url: {{ include "airlines.tickets.apiUrl" . }}
     paths:
+      /tickets:
+        get:
+          summary: List tickets
+          operationId: listTickets
+          tags:
+            - tickets
+          parameters:
+            - name: booking_id
+              in: query
+              required: false
+              schema:
+                type: string
+          responses:
+            '200':
+              description: List of tickets
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TicketList'
       /tickets/issue:
         post:
           summary: Issue new ticket

@@ -12,6 +12,13 @@ data:
   api.json: |
     {
       "checkins": {
+        "BK123456": {
+          "booking_id": "BK123456",
+          "seat": "12A",
+          "boarding_pass": "BP123456",
+          "checked_in_at": "2024-03-14T10:00:00Z",
+          "gate": "A1"
+        },
         "BK159936": {
           "booking_id": "BK159936",
           "seat": "1D",

@@ -12,6 +12,13 @@ data:
   api.json: |
     {
       "baggage": {
+        "BT789012": {
+          "bag_tag": "BT789012",
+          "booking_id": "BK123456",
+          "weight": 20,
+          "status": "checked",
+          "location": "JFK"
+        },
         "BT904665-1": {
           "bag_tag": "BT904665-1",
           "booking_id": "BK904665",
@@ -239,43 +246,43 @@ data:
             '200':
               description: Baggage status
 
-        /baggage/booking/{bookingId}:
-          get:
-            summary: Get baggage for a booking
-            operationId: getBaggageByBooking
-            parameters:
-              - name: bookingId
-                in: path
-                required: true
-                schema:
-                  type: string
-            responses:
-              '200':
-                description: Baggage list for booking
-                content:
-                  application/json:
-                    schema:
-                      type: object
-                      properties:
-                        bags:
-                          type: array
-                          items:
-                            $ref: '#/components/schemas/Baggage'
-        components:
-          schemas:
-            Baggage:
-              type: object
-              properties:
-                bag_tag:
-                  type: string
-                booking_id:
-                  type: string
-                weight:
-                  type: integer
-                status:
-                  type: string
-                location:
-                  type: string
+      /baggage/booking/{bookingId}:
+        get:
+          summary: Get baggage for a booking
+          operationId: getBaggageByBooking
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Baggage list for booking
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      bags:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Baggage'
+    components:
+      schemas:
+        Baggage:
+          type: object
+          properties:
+            bag_tag:
+              type: string
+            booking_id:
+              type: string
+            weight:
+              type: integer
+            status:
+              type: string
+            location:
+              type: string
 ---
 apiVersion: apps/v1
 kind: Deployment

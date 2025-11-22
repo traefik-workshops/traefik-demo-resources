@@ -12,6 +12,15 @@ data:
   api.json: |
     {
       "bookings": {
+        "BK123456": {
+          "booking_id": "BK123456",
+          "flight_id": "FL123",
+          "passenger_id": "P10001",
+          "status": "confirmed",
+          "booking_date": "2024-03-01T10:00:00Z",
+          "class": "economy",
+          "total_price": 450
+        },
         "BK159936": {
           "booking_id": "BK159936",
           "flight_id": "FL516",

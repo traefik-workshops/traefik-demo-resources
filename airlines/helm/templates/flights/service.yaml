@@ -15,6 +15,17 @@ data:
   api.json: |
     {
       "flights": {
+        "FL123": {
+          "flight_id": "FL123",
+          "origin": "JFK",
+          "destination": "LAX",
+          "departure_time": "2024-03-15T08:00:00Z",
+          "arrival_time": "2024-03-15T11:30:00Z",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 150,
+          "price": 450
+        },
         "FL333": {
           "flight_id": "FL333",
           "origin": "CDG",
