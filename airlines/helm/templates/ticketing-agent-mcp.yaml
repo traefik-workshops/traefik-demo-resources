@@ -23,6 +23,8 @@ data:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.types import Tool
+
+    # Configure logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("ticketing-agent-mcp")
 
