@@ -47,15 +47,6 @@ data:
           responses:
             '200':
               description: Available meal options
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      meals:
-                        type: object
-                        additionalProperties:
-                          $ref: '#/components/schemas/Meal'
       /ancillaries/meal:
         post:
           summary: Record meal preference

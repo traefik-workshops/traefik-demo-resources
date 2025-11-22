@@ -52,16 +52,11 @@ data:
               schema:
                 type: integer
           responses:
+          responses:
             '200':
               description: Calculated pricing
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      base_fare: {type: number}
-                      taxes: {type: number}
-                      total: {type: number}
+            '200':
+              description: Calculated pricing
       /pricing/calculate:
         post:
           summary: Calculate flight pricing

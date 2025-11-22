@@ -69,17 +69,6 @@ data:
           responses:
             '200':
               description: Notification history
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      recipient:
-                        type: string
-                      notifications:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Notification'
 
     components:
       schemas:
