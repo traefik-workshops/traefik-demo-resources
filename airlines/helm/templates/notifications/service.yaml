@@ -11,6 +11,9 @@ metadata:
 data:
   api.json: |
     {
+      "notifications": {
+        "send": []
+      },
       "templates": {
         "booking_confirmation": {"subject": "Booking Confirmed", "body": "Your booking {booking_id} is confirmed"},
         "flight_reminder": {"subject": "Flight Reminder", "body": "Your flight departs in 24 hours"},

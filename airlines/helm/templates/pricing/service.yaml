@@ -9,6 +9,7 @@ data:
   api.json: |
     {
       "pricing": {
+        "calculate": [],
         "FL123": {"base_fare": 400, "taxes": 50, "total": 450},
         "JFK-LAX": {"economy": 400, "premium_economy": 650, "business": 1200, "first": 2500},
         "LAX-JFK": {"economy": 410, "premium_economy": 660, "business": 1250, "first": 2600},
