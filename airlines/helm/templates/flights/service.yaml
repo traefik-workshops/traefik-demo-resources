@@ -363,18 +363,9 @@ data:
                     type: object
                     properties:
                       flights:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Flight'
-                      search_params:
                         type: object
-                        properties:
-                          origin:
-                            type: string
-                          destination:
-                            type: string
-                          date:
-                            type: string
+                        additionalProperties:
+                          $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid search parameters
               content:
@@ -411,35 +402,6 @@ data:
                   schema:
                     $ref: '#/components/schemas/Error'
       
-      /flights/{flightId}/inventory:
-        get:
-          summary: Get seat inventory
-          description: Retrieve seat inventory and availability for a flight
-          operationId: getFlightInventory
-          tags:
-            - inventory
-          parameters:
-            - name: flightId
-              in: path
-              description: The flight ID
-              required: true
-              schema:
-                type: string
-                example: 'FL123'
-          responses:
-            '200':
-              description: Seat inventory
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Inventory'
-            '404':
-              description: Flight not found
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Error'
-    
     components:
       schemas:
         Flight:
