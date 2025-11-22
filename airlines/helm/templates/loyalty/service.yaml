@@ -405,12 +405,6 @@ data:
           operationId: getLoyaltyMember
           tags:
             - loyalty
-          parameters:
-            - name: memberId
-              in: path
-              required: true
-              schema:
-                type: string
           responses:
             '200':
               description: Loyalty member details
