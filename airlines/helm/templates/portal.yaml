@@ -158,7 +158,7 @@ spec:
     
     **Built with ❤️ by Traefik Labs**
   trustedUrls:
-    - portal.{{ .Values.domain }}
+    - https://portal.{{ .Values.domain }}
   auth:
     name: oidc-portal-auth
 ---
