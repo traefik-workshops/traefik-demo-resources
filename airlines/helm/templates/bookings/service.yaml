@@ -866,15 +866,6 @@ data:
           responses:
             '201':
               description: Booking created
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          booking_id: {type: string}
       /bookings/{bookingId}:
         get:
           summary: Get booking details

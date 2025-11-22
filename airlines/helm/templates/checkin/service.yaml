@@ -389,10 +389,6 @@ data:
           responses:
             '200':
               description: Check‑in details
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Checkin'
       /checkin:
         post:
           summary: Perform check‑in
@@ -411,10 +407,6 @@ data:
           responses:
             '200':
               description: Check‑in successful
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Checkin'
       /checkin/{bookingId}/boarding-pass:
         get:
           summary: Get boarding pass
