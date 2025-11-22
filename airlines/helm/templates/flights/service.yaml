@@ -391,16 +391,8 @@ data:
           responses:
             '200':
               description: Flight details
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Flight'
             '404':
               description: Flight not found
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Error'
       
     components:
       schemas:
