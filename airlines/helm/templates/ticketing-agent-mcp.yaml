@@ -11,11 +11,7 @@ data:
   main.py: |
     #!/usr/bin/env python3
     """
-    Ticketing Agent MCP Server - Customer-Facing Booking and Ticketing
-    
-    This MCP server orchestrates multiple airline APIs to provide comprehensive
-    booking workflows. Unlike simple API passthrough, it demonstrates real business logic
-    with multi-step processes, error handling, and detailed execution tracing.
+    Ticketing Agent MCP Server
     """
 
     from typing import Any, Dict, List, Optional
@@ -226,13 +222,13 @@ data:
                 
                 if "error" in search_result:
                     steps.append(f"   ❌ Error: {search_result['error']}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 flights = search_result.get("flights", [])
                 steps.append(f"   ✅ Found {len(flights)} flights")
                 
                 # Step 2: Get pricing for each flight
-                steps.append("\n2️⃣ Fetching pricing information...")
+                steps.append("\\n2️⃣ Fetching pricing information...")
                 priced_flights = []
                 for flight in flights[:5]:  # Limit to top 5
                     flight_id = flight.get("id", "unknown")
@@ -252,7 +248,7 @@ data:
                         steps.append(f"   ⚠️  Flight {flight_id}: Pricing unavailable")
                 
                 # Step 3: Check seat availability
-                steps.append("\n3️⃣ Checking seat availability...")
+                steps.append("\\n3️⃣ Checking seat availability...")
                 for flight in priced_flights:
                     flight_id = flight.get("id")
                     inventory = await api_request("flights", f"/flights/{flight_id}/inventory")
@@ -262,8 +258,8 @@ data:
                         steps.append(f"   ✅ Flight {flight_id}: {available_seats} seats available")
                 
                 # Build response
-                response = "\n".join(steps)
-                response += "\n\n**AVAILABLE FLIGHTS**:\n"
+                response = "\\n".join(steps)
+                response += "\\n\\n**AVAILABLE FLIGHTS**:\\n"
                 for i, flight in enumerate(priced_flights, 1):
                     dept_time = flight.get("departure_time", "Unknown")
                     arr_time = flight.get("arrival_time", "Unknown")
@@ -271,11 +267,11 @@ data:
                     price = flight["pricing"].get("total", 0) if "pricing" in flight else 0
                     seats = flight.get("available_seats", "?")
                     
-                    response += f"\n{i}. **Flight {flight_num}** (ID: {flight.get('id')})\n"
-                    response += f"   Departure: {dept_time} | Arrival: {arr_time}\n"
-                    response += f"   Price: ${price:.2f} | Seats: {seats}\n"
+                    response += f"\\n{i}. **Flight {flight_num}** (ID: {flight.get('id')})\\n"
+                    response += f"   Departure: {dept_time} | Arrival: {arr_time}\\n"
+                    response += f"   Price: ${price:.2f} | Seats: {seats}\\n"
                 
-                response += "\n\n**Next Step**: Use `book_flight_itinerary` with a flight_id to complete booking"
+                response += "\\n\\n**Next Step**: Use `book_flight_itinerary` with a flight_id to complete booking"
                 
                 return [{"type": "text", "text": response}]
                 
@@ -307,7 +303,7 @@ data:
                 if "error" in flight:
                     errors.append(f"Flight not found: {flight['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 flight_num = flight.get("flight_number", "Unknown")
                 origin = flight.get("origin", "???")
@@ -316,12 +312,12 @@ data:
                 steps.append(f"   ✅ Flight {flight_num}: {origin} → {dest} at {dept_time}")
                 
                 # Step 2: Get passenger details
-                steps.append("\n2️⃣ Verifying passenger information...")
+                steps.append("\\n2️⃣ Verifying passenger information...")
                 passenger = await api_request("passengers", f"/passengers/{passenger_id}")
                 if "error" in passenger:
                     errors.append(f"Passenger not found: {passenger['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 passenger_name = passenger.get("name", "Unknown")
                 steps.append(f"   ✅ Passenger: {passenger_name}")
@@ -330,7 +326,7 @@ data:
                 loyalty_discount = 0
                 loyalty_tier = "None"
                 if loyalty_number:
-                    steps.append("\n3️⃣ Checking loyalty program benefits...")
+                    steps.append("\\n3️⃣ Checking loyalty program benefits...")
                     loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
                     if "error" not in loyalty:
                         loyalty_tier = loyalty.get("tier", "Standard")
@@ -352,7 +348,7 @@ data:
                         steps.append(f"   ⚠️  {warnings[-1]}")
                 
                 # Step 4: Calculate pricing
-                steps.append("\n4️⃣ Calculating total price...")
+                steps.append("\\n4️⃣ Calculating total price...")
                 pricing = await api_request(
                     "pricing",
                     "/pricing/calculate",
@@ -363,7 +359,7 @@ data:
                 if "error" in pricing:
                     errors.append(f"Pricing calculation failed: {pricing['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 base_fare = pricing.get("base_fare", 0)
                 taxes = pricing.get("taxes", 0)
@@ -378,7 +374,7 @@ data:
                 steps.append(f"   ✅ **Total: ${total_price:.2f}**")
                 
                 # Step 5: Create booking
-                steps.append("\n5️⃣ Creating reservation...")
+                steps.append("\\n5️⃣ Creating reservation...")
                 booking = await api_request(
                     "bookings",
                     "/bookings",
@@ -393,13 +389,13 @@ data:
                 if "error" in booking:
                     errors.append(f"Booking creation failed: {booking['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 booking_id = booking.get("data", {}).get("booking_id", "UNKNOWN")
                 steps.append(f"   ✅ Booking Reference: **{booking_id}**")
                 
                 # Step 6: Issue ticket
-                steps.append("\n6️⃣ Issuing e-ticket...")
+                steps.append("\\n6️⃣ Issuing e-ticket...")
                 ticket = await api_request(
                     "tickets",
                     "/tickets/issue",
@@ -416,7 +412,7 @@ data:
                 
                 # Step 7: Seat selection
                 if seat_preference:
-                    steps.append("\n7️⃣ Selecting seat...")
+                    steps.append("\\n7️⃣ Selecting seat...")
                     seat_result = await api_request(
                         "checkin",
                         f"/checkin/{booking_id}/seat",
@@ -443,7 +439,7 @@ data:
                 
                 # Step 8: Add baggage if requested
                 if include_baggage:
-                    steps.append("\n8️⃣ Adding checked baggage...")
+                    steps.append("\\n8️⃣ Adding checked baggage...")
                     baggage = await api_request(
                         "baggage",
                         f"/baggage/add",
@@ -460,7 +456,7 @@ data:
                 
                 # Step 9: Record meal preference
                 if meal_preference != "standard":
-                    steps.append("\n9️⃣ Recording meal preference...")
+                    steps.append("\\n9️⃣ Recording meal preference...")
                     meal = await api_request(
                         "ancillaries",
                         f"/ancillaries/meal",
@@ -475,7 +471,7 @@ data:
                         steps.append(f"   ✅ Meal preference: {meal_preference}")
                 
                 # Step 10: Send confirmation
-                steps.append("\n🔟 Sending booking confirmation...")
+                steps.append("\\n🔟 Sending booking confirmation...")
                 notification = await api_request(
                     "notifications",
                     "/notifications/send",
@@ -494,26 +490,26 @@ data:
                     steps.append(f"   ✅ Confirmation sent to passenger")
                 
                 # Build final response
-                response = "\n".join(steps)
-                response += "\n\n" + "="*60
-                response += "\n**BOOKING COMPLETED SUCCESSFULLY** ✅\n"
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BOOKING COMPLETED SUCCESSFULLY** ✅\\n"
                 response += "="*60
-                response += f"\n\n**Booking Reference**: {booking_id}"
-                response += f"\n**Total Price**: ${total_price:.2f}"
-                response += f"\n**APIs Called**: {len([s for s in steps if '️⃣' in s])}"
-                response += f"\n**Warnings**: {len(warnings)}"
-                response += f"\n**Errors**: {len(errors)}"
+                response += f"\\n\\n**Booking Reference**: {booking_id}"
+                response += f"\\n**Total Price**: ${total_price:.2f}"
+                response += f"\\n**APIs Called**: {len([s for s in steps if '️⃣' in s])}"
+                response += f"\\n**Warnings**: {len(warnings)}"
+                response += f"\\n**Errors**: {len(errors)}"
                 
                 if warnings:
-                    response += "\n\n**Warnings**:"
+                    response += "\\n\\n**Warnings**:"
                     for w in warnings:
-                        response += f"\n• {w}"
+                        response += f"\\n• {w}"
                 
                 return [{"type": "text", "text": response}]
                 
             except Exception as e:
                 logger.error(f"Error in book_flight_itinerary: {e}")
-                return [{"type": "text", "text": f"❌ Critical system error during booking: {str(e)}\n\nPartial trace:\n" + "\n".join(steps)}]
+                return [{"type": "text", "text": f"❌ Critical system error during booking: {str(e)}\\n\\nPartial trace:\\n" + "\\n".join(steps)}]
         
         elif name == "get_loyalty_status":
             loyalty_number = arguments.get("loyalty_number")
@@ -530,7 +526,7 @@ data:
                 
                 if "error" in loyalty:
                     steps.append(f"   ❌ Member not found: {loyalty['error']}")
-                    return [{"type": "text", "text": "\n".join(steps)}]
+                    return [{"type": "text", "text": "\\n".join(steps)}]
                 
                 name = loyalty.get("name", "Unknown")
                 tier = loyalty.get("tier", "Standard")
@@ -545,7 +541,7 @@ data:
                 steps.append(f"   ✅ Member Since: {member_since}")
                 
                 # Step 2: Calculate next tier requirements
-                steps.append("\n2️⃣ Calculating tier progress...")
+                steps.append("\\n2️⃣ Calculating tier progress...")
                 next_tier_requirements = {
                     "Standard": ("Silver", 25000),
                     "Silver": ("Gold", 50000),
@@ -565,8 +561,8 @@ data:
                     steps.append(f"   ✈️  {miles_needed:,} miles needed")
                 
                 # Build response
-                response = "\n".join(steps)
-                response += "\n\n**TIER BENEFITS**:\n"
+                response = "\\n".join(steps)
+                response += "\\n\\n**TIER BENEFITS**:\\n"
                 
                 benefits = {
                     "Standard": ["Earn 1 mile per dollar", "Standard booking"],
@@ -577,7 +573,7 @@ data:
                 }
                 
                 for benefit in benefits.get(tier, []):
-                    response += f"• {benefit}\n"
+                    response += f"• {benefit}\\n"
                 
                 return [{"type": "text", "text": response}]
                 
@@ -616,7 +612,6 @@ data:
     if __name__ == "__main__":
         import asyncio
         asyncio.run(main())
-
   requirements.txt: |
     mcp>=1.0.0
     aiohttp>=3.9.0
@@ -751,4 +746,3 @@ spec:
       services:
         - name: ticketing-agent-mcp
           port: 8080
-```
