@@ -709,46 +709,25 @@ data:
         post:
           summary: Issue new ticket
           operationId: issueTicket
+          tags:
+            - tickets
           requestBody:
+            required: true
             content:
               application/json:
                 schema:
-                  type: object
-                  properties:
-                    booking_id: {type: string}
-                    passenger_id: {type: string}
+                  $ref: '#/components/schemas/NewTicket'
           responses:
-            '200':
+            '201':
               description: Ticket issued
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          ticket_number: {type: string}
-      /tickets/void:
-        post:
-          summary: Void ticket
-          operationId: voidTicket
-          requestBody:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    ticket_number: {type: string}
-          responses:
-            '200':
-              description: Ticket voided
-      /tickets/{ticketNumber}:
+      /tickets/{ticketId}:
         get:
           summary: Get ticket details
           operationId: getTicket
+          tags:
+            - tickets
           parameters:
-            - name: ticketNumber
+            - name: ticketId
               in: path
               required: true
               schema:
@@ -756,6 +735,45 @@ data:
           responses:
             '200':
               description: Ticket details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Ticket'
+        delete:
+          summary: Void a ticket
+          operationId: voidTicket
+          tags:
+            - tickets
+          parameters:
+            - name: ticketId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Ticket voided
+    components:
+      schemas:
+        Ticket:
+          type: object
+          properties:
+            ticket_id: {type: string, example: "TK1234567890"}
+            booking_id: {type: string, example: "BK987654"}
+            passenger_name: {type: string, example: "John Doe"}
+            price: {type: number, format: float, example: 123.45}
+            status: {type: string, enum: [issued, voided], example: "issued"}
+        NewTicket:
+          type: object
+          required: [booking_id, passenger_name, price]
+          properties:
+            booking_id: {type: string, example: "BK987654"}
+            passenger_name: {type: string, example: "John Doe"}
+            price: {type: number, format: float, example: 123.45}
+        TicketList:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
 
 ---
 apiVersion: apps/v1

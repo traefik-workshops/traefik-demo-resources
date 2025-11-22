@@ -369,30 +369,10 @@ data:
     servers:
       - url: {{ include "airlines.checkin.apiUrl" . }}
     paths:
-      /checkin/{bookingId}/seat:
-        post:
-          summary: Assign seat
-          operationId: assignSeat
-          parameters:
-            - name: bookingId
-              in: path
-              required: true
-              schema:
-                type: string
-          requestBody:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    seat: {type: string}
-          responses:
-            '200':
-              description: Seat assigned
-      /checkin/{bookingId}/seat/auto:
-        post:
-          summary: Auto-assign seat
-          operationId: autoAssignSeat
+      /checkin/{bookingId}:
+        get:
+          summary: Get check‑in status
+          operationId: getCheckinStatus
           parameters:
             - name: bookingId
               in: path
@@ -401,16 +381,28 @@ data:
                 type: string
           responses:
             '200':
-              description: Seat auto-assigned
+              description: Check‑in details
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          seat: {type: string}
+                    $ref: '#/components/schemas/Checkin'
+        post:
+        summary: Perform check‑in
+        operationId: performCheckin
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking_id:
+                    type: string
+                  seat:
+                    type: string
+        responses:
+          '200':
+            description: Check‑in successful
       /checkin/{bookingId}/boarding-pass:
         get:
           summary: Get boarding pass

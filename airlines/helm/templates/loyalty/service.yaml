@@ -383,10 +383,33 @@ data:
     servers:
       - url: {{ include "airlines.loyalty.apiUrl" . }}
     paths:
-      /loyalty/members/{loyaltyNumber}:
+      /loyalty/{passengerId}:
         get:
-          summary: Get member loyalty status
+          summary: Get loyalty status by passenger ID
+          operationId: getLoyaltyByPassenger
+          tags:
+            - loyalty
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Loyalty status
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Loyalty'
+            '404':
+              description: Not found
+      /loyalty/member/{loyaltyNumber}:
+        get:
+          summary: Get loyalty member details
           operationId: getLoyaltyMember
+          tags:
+            - loyalty
           parameters:
             - name: loyaltyNumber
               in: path
@@ -400,6 +423,8 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/LoyaltyMember'
+            '404':
+              description: Not found
       /loyalty/miles/deduct:
         post:
           summary: Deduct miles from account

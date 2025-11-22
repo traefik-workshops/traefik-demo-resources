@@ -434,55 +434,44 @@ data:
         Flight:
           type: object
           required:
-            - id
-            - flight_number
+            - flight_id
             - origin
             - destination
+            - departure_time
+            - arrival_time
+            - status
+            - aircraft
+            - seats_available
+            - price
           properties:
-            id:
+            flight_id:
               type: string
               description: Unique flight identifier
-              example: 'FL123'
-            flight_number:
-              type: string
-              description: Commercial flight number
-              example: 'TL123'
+              example: 'FL105'
             origin:
               type: string
               description: Origin airport code (IATA)
               pattern: '^[A-Z]{3}$'
               example: 'JFK'
-            origin_name:
-              type: string
-              description: Origin airport name
-              example: 'New York John F. Kennedy'
             destination:
               type: string
               description: Destination airport code (IATA)
               pattern: '^[A-Z]{3}$'
               example: 'LAX'
-            destination_name:
-              type: string
-              description: Destination airport name
-              example: 'Los Angeles International'
             departure_time:
               type: string
               format: date-time
               description: Scheduled departure time (ISO 8601)
-              example: '2024-03-15T08:00:00Z'
+              example: '2025-12-20T17:45:44.422259'
             arrival_time:
               type: string
               format: date-time
               description: Scheduled arrival time (ISO 8601)
-              example: '2024-03-15T11:30:00Z'
-            duration_minutes:
-              type: integer
-              description: Flight duration in minutes
-              example: 330
+              example: '2025-12-21T02:45:44.422259'
             aircraft:
               type: string
               description: Aircraft type
-              example: 'B737-800'
+              example: 'A320'
             status:
               type: string
               description: Flight status
@@ -495,15 +484,15 @@ data:
                 - cancelled
                 - delayed
               example: 'scheduled'
-            gate:
-              type: string
-              description: Departure gate
-              example: 'B22'
-            terminal:
-              type: string
-              description: Departure terminal
-              example: '4'
-        
+            seats_available:
+              type: integer
+              description: Number of seats currently available
+              example: 19
+            price:
+              type: number
+              format: float
+              description: Base price for the flight in USD
+              example: 1202
         Inventory:
           type: object
           description: Seat inventory by cabin class

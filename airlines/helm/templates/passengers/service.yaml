@@ -474,30 +474,34 @@ data:
       schemas:
         Passenger:
           type: object
+          required:
+            - passenger_id
+            - first_name
+            - last_name
+            - email
+            - phone
+            - passport_number
           properties:
-            id:
+            passenger_id:
               type: string
-            name:
+              description: Unique passenger identifier
+              example: 'P10001'
+            first_name:
               type: string
+              example: 'Maria'
+            last_name:
+              type: string
+              example: 'Garcia'
             email:
               type: string
+              format: email
+              example: 'maria.garcia@example.com'
             phone:
               type: string
-            passport:
+              example: '+1-555-0101'
+            passport_number:
               type: string
-            nationality:
-              type: string
-            date_of_birth:
-              type: string
-              format: date
-            loyalty_number:
-              type: string
-            special_needs:
-              type: array
-              items:
-                type: string
-            emergency_contact:
-              type: string
+              example: 'X53397742'
 
 ---
 apiVersion: apps/v1
