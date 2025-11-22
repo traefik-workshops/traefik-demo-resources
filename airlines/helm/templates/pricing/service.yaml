@@ -34,25 +34,8 @@ data:
     servers:
       - url: {{ include "airlines.pricing.apiUrl" . }}
     paths:
-      /pricing/{flightId}:
+      /pricing/FL123:
         get:
-          summary: Get pricing for a specific flight
-          parameters:
-            - name: flightId
-              in: path
-              required: true
-              schema:
-                type: string
-            - name: class
-              in: query
-              required: true
-              schema:
-                type: string
-            - name: passengers
-              in: query
-              required: true
-              schema:
-                type: integer
           responses:
           responses:
             '200':
@@ -62,15 +45,7 @@ data:
       /pricing/calculate:
         post:
           summary: Calculate flight pricing
-          requestBody:
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    flight_id: {type: string}
-                    class: {type: string}
-                    passengers: {type: integer}
+          operationId: calculatePricing
           responses:
             '200':
               description: Calculated pricing
