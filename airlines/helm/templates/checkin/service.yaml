@@ -393,23 +393,28 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/Checkin'
+      /checkin:
         post:
-        summary: Perform check‑in
-        operationId: performCheckin
-        requestBody:
-          required: true
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  booking_id:
-                    type: string
-                  seat:
-                    type: string
-        responses:
-          '200':
-            description: Check‑in successful
+          summary: Perform check‑in
+          operationId: performCheckin
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id:
+                      type: string
+                    seat:
+                      type: string
+          responses:
+            '200':
+              description: Check‑in successful
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Checkin'
       /checkin/{bookingId}/boarding-pass:
         get:
           summary: Get boarding pass
@@ -423,7 +428,27 @@ data:
           responses:
             '200':
               description: Boarding pass details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Checkin'
 
+    components:
+      schemas:
+        Checkin:
+          type: object
+          properties:
+            booking_id:
+              type: string
+            seat:
+              type: string
+            boarding_pass:
+              type: string
+            checked_in_at:
+              type: string
+              format: date-time
+            gate:
+              type: string
 ---
 apiVersion: apps/v1
 kind: Deployment

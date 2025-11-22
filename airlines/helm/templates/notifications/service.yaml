@@ -56,6 +56,48 @@ data:
           responses:
             '200':
               description: Notification sent
+      /notifications/history/{recipientId}:
+        get:
+          summary: Get notification history for a passenger
+          operationId: getNotificationHistory
+          parameters:
+            - name: recipientId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Notification history
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      recipient:
+                        type: string
+                      notifications:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notification'
+
+    components:
+      schemas:
+        Notification:
+          type: object
+          properties:
+            type:
+              type: string
+            subject:
+              type: string
+            body:
+              type: string
+            booking_id:
+              type: string
+            flight_id:
+              type: string
+            bag_tag:
+              type: string
 
 ---
 apiVersion: apps/v1

@@ -40,6 +40,22 @@ data:
     servers:
       - url: {{ include "airlines.ancillaries.apiUrl" . }}
     paths:
+      /ancillaries/meals:
+        get:
+          summary: Get available meal options
+          operationId: getMealOptions
+          responses:
+            '200':
+              description: Available meal options
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      meals:
+                        type: object
+                        additionalProperties:
+                          $ref: '#/components/schemas/Meal'
       /ancillaries/meal:
         post:
           summary: Record meal preference
@@ -70,6 +86,34 @@ data:
           responses:
             '200':
               description: Seat upgraded
+      /ancillaries:
+        post:
+          summary: Add ancillary service
+          operationId: addAncillary
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id: {type: string}
+                    type: {type: string}
+                    preference: {type: string}
+          responses:
+            '200':
+              description: Ancillary service recorded
+
+    components:
+      schemas:
+        Meal:
+          type: object
+          properties:
+            name:
+              type: string
+            price:
+              type: number
+            description:
+              type: string
 
 ---
 apiVersion: apps/v1

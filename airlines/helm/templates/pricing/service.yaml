@@ -32,6 +32,36 @@ data:
     servers:
       - url: {{ include "airlines.pricing.apiUrl" . }}
     paths:
+      /pricing/{flightId}:
+        get:
+          summary: Get pricing for a specific flight
+          parameters:
+            - name: flightId
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: class
+              in: query
+              required: true
+              schema:
+                type: string
+            - name: passengers
+              in: query
+              required: true
+              schema:
+                type: integer
+          responses:
+            '200':
+              description: Calculated pricing
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      base_fare: {type: number}
+                      taxes: {type: number}
+                      total: {type: number}
       /pricing/calculate:
         post:
           summary: Calculate flight pricing
@@ -42,7 +72,7 @@ data:
                   type: object
                   properties:
                     flight_id: {type: string}
-                    cabin_class: {type: string}
+                    class: {type: string}
                     passengers: {type: integer}
           responses:
             '200':

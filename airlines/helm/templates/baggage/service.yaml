@@ -245,6 +245,10 @@ data:
           responses:
             '200':
               description: Baggage status
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Baggage'
 
       /baggage/booking/{bookingId}:
         get:

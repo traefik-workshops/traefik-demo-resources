@@ -470,23 +470,46 @@ data:
               description: Miles added
     components:
       schemas:
-        LoyaltyMember:
+        Loyalty:
           type: object
+          required:
+            - member_id
+            - passenger_id
+            - tier
+            - miles_balance
+            - status
           properties:
-            loyalty_number:
+            member_id:
               type: string
-            name:
+            passenger_id:
               type: string
             tier:
               type: string
               enum: [Standard, Silver, Gold, Platinum, Diamond]
-            miles:
+            miles_balance:
               type: integer
-            tier_qualifying_miles:
-              type: integer
-            member_since:
+            status:
               type: string
-              format: date
+        LoyaltyMember:
+          type: object
+          required:
+            - member_id
+            - passenger_id
+            - tier
+            - miles_balance
+            - status
+          properties:
+            member_id:
+              type: string
+            passenger_id:
+              type: string
+            tier:
+              type: string
+              enum: [Standard, Silver, Gold, Platinum, Diamond]
+            miles_balance:
+              type: integer
+            status:
+              type: string
 
 ---
 apiVersion: apps/v1

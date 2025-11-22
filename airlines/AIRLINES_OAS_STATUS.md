@@ -16,13 +16,13 @@ Status legend: `[OK]` = tests passing, `[WIP]` = under investigation, `[TODO]` =
 | Flights      | [WIP]  | `GET /flights/search`, `GET /flights/{id}`, `/flights/{id}/inventory` | 400 on search, 502 on details/inventory via gateway  |
 | Bookings     | [WIP]  | `GET /bookings`, `GET /bookings/{id}`, `POST /bookings`         | GET `/bookings/BK159936` → 200; others not tested    |
 | Passengers   | [WIP]  | `GET /passengers`, `GET /passengers/{id}`                       | GET `/passengers/P10001` → 502 via gateway           |
-| Loyalty      | [TODO] | `GET /loyalty/{passengerId}`, `GET /loyalty/member/{memberId}`  | Not tested yet in this pass                          |
-| Tickets      | [TODO] | `GET /tickets/{ticketNumber}`, `GET /tickets?booking_id=...`    | Not tested yet in this pass                          |
-| Check-in     | [TODO] | `GET /checkin/{bookingId}`, `POST /checkin`                     | Not tested yet in this pass                          |
-| Baggage      | [TODO] | `GET /baggage/track/{bagTag}`, `GET /baggage/booking/{booking}` | Not tested yet in this pass                          |
-| Pricing      | [TODO] | `GET /pricing/{flightId}`, `POST /pricing/calculate`            | Not tested yet in this pass                          |
-| Ancillaries  | [TODO] | `GET /ancillaries/meals`, `POST /ancillaries`                   | Not tested yet in this pass                          |
-| Notifications| [TODO] | `POST /notifications/send`, `GET /notifications/history/{id}`    | Not tested yet in this pass                          |
+| Loyalty      | [WIP]  | `GET /loyalty/{passengerId}`, `GET /loyalty/member/{memberId}`  | OAS fixed (schemas/paths); waiting for runtime test  |
+| Tickets      | [WIP]  | `GET /tickets/{ticketNumber}`, `GET /tickets?booking_id=...`    | OAS matches data+Postman; tests pending              |
+| Check-in     | [WIP]  | `GET /checkin/{bookingId}`, `POST /checkin`                     | OAS fixed (paths/components); tests pending           |
+| Baggage      | [WIP]  | `GET /baggage/track/{bagTag}`, `GET /baggage/booking/{booking}` | OAS aligned to baggage data; tests pending           |
+| Pricing      | [WIP]  | `GET /pricing/{flightId}`, `POST /pricing/calculate`            | OAS aligned to Postman (GET+POST); tests pending     |
+| Ancillaries  | [WIP]  | `GET /ancillaries/meals`, `POST /ancillaries`                   | OAS aligned to meals data+Postman; tests pending     |
+| Notifications| [WIP]  | `POST /notifications/send`, `GET /notifications/history/{id}`    | OAS extended for history endpoint; tests pending     |
 
 ---
 
