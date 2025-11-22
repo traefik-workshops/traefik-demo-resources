@@ -168,3 +168,24 @@ https://ancillaries.{{ .Values.domain }}
 {{- define "airlines.ancillaries.hostMatch" -}}
 Host(`ancillaries.{{ .Values.domain }}`)
 {{- end }}
+
+{{/*
+Portal Host Match
+*/}}
+{{- define "airlines.portal.hostMatch" -}}
+Host(`portal.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+OIDC JWKS URL
+*/}}
+{{- define "airlines.oidc.jwksUrl" -}}
+https://keycloak.{{ .Values.domain }}/realms/traefik/protocol/openid-connect/certs
+{{- end }}
+
+{{/*
+OIDC Issuer URL
+*/}}
+{{- define "airlines.oidc.issuerUrl" -}}
+https://keycloak.{{ .Values.domain }}/realms/traefik
+{{- end }}
