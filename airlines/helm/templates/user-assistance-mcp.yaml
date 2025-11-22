@@ -34,16 +34,16 @@ data:
 
     # API Configuration
     API_BASE_URLS = {
-        "flights": "{{ include 'airlines.flights.apiUrl' . }}",
-        "bookings": "{{ include 'airlines.bookings.apiUrl' . }}",
-        "tickets": "{{ include 'airlines.tickets.apiUrl' . }}",
-        "passengers": "{{ include 'airlines.passengers.apiUrl' . }}",
-        "loyalty": "{{ include 'airlines.loyalty.apiUrl' . }}",
-        "checkin": "{{ include 'airlines.checkin.apiUrl' . }}",
-        "pricing": "{{ include 'airlines.pricing.apiUrl' . }}",
-        "baggage": "{{ include 'airlines.baggage.apiUrl' . }}",
-        "notifications": "{{ include 'airlines.notifications.apiUrl' . }}",
-        "ancillaries": "{{ include 'airlines.ancillaries.apiUrl' . }}",
+        "flights": "{{ include \"airlines.flights.apiUrl\" . }}",
+        "bookings": "{{ include \"airlines.bookings.apiUrl\" . }}",
+        "tickets": "{{ include \"airlines.tickets.apiUrl\" . }}",
+        "passengers": "{{ include \"airlines.passengers.apiUrl\" . }}",
+        "loyalty": "{{ include \"airlines.loyalty.apiUrl\" . }}",
+        "checkin": "{{ include \"airlines.checkin.apiUrl\" . }}",
+        "pricing": "{{ include \"airlines.pricing.apiUrl\" . }}",
+        "baggage": "{{ include \"airlines.baggage.apiUrl\" . }}",
+        "notifications": "{{ include \"airlines.notifications.apiUrl\" . }}",
+        "ancillaries": "{{ include \"airlines.ancillaries.apiUrl\" . }}",
     }
     
     # Static JWT Token passed from Helm/Terraform
