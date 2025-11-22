@@ -306,21 +306,8 @@ data:
           responses:
             '200':
               description: List of flights
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      flights:
-                        type: object
-                        additionalProperties:
-                          $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid request
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Error'
     
       /flights/search:
         get:
@@ -357,21 +344,8 @@ data:
           responses:
             '200':
               description: Search results
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      flights:
-                        type: object
-                        additionalProperties:
-                          $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid search parameters
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Error'
     
       /flights/{flightId}:
         get:
