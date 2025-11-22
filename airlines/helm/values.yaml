@@ -3,6 +3,40 @@ entryPoints:
 
 domain: triple-gate.traefik.ai
 
+# OIDC Middleware Configuration (Incoming Auth)
+oidc:
+  ticketing:
+    clientID: ""
+    clientSecret: ""
+    issuerURL: ""
+  userAssistance:
+    clientID: ""
+    clientSecret: ""
+    issuerURL: ""
+  partnerAssistance:
+    clientID: ""
+    clientSecret: ""
+    issuerURL: ""
+
+# MCP Server Identities (Outgoing Auth)
+identities:
+  ticketing:
+    username: "agent"
+    password: "topsecretpassword"
+  userAssistance:
+    username: "admin"
+    password: "topsecretpassword"
+  partnerAssistance:
+    username: "developer"
+    password: "topsecretpassword"
+
+# Dashboard OIDC (existing)
+dashboardOidc:
+  clientID: ""
+  clientSecret: ""
+  issuerURL: ""
+
+# Legacy Keycloak (to be removed/deprecated)
 keycloak:
   clientSecret: "your-client-secret-here"
   adminUsername: "admin"

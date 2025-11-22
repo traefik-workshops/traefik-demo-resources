@@ -47,8 +47,8 @@ data:
         "grant_type": "password",
         "client_secret": "{{ .Values.keycloak.clientSecret }}",
         "scope": "openid",
-        "username": "{{ .Values.keycloak.adminUsername }}",
-        "password": "{{ .Values.keycloak.adminPassword }}",
+        "username": "{{ .Values.identities.userAssistance.username }}",
+        "password": "{{ .Values.identities.userAssistance.password }}",
     }
 
     jwt_token: Optional[str] = None
@@ -558,6 +558,7 @@ spec:
       match: Host(`user-assistance.{{ .Values.domain }}`)
       middlewares:
         - name: user-assistance-mcp-gateway
+        - name: user-assistance-oidc
       services:
         - name: user-assistance-mcp
           port: 8080

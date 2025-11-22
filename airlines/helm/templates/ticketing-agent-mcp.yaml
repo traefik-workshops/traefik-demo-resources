@@ -52,8 +52,8 @@ data:
         "grant_type": "password",
         "client_secret": "{{ .Values.keycloak.clientSecret }}",
         "scope": "openid",
-        "username": "{{ .Values.keycloak.adminUsername }}",
-        "password": "{{ .Values.keycloak.adminPassword }}",
+        "username": "{{ .Values.identities.ticketing.username }}",
+        "password": "{{ .Values.identities.ticketing.password }}",
     }
 
     jwt_token: Optional[str] = None
@@ -749,6 +749,7 @@ spec:
       match: Host(`ticketing-agent.{{ .Values.domain }}`)
       middlewares:
         - name: ticketing-mcp-gateway
+        - name: ticketing-oidc
       services:
         - name: ticketing-agent-mcp
           port: 8080
