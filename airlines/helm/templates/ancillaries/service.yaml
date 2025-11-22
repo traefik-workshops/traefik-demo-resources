@@ -11,7 +11,9 @@ metadata:
 data:
   api.json: |
     {
-      "ancillaries": {},
+      "ancillaries": {
+        "meal": {"default": {}}
+      },
       "meals": {
         "standard": {"name": "Standard Meal", "price": 0, "description": "Regular in-flight meal"},
         "vegetarian": {"name": "Vegetarian Meal", "price": 0, "description": "Meat-free meal"},

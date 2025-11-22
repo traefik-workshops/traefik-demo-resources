@@ -11,12 +11,12 @@ metadata:
 data:
   api.json: |
     {
+      "baggage/booking": {
+        "BK123456": [
+          {"bag_tag": "BT123456", "weight": 20, "status": "checked"}
+        ]
+      },
       "baggage": {
-        "booking": {
-          "BK123456": [
-            {"bag_tag": "BT123456", "weight": 20, "status": "checked"}
-          ]
-        },
         "BT789012": {
           "bag_tag": "BT789012",
           "booking_id": "BK123456",

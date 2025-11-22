@@ -12,7 +12,7 @@ data:
   api.json: |
     {
       "notifications": {
-        "send": []
+        "send": {"default": {}}
       },
       "templates": {
         "booking_confirmation": {"subject": "Booking Confirmed", "body": "Your booking {booking_id} is confirmed"},
