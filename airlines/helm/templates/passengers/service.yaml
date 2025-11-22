@@ -441,35 +441,6 @@ data:
           responses:
             '200':
               description: List of passengers
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      passengers:
-                        type: object
-                        additionalProperties:
-                          $ref: '#/components/schemas/Passenger'
-      /passengers/{passengerId}:
-        get:
-          summary: Get passenger details
-          operationId: getPassengerById
-          tags: [passengers]
-          parameters:
-            - name: passengerId
-              in: path
-              required: true
-              schema:
-                type: string
-          responses:
-            '200':
-              description: Passenger details
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Passenger'
-            '404':
-              description: Passenger not found
     components:
       schemas:
         Passenger:

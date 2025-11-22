@@ -405,69 +405,6 @@ data:
           responses:
             '200':
               description: Loyalty status
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Loyalty'
-            '404':
-              description: Not found
-      /loyalty/member/{loyaltyNumber}:
-        get:
-          summary: Get loyalty member details
-          operationId: getLoyaltyMember
-          tags:
-            - loyalty
-          parameters:
-            - name: loyaltyNumber
-              in: path
-              required: true
-              schema:
-                type: string
-          responses:
-            '200':
-              description: Member details
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/LoyaltyMember'
-            '404':
-              description: Not found
-      /loyalty/miles/deduct:
-        post:
-          summary: Deduct miles from account
-          operationId: deductMiles
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    loyalty_number:
-                      type: string
-                    miles:
-                      type: integer
-          responses:
-            '200':
-              description: Miles deducted
-      /loyalty/miles/earn:
-        post:
-          summary: Add miles to account
-          operationId: earnMiles
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  properties:
-                    loyalty_number:
-                      type: string
-                    miles:
-                      type: integer
-          responses:
-            '200':
-              description: Miles added
     components:
       schemas:
         Loyalty:

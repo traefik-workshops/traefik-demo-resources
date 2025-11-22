@@ -727,58 +727,6 @@ data:
           responses:
             '200':
               description: List of tickets
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/TicketList'
-      /tickets/issue:
-        post:
-          summary: Issue new ticket
-          operationId: issueTicket
-          tags:
-            - tickets
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/NewTicket'
-          responses:
-            '201':
-              description: Ticket issued
-      /tickets/{ticketId}:
-        get:
-          summary: Get ticket details
-          operationId: getTicket
-          tags:
-            - tickets
-          parameters:
-            - name: ticketId
-              in: path
-              required: true
-              schema:
-                type: string
-          responses:
-            '200':
-              description: Ticket details
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Ticket'
-        delete:
-          summary: Void a ticket
-          operationId: voidTicket
-          tags:
-            - tickets
-          parameters:
-            - name: ticketId
-              in: path
-              required: true
-              schema:
-                type: string
-          responses:
-            '200':
-              description: Ticket voided
     components:
       schemas:
         Ticket:
