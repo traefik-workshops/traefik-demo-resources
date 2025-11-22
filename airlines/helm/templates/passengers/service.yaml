@@ -1,0 +1,560 @@
+---
+# Passengers API Service
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: passengers-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+data:
+  api.json: |
+    {
+      "passengers": {
+        "P10000": {
+          "passenger_id": "P10000",
+          "first_name": "James",
+          "last_name": "Smith",
+          "email": "james.smith@example.com",
+          "phone": "+1-555-0100",
+          "passport_number": "X64937409"
+        },
+        "P10001": {
+          "passenger_id": "P10001",
+          "first_name": "Maria",
+          "last_name": "Garcia",
+          "email": "maria.garcia@example.com",
+          "phone": "+1-555-0101",
+          "passport_number": "X53397742"
+        },
+        "P10002": {
+          "passenger_id": "P10002",
+          "first_name": "Robert",
+          "last_name": "Johnson",
+          "email": "robert.johnson@example.com",
+          "phone": "+1-555-0102",
+          "passport_number": "X75067611"
+        },
+        "P10003": {
+          "passenger_id": "P10003",
+          "first_name": "Lisa",
+          "last_name": "Davis",
+          "email": "lisa.davis@example.com",
+          "phone": "+1-555-0103",
+          "passport_number": "X98303014"
+        },
+        "P10004": {
+          "passenger_id": "P10004",
+          "first_name": "David",
+          "last_name": "Wilson",
+          "email": "david.wilson@example.com",
+          "phone": "+1-555-0104",
+          "passport_number": "X59800484"
+        },
+        "P10005": {
+          "passenger_id": "P10005",
+          "first_name": "Jennifer",
+          "last_name": "Brown",
+          "email": "jennifer.brown@example.com",
+          "phone": "+1-555-0105",
+          "passport_number": "X49825761"
+        },
+        "P10006": {
+          "passenger_id": "P10006",
+          "first_name": "Michael",
+          "last_name": "Miller",
+          "email": "michael.miller@example.com",
+          "phone": "+1-555-0106",
+          "passport_number": "X37156367"
+        },
+        "P10007": {
+          "passenger_id": "P10007",
+          "first_name": "Elizabeth",
+          "last_name": "Taylor",
+          "email": "elizabeth.taylor@example.com",
+          "phone": "+1-555-0107",
+          "passport_number": "X37572455"
+        },
+        "P10008": {
+          "passenger_id": "P10008",
+          "first_name": "William",
+          "last_name": "Anderson",
+          "email": "william.anderson@example.com",
+          "phone": "+1-555-0108",
+          "passport_number": "X99232956"
+        },
+        "P10009": {
+          "passenger_id": "P10009",
+          "first_name": "Linda",
+          "last_name": "Thomas",
+          "email": "linda.thomas@example.com",
+          "phone": "+1-555-0109",
+          "passport_number": "X51434975"
+        },
+        "P10010": {
+          "passenger_id": "P10010",
+          "first_name": "Richard",
+          "last_name": "Jackson",
+          "email": "richard.jackson@example.com",
+          "phone": "+1-555-0110",
+          "passport_number": "X34026421"
+        },
+        "P10011": {
+          "passenger_id": "P10011",
+          "first_name": "Patricia",
+          "last_name": "White",
+          "email": "patricia.white@example.com",
+          "phone": "+1-555-0111",
+          "passport_number": "X59856349"
+        },
+        "P10012": {
+          "passenger_id": "P10012",
+          "first_name": "Joseph",
+          "last_name": "Harris",
+          "email": "joseph.harris@example.com",
+          "phone": "+1-555-0112",
+          "passport_number": "X30818592"
+        },
+        "P10013": {
+          "passenger_id": "P10013",
+          "first_name": "Susan",
+          "last_name": "Martin",
+          "email": "susan.martin@example.com",
+          "phone": "+1-555-0113",
+          "passport_number": "X97286331"
+        },
+        "P10014": {
+          "passenger_id": "P10014",
+          "first_name": "Thomas",
+          "last_name": "Thompson",
+          "email": "thomas.thompson@example.com",
+          "phone": "+1-555-0114",
+          "passport_number": "X12675533"
+        },
+        "P10015": {
+          "passenger_id": "P10015",
+          "first_name": "Jessica",
+          "last_name": "Garcia",
+          "email": "jessica.garcia@example.com",
+          "phone": "+1-555-0115",
+          "passport_number": "X37936448"
+        },
+        "P10016": {
+          "passenger_id": "P10016",
+          "first_name": "Charles",
+          "last_name": "Martinez",
+          "email": "charles.martinez@example.com",
+          "phone": "+1-555-0116",
+          "passport_number": "X39891756"
+        },
+        "P10017": {
+          "passenger_id": "P10017",
+          "first_name": "Sarah",
+          "last_name": "Robinson",
+          "email": "sarah.robinson@example.com",
+          "phone": "+1-555-0117",
+          "passport_number": "X57436834"
+        },
+        "P10018": {
+          "passenger_id": "P10018",
+          "first_name": "Christopher",
+          "last_name": "Clark",
+          "email": "christopher.clark@example.com",
+          "phone": "+1-555-0118",
+          "passport_number": "X65216135"
+        },
+        "P10019": {
+          "passenger_id": "P10019",
+          "first_name": "Karen",
+          "last_name": "Rodriguez",
+          "email": "karen.rodriguez@example.com",
+          "phone": "+1-555-0119",
+          "passport_number": "X37356425"
+        },
+        "P10020": {
+          "passenger_id": "P10020",
+          "first_name": "Daniel",
+          "last_name": "Lewis",
+          "email": "daniel.lewis@example.com",
+          "phone": "+1-555-0120",
+          "passport_number": "X48982815"
+        },
+        "P10021": {
+          "passenger_id": "P10021",
+          "first_name": "Nancy",
+          "last_name": "Lee",
+          "email": "nancy.lee@example.com",
+          "phone": "+1-555-0121",
+          "passport_number": "X63971329"
+        },
+        "P10022": {
+          "passenger_id": "P10022",
+          "first_name": "Matthew",
+          "last_name": "Walker",
+          "email": "matthew.walker@example.com",
+          "phone": "+1-555-0122",
+          "passport_number": "X93622731"
+        },
+        "P10023": {
+          "passenger_id": "P10023",
+          "first_name": "Margaret",
+          "last_name": "Hall",
+          "email": "margaret.hall@example.com",
+          "phone": "+1-555-0123",
+          "passport_number": "X49272971"
+        },
+        "P10024": {
+          "passenger_id": "P10024",
+          "first_name": "Anthony",
+          "last_name": "Allen",
+          "email": "anthony.allen@example.com",
+          "phone": "+1-555-0124",
+          "passport_number": "X92141263"
+        },
+        "P10025": {
+          "passenger_id": "P10025",
+          "first_name": "Betty",
+          "last_name": "Young",
+          "email": "betty.young@example.com",
+          "phone": "+1-555-0125",
+          "passport_number": "X55275491"
+        },
+        "P10026": {
+          "passenger_id": "P10026",
+          "first_name": "Mark",
+          "last_name": "Hernandez",
+          "email": "mark.hernandez@example.com",
+          "phone": "+1-555-0126",
+          "passport_number": "X89608343"
+        },
+        "P10027": {
+          "passenger_id": "P10027",
+          "first_name": "Dorothy",
+          "last_name": "King",
+          "email": "dorothy.king@example.com",
+          "phone": "+1-555-0127",
+          "passport_number": "X80960282"
+        },
+        "P10028": {
+          "passenger_id": "P10028",
+          "first_name": "Donald",
+          "last_name": "Wright",
+          "email": "donald.wright@example.com",
+          "phone": "+1-555-0128",
+          "passport_number": "X60529820"
+        },
+        "P10029": {
+          "passenger_id": "P10029",
+          "first_name": "Sandra",
+          "last_name": "Lopez",
+          "email": "sandra.lopez@example.com",
+          "phone": "+1-555-0129",
+          "passport_number": "X52422929"
+        },
+        "P10030": {
+          "passenger_id": "P10030",
+          "first_name": "Steven",
+          "last_name": "Hill",
+          "email": "steven.hill@example.com",
+          "phone": "+1-555-0130",
+          "passport_number": "X50704715"
+        },
+        "P10031": {
+          "passenger_id": "P10031",
+          "first_name": "Ashley",
+          "last_name": "Scott",
+          "email": "ashley.scott@example.com",
+          "phone": "+1-555-0131",
+          "passport_number": "X90688534"
+        },
+        "P10032": {
+          "passenger_id": "P10032",
+          "first_name": "Paul",
+          "last_name": "Green",
+          "email": "paul.green@example.com",
+          "phone": "+1-555-0132",
+          "passport_number": "X26131036"
+        },
+        "P10033": {
+          "passenger_id": "P10033",
+          "first_name": "Kimberly",
+          "last_name": "Adams",
+          "email": "kimberly.adams@example.com",
+          "phone": "+1-555-0133",
+          "passport_number": "X59982353"
+        },
+        "P10034": {
+          "passenger_id": "P10034",
+          "first_name": "Andrew",
+          "last_name": "Baker",
+          "email": "andrew.baker@example.com",
+          "phone": "+1-555-0134",
+          "passport_number": "X81486580"
+        },
+        "P10035": {
+          "passenger_id": "P10035",
+          "first_name": "Donna",
+          "last_name": "Gonzalez",
+          "email": "donna.gonzalez@example.com",
+          "phone": "+1-555-0135",
+          "passport_number": "X55684786"
+        },
+        "P10036": {
+          "passenger_id": "P10036",
+          "first_name": "Joshua",
+          "last_name": "Nelson",
+          "email": "joshua.nelson@example.com",
+          "phone": "+1-555-0136",
+          "passport_number": "X38002929"
+        },
+        "P10037": {
+          "passenger_id": "P10037",
+          "first_name": "Emily",
+          "last_name": "Carter",
+          "email": "emily.carter@example.com",
+          "phone": "+1-555-0137",
+          "passport_number": "X72672079"
+        },
+        "P10038": {
+          "passenger_id": "P10038",
+          "first_name": "Kenneth",
+          "last_name": "Mitchell",
+          "email": "kenneth.mitchell@example.com",
+          "phone": "+1-555-0138",
+          "passport_number": "X26853051"
+        },
+        "P10039": {
+          "passenger_id": "P10039",
+          "first_name": "Michelle",
+          "last_name": "Perez",
+          "email": "michelle.perez@example.com",
+          "phone": "+1-555-0139",
+          "passport_number": "X49623543"
+        },
+        "P10040": {
+          "passenger_id": "P10040",
+          "first_name": "Kevin",
+          "last_name": "Roberts",
+          "email": "kevin.roberts@example.com",
+          "phone": "+1-555-0140",
+          "passport_number": "X16980008"
+        },
+        "P10041": {
+          "passenger_id": "P10041",
+          "first_name": "Carol",
+          "last_name": "Turner",
+          "email": "carol.turner@example.com",
+          "phone": "+1-555-0141",
+          "passport_number": "X98450891"
+        },
+        "P10042": {
+          "passenger_id": "P10042",
+          "first_name": "Brian",
+          "last_name": "Phillips",
+          "email": "brian.phillips@example.com",
+          "phone": "+1-555-0142",
+          "passport_number": "X20372041"
+        },
+        "P10043": {
+          "passenger_id": "P10043",
+          "first_name": "Amanda",
+          "last_name": "Campbell",
+          "email": "amanda.campbell@example.com",
+          "phone": "+1-555-0143",
+          "passport_number": "X86018689"
+        },
+        "P10044": {
+          "passenger_id": "P10044",
+          "first_name": "George",
+          "last_name": "Parker",
+          "email": "george.parker@example.com",
+          "phone": "+1-555-0144",
+          "passport_number": "X57328470"
+        },
+        "P10045": {
+          "passenger_id": "P10045",
+          "first_name": "Melissa",
+          "last_name": "Evans",
+          "email": "melissa.evans@example.com",
+          "phone": "+1-555-0145",
+          "passport_number": "X18137207"
+        },
+        "P10046": {
+          "passenger_id": "P10046",
+          "first_name": "Edward",
+          "last_name": "Edwards",
+          "email": "edward.edwards@example.com",
+          "phone": "+1-555-0146",
+          "passport_number": "X97521639"
+        },
+        "P10047": {
+          "passenger_id": "P10047",
+          "first_name": "Deborah",
+          "last_name": "Collins",
+          "email": "deborah.collins@example.com",
+          "phone": "+1-555-0147",
+          "passport_number": "X30391377"
+        },
+        "P10048": {
+          "passenger_id": "P10048",
+          "first_name": "Ronald",
+          "last_name": "Stewart",
+          "email": "ronald.stewart@example.com",
+          "phone": "+1-555-0148",
+          "passport_number": "X70731861"
+        },
+        "P10049": {
+          "passenger_id": "P10049",
+          "first_name": "Stephanie",
+          "last_name": "Sanchez",
+          "email": "stephanie.sanchez@example.com",
+          "phone": "+1-555-0149",
+          "passport_number": "X99299344"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: passengers-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Passengers API
+      description: Passenger profile management and information
+    servers:
+      - url: {{ include "airlines.passengers.apiUrl" . }}
+    paths:
+      /passengers:
+        get:
+          summary: List all passengers
+          operationId: listPassengers
+          tags: [passengers]
+          responses:
+            '200':
+              description: List of passengers
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      passengers:
+                        type: object
+                        additionalProperties:
+                          $ref: '#/components/schemas/Passenger'
+      /passengers/{passengerId}:
+        get:
+          summary: Get passenger details
+          operationId: getPassengerById
+          tags: [passengers]
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Passenger details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Passenger'
+            '404':
+              description: Passenger not found
+    components:
+      schemas:
+        Passenger:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+            phone:
+              type: string
+            passport:
+              type: string
+            nationality:
+              type: string
+            date_of_birth:
+              type: string
+              format: date
+            loyalty_number:
+              type: string
+            special_needs:
+              type: array
+              items:
+                type: string
+            emergency_contact:
+              type: string
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: passengers-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: passengers-app
+  template:
+    metadata:
+      labels:
+        app: passengers-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: passengers-data
+        - name: openapi
+          configMap:
+            name: passengers-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: passengers-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: passengers-app

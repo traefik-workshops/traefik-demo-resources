@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traefik Airlines Ops Board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card {
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid #334155;
+        }
+
+        /* Traefik Cyan Gradient */
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #24A1C1, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-scheduled {
+            background-color: #064e3b;
+            color: #34d399;
+        }
+
+        .status-delayed {
+            background-color: #451a03;
+            color: #fbbf24;
+        }
+
+        .status-cancelled {
+            background-color: #450a0a;
+            color: #f87171;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app" class="min-h-screen p-8">
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-white flex items-center gap-4">
+                    <!-- Traefik Logo -->
+                    <img src="https://docs.traefik.io/assets/img/traefik.logo.png" alt="Traefik" class="h-12">
+                    <span class="border-l border-slate-600 pl-4">Airlines <span class="text-slate-400 font-light">Ops
+                            Center</span></span>
+                </h1>
+            </div>
+            <div class="flex gap-4">
+                <div class="text-right">
+                    <div class="text-sm text-slate-400">System Status</div>
+                    <div class="text-green-400 font-bold">● Operational</div>
+                </div>
+                <button @click="refreshData"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition">
+                    Refresh Data
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="card">
+                <div class="text-slate-400 text-sm uppercase tracking-wider">Active Flights</div>
+                <div class="stat-value">{{ stats.flights }}</div>
+                <div class="text-sm text-slate-500 mt-2">Across 10 destinations</div>
+            </div>
+            <div class="card">
+                <div class="text-slate-400 text-sm uppercase tracking-wider">Total Bookings</div>
+                <div class="stat-value">{{ stats.bookings }}</div>
+                <div class="text-sm text-slate-500 mt-2">Revenue: ${{ stats.revenue.toLocaleString() }}</div>
+            </div>
+            <div class="card">
+                <div class="text-slate-400 text-sm uppercase tracking-wider">Passengers</div>
+                <div class="stat-value">{{ stats.passengers }}</div>
+                <div class="text-sm text-slate-500 mt-2">{{ stats.loyalty }} Loyalty Members</div>
+            </div>
+            <div class="card">
+                <div class="text-slate-400 text-sm uppercase tracking-wider">Disruptions</div>
+                <div class="stat-value text-red-400">{{ stats.disruptions }}</div>
+                <div class="text-sm text-slate-500 mt-2">Requiring Assistance</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Flight Board -->
+            <div class="card lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>🛫 Live Flight Board</span>
+                </h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead>
+                            <tr class="text-slate-400 border-b border-slate-700">
+                                <th class="pb-3">Flight</th>
+                                <th class="pb-3">Route</th>
+                                <th class="pb-3">Departure</th>
+                                <th class="pb-3">Aircraft</th>
+                                <th class="pb-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-700">
+                            <tr v-for="flight in flights" :key="flight.flight_id"
+                                class="hover:bg-slate-800/50 transition">
+                                <td class="py-3 font-mono text-blue-400">{{ flight.flight_id }}</td>
+                                <td class="py-3">{{ flight.origin }} ➝ {{ flight.destination }}</td>
+                                <td class="py-3">{{ formatDate(flight.departure_time) }}</td>
+                                <td class="py-3 text-slate-400">{{ flight.aircraft }}</td>
+                                <td class="py-3">
+                                    <span :class="['status-badge', 'status-' + flight.status]">
+                                        {{ flight.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Bookings -->
+            <div class="card">
+                <h2 class="text-xl font-bold mb-4">🎟️ Recent Bookings</h2>
+                <div class="space-y-4">
+                    <div v-for="booking in recentBookings" :key="booking.booking_id"
+                        class="bg-slate-800 p-3 rounded border border-slate-700 flex justify-between items-center">
+                        <div>
+                            <div class="font-bold text-white">{{ booking.booking_id }}</div>
+                            <div class="text-xs text-slate-400">{{ booking.passenger_id }} • {{ booking.class }}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-blue-400 text-sm">{{ booking.flight_id }}</div>
+                            <div class="text-xs text-slate-500">{{ booking.status }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, computed } = Vue;
+
+        // Configuration - dynamically replaced by Helm or defaults
+        const DOMAIN = window.location.hostname.replace('ops.', '');
+        const API_BASE = `https://`;
+
+        createApp({
+            setup() {
+                const flights = ref([]);
+                const bookings = ref([]);
+                const passengers = ref([]);
+                const loyalty = ref([]);
+
+                const stats = computed(() => {
+                    const revenue = bookings.value.reduce((acc, b) => acc + (b.price || 450), 0); // Mock price if missing
+                    const disruptions = flights.value.filter(f => f.status !== 'scheduled').length;
+                    return {
+                        flights: flights.value.length,
+                        bookings: bookings.value.length,
+                        passengers: passengers.value.length,
+                        loyalty: loyalty.value.length,
+                        revenue,
+                        disruptions
+                    };
+                });
+
+                const recentBookings = computed(() => {
+                    return bookings.value.slice(0, 6);
+                });
+
+                const formatDate = (iso) => {
+                    return new Date(iso).toLocaleString('en-US', {
+                        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                    });
+                };
+
+                const fetchData = async () => {
+                    try {
+                        // Fetch Flights
+                        const fRes = await fetch(`https://flights.${DOMAIN}/flights`);
+                        const fData = await fRes.json();
+                        flights.value = Object.values(fData.flights || {}).sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
+
+                        // Fetch Bookings
+                        const bRes = await fetch(`https://bookings.${DOMAIN}/bookings`);
+                        const bData = await bRes.json();
+                        bookings.value = Object.values(bData.bookings || {}).reverse();
+
+                        // Fetch Passengers
+                        const pRes = await fetch(`https://passengers.${DOMAIN}/passengers`);
+                        const pData = await pRes.json();
+                        passengers.value = Object.values(pData.passengers || {});
+
+                        // Fetch Loyalty
+                        const lRes = await fetch(`https://loyalty.${DOMAIN}/members`);
+                        const lData = await lRes.json();
+                        loyalty.value = Object.values(lData.members || {});
+
+                    } catch (e) {
+                        console.error("Error fetching data:", e);
+                    }
+                };
+
+                onMounted(() => {
+                    fetchData();
+                    // Auto refresh every 30s
+                    setInterval(fetchData, 30000);
+                });
+
+                return {
+                    flights,
+                    stats,
+                    recentBookings,
+                    formatDate,
+                    refreshData: fetchData
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

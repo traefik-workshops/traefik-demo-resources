@@ -1,0 +1,62 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: passengers-api
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+spec:
+  title: "Passengers API"
+  description: "Passenger profile management and information"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.passengers.apiUrl" . }}
+    operationSets:
+      - name: public-ops
+        matchers:
+          - pathPrefix: /
+            methods: [GET]
+      - name: agent-ops
+        matchers:
+          - pathPrefix: /
+            methods: [GET, POST, PUT]
+      - name: admin-ops
+        matchers:
+          - pathPrefix: /
+            methods: [GET, POST, PUT, DELETE, PATCH]
+  cors:
+    allowHeadersList: ["Authorization", "Content-Type"]
+    allowOriginsList: ["*"]
+    allowMethodsList: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    allowCredentials: true
+    maxAge: 86400
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: passengers-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+  annotations:
+    hub.traefik.io/api: passengers-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.passengers.hostMatch" . }}
+      services:
+        - name: passengers-app
+          namespace: airlines
+          port: 3000
+      observability:
+        traceVerbosity: detailed

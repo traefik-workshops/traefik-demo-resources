@@ -1,0 +1,754 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketing-agent-mcp-server
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ticketing-agent-mcp
+data:
+  main.py: |
+    #!/usr/bin/env python3
+    """
+    Ticketing Agent MCP Server - Customer-Facing Booking and Ticketing
+    
+    This MCP server orchestrates multiple airline APIs to provide comprehensive
+    booking workflows. Unlike simple API passthrough, it demonstrates real business logic
+    with multi-step processes, error handling, and detailed execution tracing.
+    """
+
+    from typing import Any, Dict, List, Optional
+    import logging, aiohttp, anyio, json
+    from datetime import datetime, timedelta
+    from mcp.server import Server
+    from mcp.server.stdio import stdio_server
+    from mcp.types import Tool
+
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("ticketing-agent-mcp")
+
+    # Create MCP server instance
+    server = Server("ticketing-agent-mcp")
+
+    # API Configuration
+    API_BASE_URLS = {
+        "flights": "http://flights-app.airlines.svc.cluster.local:3000",
+        "bookings": "http://bookings-app.airlines.svc.cluster.local:3000",
+        "tickets": "http://tickets-app.airlines.svc.cluster.local:3000",
+        "passengers": "http://passengers-app.airlines.svc.cluster.local:3000",
+        "loyalty": "http://loyalty-app.airlines.svc.cluster.local:3000",
+        "checkin": "http://checkin-app.airlines.svc.cluster.local:3000",
+        "pricing": "http://pricing-app.airlines.svc.cluster.local:3000",
+        "baggage": "http://baggage-app.airlines.svc.cluster.local:3000",
+        "notifications": "http://notifications-app.airlines.svc.cluster.local:3000",
+        "ancillaries": "http://ancillaries-app.airlines.svc.cluster.local:3000",
+    }
+    
+    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
+    KEYCLOAK_CREDENTIALS = {
+        "client_id": "traefik",
+        "grant_type": "password",
+        "client_secret": "{{ .Values.keycloak.clientSecret }}",
+        "scope": "openid",
+        "username": "{{ .Values.keycloak.adminUsername }}",
+        "password": "{{ .Values.keycloak.adminPassword }}",
+    }
+
+    jwt_token: Optional[str] = None
+
+    @server.list_tools()
+    async def list_tools():
+        """List available ticketing agent tools"""
+        return [
+            Tool(
+                name="ping",
+                description="Health check - returns pong",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="search_flights",
+                description="Search for available flights between origin and destination",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "origin": {"type": "string", "description": "Origin airport code (e.g., 'JFK')"},
+                        "destination": {"type": "string", "description": "Destination airport code (e.g., 'LAX')"},
+                        "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format"},
+                        "passengers": {"type": "integer", "description": "Number of passengers (default: 1)", "default": 1},
+                        "cabin_class": {
+                            "type": "string",
+                            "enum": ["economy", "premium_economy", "business", "first"],
+                            "description": "Preferred cabin class",
+                            "default": "economy"
+                        }
+                    },
+                    "required": ["origin", "destination", "date"]
+                }
+            ),
+            Tool(
+                name="book_flight_itinerary",
+                description="Complete end-to-end flight booking including loyalty benefits, seat selection, and ticket issuance. This demonstrates orchestration of multiple APIs.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID from search results"},
+                        "passenger_id": {"type": "string", "description": "Passenger ID"},
+                        "loyalty_number": {"type": "string", "description": "Optional loyalty program number"},
+                        "seat_preference": {"type": "string", "description": "Preferred seat (e.g., '12A')"},
+                        "include_baggage": {"type": "boolean", "description": "Include checked baggage", "default": false},
+                        "meal_preference": {
+                            "type": "string",
+                            "enum": ["standard", "vegetarian", "vegan", "kosher", "halal", "gluten_free"],
+                            "description": "Meal preference",
+                            "default": "standard"
+                        }
+                    },
+                    "required": ["flight_id", "passenger_id"]
+                }
+            ),
+            Tool(
+                name="modify_booking",
+                description="Modify an existing booking with change fee calculation and rebooking",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Existing booking reference"},
+                        "new_flight_id": {"type": "string", "description": "New flight ID"},
+                        "reason": {"type": "string", "description": "Reason for modification"}
+                    },
+                    "required": ["booking_id", "new_flight_id"]
+                }
+            ),
+            Tool(
+                name="cancel_booking_with_refund",
+                description="Cancel booking and process refund based on fare rules and loyalty status",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference to cancel"},
+                        "reason": {"type": "string", "description": "Cancellation reason"}
+                    },
+                    "required": ["booking_id"]
+                }
+            ),
+            Tool(
+                name="check_in_and_generate_boarding_pass",
+                description="Complete online check-in, select seats, and generate boarding pass",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "seat_selection": {"type": "string", "description": "Desired seat number"}
+                    },
+                    "required": ["booking_id"]
+                }
+            ),
+            Tool(
+                name="get_loyalty_status",
+                description="Get detailed loyalty program status including miles, tier, and benefits",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "loyalty_number": {"type": "string", "description": "Loyalty program number"}
+                    },
+                    "required": ["loyalty_number"]
+                }
+            ),
+            Tool(
+                name="redeem_miles_for_flight",
+                description="Book a flight using loyalty miles with automatic tier benefits application",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID"},
+                        "passenger_id": {"type": "string", "description": "Passenger ID"},
+                        "loyalty_number": {"type": "string", "description": "Loyalty program number"},
+                        "miles_to_use": {"type": "integer", "description": "Number of miles to redeem"}
+                    },
+                    "required": ["flight_id", "passenger_id", "loyalty_number", "miles_to_use"]
+                }
+            )
+        ]
+
+    async def get_jwt_token() -> str:
+        """Get JWT token from Keycloak"""
+        global jwt_token
+        if jwt_token:
+            return jwt_token
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                KEYCLOAK_URL,
+                data=KEYCLOAK_CREDENTIALS,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ) as r:
+                if r.status != 200:
+                    raise RuntimeError(f"Keycloak token error: {r.status}")
+                data = await r.json()
+                jwt_token = data.get("access_token")
+                return jwt_token
+
+    async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
+        """Make authenticated API request and return response"""
+        token = await get_jwt_token()
+        url = f"{API_BASE_URLS[service]}{endpoint}"
+        headers = {"Authorization": f"Bearer {token}"}
+        if method in ["POST", "PUT", "PATCH"]:
+            headers["Content-Type"] = "application/json"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, json=data) as r:
+                response_text = await r.text()
+                if r.status == 200:
+                    try:
+                        return await r.json() if not response_text else json.loads(response_text)
+                    except Exception as e:
+                        logger.warning(f"JSON parse error for {url}: {e}")
+                        return {"data": response_text, "status": 200}
+                elif r.status == 201:
+                    try:
+                        return {"status": "created", "data": await r.json() if response_text else {}}
+                    except:
+                        return {"status": "created"}
+                elif r.status == 404:
+                    return {"error": "Not found", "status": 404}
+                else:
+                    return {"error": f"API error {r.status}: {response_text}", "status": r.status}
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict):
+        """Handle tool calls with detailed execution tracing"""
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
+        if name == "ping":
+            return [{"type": "text", "text": "pong - Ticketing Agent MCP Server is operational"}]
+        
+        elif name == "search_flights":
+            origin = arguments.get("origin")
+            destination = arguments.get("destination")
+            date = arguments.get("date")
+            passengers = arguments.get("passengers", 1)
+            cabin_class = arguments.get("cabin_class", "economy")
+            
+            try:
+                steps = []
+                steps.append("✈️ **FLIGHT SEARCH INITIATED**")
+                steps.append(f"📍 Route: {origin} → {destination}")
+                steps.append(f"📅 Date: {date}")
+                steps.append(f"👥 Passengers: {passengers}")
+                steps.append(f"💺 Class: {cabin_class}")
+                steps.append("")
+                
+                # Step 1: Search flights
+                steps.append("1️⃣ Searching available flights...")
+                search_result = await api_request(
+                    "flights",
+                    f"/flights/search?origin={origin}&dest={destination}&date={date}"
+                )
+                
+                if "error" in search_result:
+                    steps.append(f"   ❌ Error: {search_result['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                flights = search_result.get("flights", [])
+                steps.append(f"   ✅ Found {len(flights)} flights")
+                
+                # Step 2: Get pricing for each flight
+                steps.append("\n2️⃣ Fetching pricing information...")
+                priced_flights = []
+                for flight in flights[:5]:  # Limit to top 5
+                    flight_id = flight.get("id", "unknown")
+                    pricing = await api_request(
+                        "pricing",
+                        f"/pricing/calculate",
+                        "POST",
+                        {"flight_id": flight_id, "cabin_class": cabin_class, "passengers": passengers}
+                    )
+                    
+                    if "error" not in pricing:
+                        flight["pricing"] = pricing
+                        priced_flights.append(flight)
+                        price = pricing.get("total", 0)
+                        steps.append(f"   ✅ Flight {flight_id}: ${price:.2f}")
+                    else:
+                        steps.append(f"   ⚠️  Flight {flight_id}: Pricing unavailable")
+                
+                # Step 3: Check seat availability
+                steps.append("\n3️⃣ Checking seat availability...")
+                for flight in priced_flights:
+                    flight_id = flight.get("id")
+                    inventory = await api_request("flights", f"/flights/{flight_id}/inventory")
+                    if "error" not in inventory:
+                        available_seats = inventory.get("available_seats", 0)
+                        flight["available_seats"] = available_seats
+                        steps.append(f"   ✅ Flight {flight_id}: {available_seats} seats available")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n**AVAILABLE FLIGHTS**:\n"
+                for i, flight in enumerate(priced_flights, 1):
+                    dept_time = flight.get("departure_time", "Unknown")
+                    arr_time = flight.get("arrival_time", "Unknown")
+                    flight_num = flight.get("flight_number", "Unknown")
+                    price = flight["pricing"].get("total", 0) if "pricing" in flight else 0
+                    seats = flight.get("available_seats", "?")
+                    
+                    response += f"\n{i}. **Flight {flight_num}** (ID: {flight.get('id')})\n"
+                    response += f"   Departure: {dept_time} | Arrival: {arr_time}\n"
+                    response += f"   Price: ${price:.2f} | Seats: {seats}\n"
+                
+                response += "\n\n**Next Step**: Use `book_flight_itinerary` with a flight_id to complete booking"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in search_flights: {e}")
+                return [{"type": "text", "text": f"❌ System error during flight search: {str(e)}"}]
+        
+        elif name == "book_flight_itinerary":
+            flight_id = arguments.get("flight_id")
+            passenger_id = arguments.get("passenger_id")
+            loyalty_number = arguments.get("loyalty_number")
+            seat_preference = arguments.get("seat_preference")
+            include_baggage = arguments.get("include_baggage", False)
+            meal_preference = arguments.get("meal_preference", "standard")
+            
+            try:
+                steps = []
+                warnings = []
+                errors = []
+                
+                steps.append("🎫 **FLIGHT BOOKING PROCESS INITIATED**")
+                steps.append(f"✈️  Flight ID: {flight_id}")
+                steps.append(f"👤 Passenger ID: {passenger_id}")
+                steps.append("")
+                
+                # Step 1: Get flight details
+                steps.append("1️⃣ Retrieving flight information...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+                if "error" in flight:
+                    errors.append(f"Flight not found: {flight['error']}")
+                    steps.append(f"   ❌ {errors[-1]}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                flight_num = flight.get("flight_number", "Unknown")
+                origin = flight.get("origin", "???")
+                dest = flight.get("destination", "???")
+                dept_time = flight.get("departure_time", "Unknown")
+                steps.append(f"   ✅ Flight {flight_num}: {origin} → {dest} at {dept_time}")
+                
+                # Step 2: Get passenger details
+                steps.append("\n2️⃣ Verifying passenger information...")
+                passenger = await api_request("passengers", f"/passengers/{passenger_id}")
+                if "error" in passenger:
+                    errors.append(f"Passenger not found: {passenger['error']}")
+                    steps.append(f"   ❌ {errors[-1]}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                passenger_name = passenger.get("name", "Unknown")
+                steps.append(f"   ✅ Passenger: {passenger_name}")
+                
+                # Step 3: Check loyalty status (if provided)
+                loyalty_discount = 0
+                loyalty_tier = "None"
+                if loyalty_number:
+                    steps.append("\n3️⃣ Checking loyalty program benefits...")
+                    loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+                    if "error" not in loyalty:
+                        loyalty_tier = loyalty.get("tier", "Standard")
+                        miles_available = loyalty.get("miles", 0)
+                        steps.append(f"   ✅ Tier: {loyalty_tier} | Miles: {miles_available:,}")
+                        
+                        # Calculate tier discount
+                        if loyalty_tier == "Gold":
+                            loyalty_discount = 0.10
+                        elif loyalty_tier == "Platinum":
+                            loyalty_discount = 0.15
+                        elif loyalty_tier == "Diamond":
+                            loyalty_discount = 0.20
+                        
+                        if loyalty_discount > 0:
+                            steps.append(f"   🎁 {int(loyalty_discount * 100)}% loyalty discount applied")
+                    else:
+                        warnings.append(f"Loyalty lookup failed: {loyalty['error']}")
+                        steps.append(f"   ⚠️  {warnings[-1]}")
+                
+                # Step 4: Calculate pricing
+                steps.append("\n4️⃣ Calculating total price...")
+                pricing = await api_request(
+                    "pricing",
+                    "/pricing/calculate",
+                    "POST",
+                    {"flight_id": flight_id, "cabin_class": "economy", "passengers": 1}
+                )
+                
+                if "error" in pricing:
+                    errors.append(f"Pricing calculation failed: {pricing['error']}")
+                    steps.append(f"   ❌ {errors[-1]}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                base_fare = pricing.get("base_fare", 0)
+                taxes = pricing.get("taxes", 0)
+                subtotal = base_fare + taxes
+                discount_amount = subtotal * loyalty_discount
+                total_price = subtotal - discount_amount
+                
+                steps.append(f"   ✅ Base Fare: ${base_fare:.2f}")
+                steps.append(f"   ✅ Taxes & Fees: ${taxes:.2f}")
+                if loyalty_discount > 0:
+                    steps.append(f"   ✅ Loyalty Discount: -${discount_amount:.2f}")
+                steps.append(f"   ✅ **Total: ${total_price:.2f}**")
+                
+                # Step 5: Create booking
+                steps.append("\n5️⃣ Creating reservation...")
+                booking = await api_request(
+                    "bookings",
+                    "/bookings",
+                    "POST",
+                    {
+                        "flight_id": flight_id,
+                        "passenger_id": passenger_id,
+                        "total_price": total_price
+                    }
+                )
+                
+                if "error" in booking:
+                    errors.append(f"Booking creation failed: {booking['error']}")
+                    steps.append(f"   ❌ {errors[-1]}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                booking_id = booking.get("data", {}).get("booking_id", "UNKNOWN")
+                steps.append(f"   ✅ Booking Reference: **{booking_id}**")
+                
+                # Step 6: Issue ticket
+                steps.append("\n6️⃣ Issuing e-ticket...")
+                ticket = await api_request(
+                    "tickets",
+                    "/tickets/issue",
+                    "POST",
+                    {"booking_id": booking_id, "passenger_id": passenger_id}
+                )
+                
+                if "error" in ticket:
+                    warnings.append(f"Ticket issuance delayed: {ticket['error']}")
+                    steps.append(f"   ⚠️  {warnings[-1]}")
+                else:
+                    ticket_number = ticket.get("data", {}).get("ticket_number", "PENDING")
+                    steps.append(f"   ✅ Ticket Number: {ticket_number}")
+                
+                # Step 7: Seat selection
+                if seat_preference:
+                    steps.append("\n7️⃣ Selecting seat...")
+                    seat_result = await api_request(
+                        "checkin",
+                        f"/checkin/{booking_id}/seat",
+                        "POST",
+                        {"seat": seat_preference}
+                    )
+                    
+                    if "error" in seat_result:
+                        # Try to assign any available seat
+                        warnings.append(f"Preferred seat {seat_preference} unavailable")
+                        steps.append(f"   ⚠️  {warnings[-1]}")
+                        
+                        auto_seat = await api_request(
+                            "checkin",
+                            f"/checkin/{booking_id}/seat/auto",
+                            "POST",
+                            {}
+                        )
+                        if "error" not in auto_seat:
+                            assigned_seat = auto_seat.get("data", {}).get("seat", "TBD")
+                            steps.append(f"   ✅ Auto-assigned seat: {assigned_seat}")
+                    else:
+                        steps.append(f"   ✅ Seat confirmed: {seat_preference}")
+                
+                # Step 8: Add baggage if requested
+                if include_baggage:
+                    steps.append("\n8️⃣ Adding checked baggage...")
+                    baggage = await api_request(
+                        "baggage",
+                        f"/baggage/add",
+                        "POST",
+                        {"booking_id": booking_id, "bags": 1}
+                    )
+                    
+                    if "error" in baggage:
+                        warnings.append(f"Baggage addition failed: {baggage['error']}")
+                        steps.append(f"   ⚠️  {warnings[-1]}")
+                    else:
+                        bag_fee = baggage.get("data", {}).get("fee", 0)
+                        steps.append(f"   ✅ 1 checked bag added (${bag_fee:.2f})")
+                
+                # Step 9: Record meal preference
+                if meal_preference != "standard":
+                    steps.append("\n9️⃣ Recording meal preference...")
+                    meal = await api_request(
+                        "ancillaries",
+                        f"/ancillaries/meal",
+                        "POST",
+                        {"booking_id": booking_id, "preference": meal_preference}
+                    )
+                    
+                    if "error" in meal:
+                        warnings.append(f"Meal preference not saved: {meal['error']}")
+                        steps.append(f"   ⚠️  {warnings[-1]}")
+                    else:
+                        steps.append(f"   ✅ Meal preference: {meal_preference}")
+                
+                # Step 10: Send confirmation
+                steps.append("\n🔟 Sending booking confirmation...")
+                notification = await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {
+                        "type": "booking_confirmation",
+                        "recipient": passenger_id,
+                        "booking_id": booking_id
+                    }
+                )
+                
+                if "error" in notification:
+                    warnings.append(f"Confirmation email failed: {notification['error']}")
+                    steps.append(f"   ⚠️  {warnings[-1]}")
+                else:
+                    steps.append(f"   ✅ Confirmation sent to passenger")
+                
+                # Build final response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**BOOKING COMPLETED SUCCESSFULLY** ✅\n"
+                response += "="*60
+                response += f"\n\n**Booking Reference**: {booking_id}"
+                response += f"\n**Total Price**: ${total_price:.2f}"
+                response += f"\n**APIs Called**: {len([s for s in steps if '️⃣' in s])}"
+                response += f"\n**Warnings**: {len(warnings)}"
+                response += f"\n**Errors**: {len(errors)}"
+                
+                if warnings:
+                    response += "\n\n**Warnings**:"
+                    for w in warnings:
+                        response += f"\n• {w}"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in book_flight_itinerary: {e}")
+                return [{"type": "text", "text": f"❌ Critical system error during booking: {str(e)}\n\nPartial trace:\n" + "\n".join(steps)}]
+        
+        elif name == "get_loyalty_status":
+            loyalty_number = arguments.get("loyalty_number")
+            
+            try:
+                steps = []
+                steps.append("🏆 **LOYALTY STATUS CHECK**")
+                steps.append(f"🎫 Member Number: {loyalty_number}")
+                steps.append("")
+                
+                # Step 1: Get member details
+                steps.append("1️⃣ Retrieving membership information...")
+                loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+                
+                if "error" in loyalty:
+                    steps.append(f"   ❌ Member not found: {loyalty['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                name = loyalty.get("name", "Unknown")
+                tier = loyalty.get("tier", "Standard")
+                miles = loyalty.get("miles", 0)
+                tier_miles = loyalty.get("tier_qualifying_miles", 0)
+                member_since = loyalty.get("member_since", "Unknown")
+                
+                steps.append(f"   ✅ Member: {name}")
+                steps.append(f"   ✅ Tier: {tier}")
+                steps.append(f"   ✅ Available Miles: {miles:,}")
+                steps.append(f"   ✅ Tier Miles: {tier_miles:,}")
+                steps.append(f"   ✅ Member Since: {member_since}")
+                
+                # Step 2: Calculate next tier requirements
+                steps.append("\n2️⃣ Calculating tier progress...")
+                next_tier_requirements = {
+                    "Standard": ("Silver", 25000),
+                    "Silver": ("Gold", 50000),
+                    "Gold": ("Platinum", 75000),
+                    "Platinum": ("Diamond", 100000),
+                    "Diamond": ("Diamond", 100000)  # Already at top
+                }
+                
+                next_tier, required_miles = next_tier_requirements.get(tier, ("Unknown", 0))
+                miles_needed = max(0, required_miles - tier_miles)
+                
+                if tier == "Diamond":
+                    steps.append(f"   🏆 **Already at highest tier!**")
+                else:
+                    progress_pct = (tier_miles / required_miles * 100) if required_miles > 0 else 0
+                    steps.append(f"   📊 Progress to {next_tier}: {progress_pct:.1f}%")
+                    steps.append(f"   ✈️  {miles_needed:,} miles needed")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n**TIER BENEFITS**:\n"
+                
+                benefits = {
+                    "Standard": ["Earn 1 mile per dollar", "Standard booking"],
+                    "Silver": ["Earn 1.25 miles per dollar", "Priority check-in", "1 free checked bag"],
+                    "Gold": ["Earn 1.5 miles per dollar", "Priority boarding", "2 free checked bags", "10% discount on tickets"],
+                    "Platinum": ["Earn 1.75 miles per dollar", "Lounge access", "3 free checked bags", "15% discount on tickets"],
+                    "Diamond": ["Earn 2 miles per dollar", "Premium lounge access", "Unlimited free bags", "20% discount", "Complimentary upgrades"]
+                }
+                
+                for benefit in benefits.get(tier, []):
+                    response += f"• {benefit}\n"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in get_loyalty_status: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+        
+        else:
+            return [{"type": "text", "text": f"❌ Unknown tool: {name}"}]
+
+    async def main():
+        """Run the MCP server with SSE transport"""
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+        from mcp.server.sse import SseServerTransport
+        import uvicorn
+
+        sse = SseServerTransport("/messages")
+
+        async def handle_sse(request):
+            async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+                await server.run(streams[0], streams[1], server.create_initialization_options())
+
+        async def handle_messages(request):
+            await sse.handle_post_message(request.scope, request.receive, request._send)
+
+        app = Starlette(debug=True, routes=[
+            Route("/sse", endpoint=handle_sse),
+            Route("/messages", endpoint=handle_messages, methods=["POST"])
+        ])
+
+        config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
+        server_instance = uvicorn.Server(config)
+        await server_instance.serve()
+
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
+
+  requirements.txt: |
+    mcp>=1.0.0
+    aiohttp>=3.9.0
+    anyio>=4.0.0
+    starlette>=0.30.0
+    uvicorn>=0.20.0
+    sse-starlette>=1.8.0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ticketing-agent-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ticketing-agent-mcp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ticketing-agent-mcp
+  template:
+    metadata:
+      labels:
+        app: ticketing-agent-mcp
+        component: mcp
+    spec:
+      containers:
+        - name: mcp-server
+          image: "{{ .Values.mcpImage.repository }}:{{ .Values.mcpImage.tag }}"
+          imagePullPolicy: {{ .Values.mcpImage.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir -r /app/requirements.txt && \
+              python /app/main.py
+          volumeMounts:
+            - name: mcp-code
+              mountPath: /app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: mcp-code
+          configMap:
+            name: ticketing-agent-mcp-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ticketing-agent-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ticketing-agent-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: mcp
+  selector:
+    app: ticketing-agent-mcp
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ticketing-mcp-gateway
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ticketing-agent-mcp
+spec:
+  plugin:
+    mcp:
+      policies:
+        - match: Equals(`mcp.method`, `initialize`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/list`)
+          action: allow
+        - match: Equals(`mcp.method`, `ping`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/call`)
+          action: allow
+      defaultAction: deny
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: ticketing-mcp-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ticketing-agent-mcp
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: Host(`ticketing-agent.{{ .Values.domain }}`)
+      middlewares:
+        - name: ticketing-mcp-gateway
+      services:
+        - name: ticketing-agent-mcp
+          port: 8080

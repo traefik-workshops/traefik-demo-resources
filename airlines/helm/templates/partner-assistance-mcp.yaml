@@ -1,0 +1,582 @@
+---
+# Partner Assistance MCP Server - B2B & Alliance Operations
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: partner-assistance-mcp-server
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: partner-assistance-mcp
+data:
+  main.py: |
+    #!/usr/bin/env python3
+    """
+    Partner Assistance MCP Server - B2B & Alliance Operations
+    
+    Orchestrates B2B workflows for airline partners, including codeshare management,
+    alliance bookings, and revenue reconciliation.
+    """
+
+    from typing import Any, Dict, List, Optional
+    import logging, aiohttp, anyio, json, random
+    from datetime import datetime, timedelta
+    from mcp.server import Server
+    from mcp.server.stdio import stdio_server
+    from mcp.types import Tool
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("partner-assistance-mcp")
+
+    server = Server("partner-assistance-mcp")
+
+    API_BASE_URLS = {
+        "flights": "http://flights-app.airlines.svc.cluster.local:3000",
+        "bookings": "http://bookings-app.airlines.svc.cluster.local:3000",
+        "pricing": "http://pricing-app.airlines.svc.cluster.local:3000",
+        "notifications": "http://notifications-app.airlines.svc.cluster.local:3000",
+    }
+    
+    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
+    KEYCLOAK_CREDENTIALS = {
+        "client_id": "traefik",
+        "grant_type": "password",
+        "client_secret": "{{ .Values.keycloak.clientSecret }}",
+        "scope": "openid",
+        "username": "{{ .Values.keycloak.adminUsername }}",
+        "password": "{{ .Values.keycloak.adminPassword }}",
+    }
+
+    jwt_token: Optional[str] = None
+
+    @server.list_tools()
+    async def list_tools():
+        """List available partner assistance tools"""
+        return [
+            Tool(
+                name="ping",
+                description="Health check",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="enroll_partner_flight",
+                description="Register a partner airline flight for codeshare",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "partner_code": {"type": "string", "description": "Partner airline code (e.g., BA, AF)"},
+                        "flight_number": {"type": "string", "description": "Partner flight number"},
+                        "origin": {"type": "string", "description": "Origin airport code"},
+                        "destination": {"type": "string", "description": "Destination airport code"},
+                        "departure_time": {"type": "string", "description": "ISO 8601 departure time"},
+                        "seats_allocated": {"type": "integer", "description": "Number of seats allocated to us"}
+                    },
+                    "required": ["partner_code", "flight_number", "origin", "destination", "departure_time"]
+                }
+            ),
+            Tool(
+                name="update_partner_schedule",
+                description="Update schedule for a partner flight and notify affected systems",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "partner_code": {"type": "string", "description": "Partner airline code"},
+                        "flight_number": {"type": "string", "description": "Partner flight number"},
+                        "new_departure_time": {"type": "string", "description": "New ISO 8601 departure time"},
+                        "reason": {"type": "string", "description": "Reason for change"}
+                    },
+                    "required": ["partner_code", "flight_number", "new_departure_time"]
+                }
+            ),
+            Tool(
+                name="create_alliance_booking",
+                description="Create a multi-airline alliance booking",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "passenger_id": {"type": "string", "description": "Passenger ID"},
+                        "segments": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "airline": {"type": "string", "description": "Airline code"},
+                                    "flight_number": {"type": "string", "description": "Flight number"},
+                                    "date": {"type": "string", "description": "Flight date"}
+                                }
+                            }
+                        }
+                    },
+                    "required": ["passenger_id", "segments"]
+                }
+            ),
+            Tool(
+                name="reconcile_partner_revenue",
+                description="Calculate revenue sharing for a specific flight or period",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "partner_code": {"type": "string", "description": "Partner airline code"},
+                        "period": {"type": "string", "description": "Period (e.g., 2024-03)"},
+                        "flight_id": {"type": "string", "description": "Specific flight ID (optional)"}
+                    },
+                    "required": ["partner_code", "period"]
+                }
+            )
+        ]
+
+    async def get_jwt_token() -> str:
+        """Get JWT token from Keycloak"""
+        global jwt_token
+        if jwt_token:
+            return jwt_token
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                KEYCLOAK_URL,
+                data=KEYCLOAK_CREDENTIALS,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ) as r:
+                if r.status != 200:
+                    raise RuntimeError(f"Keycloak token error: {r.status}")
+                data = await r.json()
+                jwt_token = data.get("access_token")
+                return jwt_token
+
+    async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
+        """Make authenticated API request"""
+        token = await get_jwt_token()
+        url = f"{API_BASE_URLS[service]}{endpoint}"
+        headers = {"Authorization": f"Bearer {token}"}
+        if method in ["POST", "PUT", "PATCH"]:
+            headers["Content-Type"] = "application/json"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, json=data) as r:
+                response_text = await r.text()
+                if r.status == 200:
+                    try:
+                        return await r.json() if not response_text else json.loads(response_text)
+                    except:
+                        return {"data": response_text, "status": 200}
+                elif r.status == 201:
+                    try:
+                        return {"status": "created", "data": await r.json() if response_text else {}}
+                    except:
+                        return {"status": "created"}
+                elif r.status == 404:
+                    return {"error": "Not found", "status": 404}
+                else:
+                    return {"error": f"API error {r.status}: {response_text}", "status": r.status}
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict):
+        """Handle tool calls with detailed execution tracing"""
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
+        if name == "ping":
+            return [{"type": "text", "text": "pong - Partner Assistance MCP Server is operational"}]
+        
+        elif name == "enroll_partner_flight":
+            partner = arguments.get("partner_code")
+            flight_num = arguments.get("flight_number")
+            origin = arguments.get("origin")
+            dest = arguments.get("destination")
+            dept = arguments.get("departure_time")
+            seats = arguments.get("seats_allocated", 20)
+            
+            try:
+                steps = []
+                steps.append("🤝 **PARTNER FLIGHT ENROLLMENT**")
+                steps.append(f"✈️  Partner: {partner} | Flight: {flight_num}")
+                steps.append(f"📍 Route: {origin} → {dest}")
+                steps.append("")
+                
+                # Step 1: Validate partner agreement
+                steps.append("1️⃣ Validating partner agreement...")
+                # Mock validation
+                valid_partners = ["BA", "AF", "LH", "JL", "QF"]
+                if partner not in valid_partners:
+                    steps.append(f"   ❌ Partner {partner} not found in alliance database")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                steps.append(f"   ✅ Partner {partner} is active in SkyAlliance")
+                
+                # Step 2: Check route compatibility
+                steps.append("\n2️⃣ Checking route compatibility...")
+                steps.append(f"   ✅ Route {origin}-{dest} approved for codeshare")
+                
+                # Step 3: Create virtual flight record
+                steps.append("\n3️⃣ Creating virtual flight record...")
+                # We would call POST /flights here, but for demo we'll simulate
+                virtual_flight_num = f"CS{flight_num}"
+                steps.append(f"   ✅ Virtual flight created: {virtual_flight_num}")
+                steps.append(f"   ℹ️  Mapped to physical flight {partner}{flight_num}")
+                
+                # Step 4: Allocate inventory
+                steps.append("\n4️⃣ Allocating inventory...")
+                steps.append(f"   ✅ {seats} seats allocated to inventory pool")
+                steps.append(f"   ✅ Booking classes: Y, J, F mapped")
+                
+                # Step 5: Publish to GDS/Distribution
+                steps.append("\n5️⃣ Publishing to distribution channels...")
+                steps.append(f"   ✅ Flight {virtual_flight_num} now visible in search")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**ENROLLMENT COMPLETE** ✅\n"
+                response += "="*60
+                response += f"\n\n**Virtual Flight**: {virtual_flight_num}"
+                response += f"\n**Operator**: {partner}"
+                response += f"\n**Inventory**: {seats} seats"
+                response += f"\n**Status**: Active / Sellable"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in enroll_partner_flight: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "update_partner_schedule":
+            partner = arguments.get("partner_code")
+            flight_num = arguments.get("flight_number")
+            new_time = arguments.get("new_departure_time")
+            reason = arguments.get("reason", "Operational adjustment")
+            
+            try:
+                steps = []
+                steps.append("📅 **PARTNER SCHEDULE UPDATE**")
+                steps.append(f"✈️  Flight: {partner}{flight_num}")
+                steps.append(f"🕒 New Time: {new_time}")
+                steps.append("")
+                
+                # Step 1: Locate flight record
+                steps.append("1️⃣ Locating flight record...")
+                # Mock lookup
+                virtual_flight_num = f"CS{flight_num}"
+                steps.append(f"   ✅ Found mapped virtual flight: {virtual_flight_num}")
+                
+                # Step 2: Update schedule
+                steps.append("\n2️⃣ Updating schedule...")
+                steps.append(f"   ✅ Departure time updated to {new_time}")
+                
+                # Step 3: Identify affected bookings
+                steps.append("\n3️⃣ Identifying affected bookings...")
+                affected_count = 42  # Mock
+                steps.append(f"   ⚠️  Found {affected_count} active bookings")
+                
+                # Step 4: Check connection validity
+                steps.append("\n4️⃣ Validating connections...")
+                broken_connections = 3
+                steps.append(f"   ⚠️  {broken_connections} connections broken by schedule change")
+                
+                # Step 5: Notify passengers
+                steps.append("\n5️⃣ Triggering notifications...")
+                notification = await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {
+                        "type": "flight_reminder", # Using existing type for demo
+                        "recipient": "affected_passengers",
+                        "booking_id": "BATCH"
+                    }
+                )
+                steps.append(f"   ✅ Notifications queued for {affected_count} passengers")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**SCHEDULE UPDATED** ✅\n"
+                response += "="*60
+                response += f"\n\n**Flight**: {partner}{flight_num} ({virtual_flight_num})"
+                response += f"\n**Affected Passengers**: {affected_count}"
+                response += f"\n**Broken Connections**: {broken_connections}"
+                response += f"\n**Action Required**: Manual review needed for {broken_connections} bookings"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in update_partner_schedule: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "create_alliance_booking":
+            passenger_id = arguments.get("passenger_id")
+            segments = arguments.get("segments", [])
+            
+            try:
+                steps = []
+                steps.append("🌐 **ALLIANCE BOOKING CREATION**")
+                steps.append(f"👤 Passenger: {passenger_id}")
+                steps.append(f"✈️  Segments: {len(segments)}")
+                steps.append("")
+                
+                # Step 1: Validate segments
+                steps.append("1️⃣ Validating flight segments...")
+                total_price = 0
+                valid_segments = []
+                
+                for i, seg in enumerate(segments):
+                    airline = seg.get("airline")
+                    flight = seg.get("flight_number")
+                    steps.append(f"   Checking Segment {i+1}: {airline}{flight}...")
+                    
+                    if airline == "US": # Our airline
+                        # Check our inventory
+                        steps.append(f"   ✅ {airline}{flight}: Confirmed (Native)")
+                        total_price += 450.00
+                    else:
+                        # Check partner inventory
+                        steps.append(f"   ✅ {airline}{flight}: Confirmed (Partner {airline})")
+                        total_price += 520.00
+                    
+                    valid_segments.append(f"{airline}{flight}")
+                
+                # Step 2: Calculate interline pricing
+                steps.append("\n2️⃣ Calculating interline pricing...")
+                steps.append(f"   ✅ Base Fare: ${total_price:.2f}")
+                taxes = 150.00
+                total = total_price + taxes
+                steps.append(f"   ✅ Taxes & Fees: ${taxes:.2f}")
+                steps.append(f"   💰 Total: ${total:.2f}")
+                
+                # Step 3: Create PNR
+                steps.append("\n3️⃣ Creating Passenger Name Record (PNR)...")
+                booking_id = f"AL{random.randint(10000, 99999)}"
+                steps.append(f"   ✅ PNR Created: {booking_id}")
+                
+                # Step 4: Issue tickets
+                steps.append("\n4️⃣ Issuing e-tickets...")
+                ticket_num = f"016{random.randint(1000000000, 9999999999)}"
+                steps.append(f"   ✅ Ticket issued: {ticket_num}")
+                steps.append(f"   ℹ️  Valid on: {', '.join(valid_segments)}")
+                
+                # Step 5: Sync with partners
+                steps.append("\n5️⃣ Syncing with partner systems...")
+                for seg in segments:
+                    if seg.get("airline") != "US":
+                        steps.append(f"   ✅ Synced with {seg.get('airline')} reservation system")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**BOOKING CONFIRMED** ✅\n"
+                response += "="*60
+                response += f"\n\n**Booking Ref**: {booking_id}"
+                response += f"\n**Ticket**: {ticket_num}"
+                response += f"\n**Itinerary**: {' -> '.join(valid_segments)}"
+                response += f"\n**Total Price**: ${total:.2f}"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in create_alliance_booking: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "reconcile_partner_revenue":
+            partner = arguments.get("partner_code")
+            period = arguments.get("period")
+            
+            try:
+                steps = []
+                steps.append("💰 **REVENUE RECONCILIATION**")
+                steps.append(f"🏢 Partner: {partner}")
+                steps.append(f"📅 Period: {period}")
+                steps.append("")
+                
+                # Step 1: Aggregate flight data
+                steps.append("1️⃣ Aggregating flight data...")
+                flights_count = 45
+                passengers_count = 6200
+                steps.append(f"   ✅ Processed {flights_count} flights")
+                steps.append(f"   ✅ Processed {passengers_count} passengers")
+                
+                # Step 2: Calculate gross revenue
+                steps.append("\n2️⃣ Calculating gross revenue...")
+                gross_revenue = 1250000.00
+                steps.append(f"   💵 Gross Revenue: ${gross_revenue:,.2f}")
+                
+                # Step 3: Apply prorate factors
+                steps.append("\n3️⃣ Applying prorate factors...")
+                # Mock prorate calculation based on mileage
+                our_share_pct = 0.45
+                partner_share_pct = 0.55
+                steps.append(f"   📊 Mileage split: Us {our_share_pct*100}% / {partner} {partner_share_pct*100}%")
+                
+                partner_share = gross_revenue * partner_share_pct
+                steps.append(f"   💰 Partner Share: ${partner_share:,.2f}")
+                
+                # Step 4: Deduct fees and commissions
+                steps.append("\n4️⃣ Deducting fees and commissions...")
+                handling_fees = 15000.00
+                booking_fees = 5000.00
+                steps.append(f"   📉 Handling Fees: -${handling_fees:,.2f}")
+                steps.append(f"   📉 Booking Fees: -${booking_fees:,.2f}")
+                
+                net_settlement = partner_share - handling_fees - booking_fees
+                
+                # Step 5: Generate settlement report
+                steps.append("\n5️⃣ Generating settlement report...")
+                report_id = f"SET-{partner}-{period}"
+                steps.append(f"   ✅ Report generated: {report_id}")
+                steps.append(f"   ✅ Sent to clearing house (IATA ICH)")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**RECONCILIATION COMPLETE** ✅\n"
+                response += "="*60
+                response += f"\n\n**Settlement ID**: {report_id}"
+                response += f"\n**Net Settlement**: ${net_settlement:,.2f}"
+                response += f"\n**Direction**: PAY TO {partner}"
+                response += f"\n**Status**: PENDING CLEARING"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in reconcile_partner_revenue: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        else:
+            return [{"type": "text", "text": f"❌ Unknown tool: {name}"}]
+
+    async def main():
+        """Run the MCP server with SSE transport"""
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+        from mcp.server.sse import SseServerTransport
+        import uvicorn
+
+        sse = SseServerTransport("/messages")
+
+        async def handle_sse(request):
+            async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+                await server.run(streams[0], streams[1], server.create_initialization_options())
+
+        async def handle_messages(request):
+            await sse.handle_post_message(request.scope, request.receive, request._send)
+
+        app = Starlette(debug=True, routes=[
+            Route("/sse", endpoint=handle_sse),
+            Route("/messages", endpoint=handle_messages, methods=["POST"])
+        ])
+
+        config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
+        server_instance = uvicorn.Server(config)
+        await server_instance.serve()
+
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
+
+  requirements.txt: |
+    mcp>=1.0.0
+    aiohttp>=3.9.0
+    anyio>=4.0.0
+    starlette>=0.30.0
+    uvicorn>=0.20.0
+    sse-starlette>=1.8.0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: partner-assistance-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: partner-assistance-mcp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: partner-assistance-mcp
+  template:
+    metadata:
+      labels:
+        app: partner-assistance-mcp
+        component: mcp
+    spec:
+      containers:
+        - name: mcp-server
+          image: "{{ .Values.mcpImage.repository }}:{{ .Values.mcpImage.tag }}"
+          imagePullPolicy: {{ .Values.mcpImage.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir -r /app/requirements.txt && \
+              python /app/main.py
+          volumeMounts:
+            - name: mcp-code
+              mountPath: /app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: mcp-code
+          configMap:
+            name: partner-assistance-mcp-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: partner-assistance-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: partner-assistance-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: mcp
+  selector:
+    app: partner-assistance-mcp
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: partner-assistance-mcp-gateway
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: partner-assistance-mcp
+spec:
+  plugin:
+    mcp:
+      policies:
+        - match: Equals(`mcp.method`, `initialize`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/list`)
+          action: allow
+        - match: Equals(`mcp.method`, `ping`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/call`)
+          action: allow
+      defaultAction: deny
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: partner-assistance-mcp-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: partner-assistance-mcp
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: Host(`partner-assistance.{{ .Values.domain }}`)
+      middlewares:
+        - name: partner-assistance-mcp-gateway
+      services:
+        - name: partner-assistance-mcp
+          port: 8080

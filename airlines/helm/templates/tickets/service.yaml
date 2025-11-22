@@ -1,0 +1,817 @@
+---
+# Tickets API - E-Ticket Issuance and Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tickets-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: tickets
+data:
+  api.json: |
+    {
+      "tickets": {
+        "TK8535570851": {
+          "ticket_id": "TK8535570851",
+          "booking_id": "BK159936",
+          "passenger_name": "Robert Johnson",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK4194982409": {
+          "ticket_id": "TK4194982409",
+          "booking_id": "BK904665",
+          "passenger_name": "Deborah Collins",
+          "price": 580,
+          "status": "issued"
+        },
+        "TK4960653490": {
+          "ticket_id": "TK4960653490",
+          "booking_id": "BK961185",
+          "passenger_name": "Michelle Perez",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK5658320481": {
+          "ticket_id": "TK5658320481",
+          "booking_id": "BK685890",
+          "passenger_name": "Daniel Lewis",
+          "price": 554,
+          "status": "issued"
+        },
+        "TK5830204913": {
+          "ticket_id": "TK5830204913",
+          "booking_id": "BK928211",
+          "passenger_name": "Michael Miller",
+          "price": 580,
+          "status": "issued"
+        },
+        "TK2464163348": {
+          "ticket_id": "TK2464163348",
+          "booking_id": "BK517789",
+          "passenger_name": "Michelle Perez",
+          "price": 1254,
+          "status": "issued"
+        },
+        "TK2031997407": {
+          "ticket_id": "TK2031997407",
+          "booking_id": "BK600403",
+          "passenger_name": "Ashley Scott",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK8834892719": {
+          "ticket_id": "TK8834892719",
+          "booking_id": "BK544123",
+          "passenger_name": "Emily Carter",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK3096210226": {
+          "ticket_id": "TK3096210226",
+          "booking_id": "BK310340",
+          "passenger_name": "Kevin Roberts",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK1864752101": {
+          "ticket_id": "TK1864752101",
+          "booking_id": "BK571530",
+          "passenger_name": "Emily Carter",
+          "price": 850,
+          "status": "issued"
+        },
+        "TK4280202806": {
+          "ticket_id": "TK4280202806",
+          "booking_id": "BK838919",
+          "passenger_name": "Charles Martinez",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK4242414463": {
+          "ticket_id": "TK4242414463",
+          "booking_id": "BK723432",
+          "passenger_name": "Charles Martinez",
+          "price": 1416,
+          "status": "issued"
+        },
+        "TK6993038871": {
+          "ticket_id": "TK6993038871",
+          "booking_id": "BK452322",
+          "passenger_name": "Kevin Roberts",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK7495797758": {
+          "ticket_id": "TK7495797758",
+          "booking_id": "BK844044",
+          "passenger_name": "Paul Green",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK7040035131": {
+          "ticket_id": "TK7040035131",
+          "booking_id": "BK125489",
+          "passenger_name": "Nancy Lee",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK4563504577": {
+          "ticket_id": "TK4563504577",
+          "booking_id": "BK197892",
+          "passenger_name": "Lisa Davis",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK6435761760": {
+          "ticket_id": "TK6435761760",
+          "booking_id": "BK297191",
+          "passenger_name": "William Anderson",
+          "price": 554,
+          "status": "issued"
+        },
+        "TK2458802104": {
+          "ticket_id": "TK2458802104",
+          "booking_id": "BK704075",
+          "passenger_name": "Charles Martinez",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK8655457206": {
+          "ticket_id": "TK8655457206",
+          "booking_id": "BK731906",
+          "passenger_name": "Richard Jackson",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK4721451058": {
+          "ticket_id": "TK4721451058",
+          "booking_id": "BK468257",
+          "passenger_name": "Elizabeth Taylor",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK2058955038": {
+          "ticket_id": "TK2058955038",
+          "booking_id": "BK615481",
+          "passenger_name": "Linda Thomas",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK8111472861": {
+          "ticket_id": "TK8111472861",
+          "booking_id": "BK887704",
+          "passenger_name": "Sarah Robinson",
+          "price": 686,
+          "status": "issued"
+        },
+        "TK1924460889": {
+          "ticket_id": "TK1924460889",
+          "booking_id": "BK221246",
+          "passenger_name": "Anthony Allen",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK6714272982": {
+          "ticket_id": "TK6714272982",
+          "booking_id": "BK173538",
+          "passenger_name": "Karen Rodriguez",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK4425975793": {
+          "ticket_id": "TK4425975793",
+          "booking_id": "BK133466",
+          "passenger_name": "Patricia White",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK7083995166": {
+          "ticket_id": "TK7083995166",
+          "booking_id": "BK239768",
+          "passenger_name": "Amanda Campbell",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK3661249574": {
+          "ticket_id": "TK3661249574",
+          "booking_id": "BK132819",
+          "passenger_name": "Kenneth Mitchell",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK9732689805": {
+          "ticket_id": "TK9732689805",
+          "booking_id": "BK827167",
+          "passenger_name": "Jennifer Brown",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK3338818616": {
+          "ticket_id": "TK3338818616",
+          "booking_id": "BK796111",
+          "passenger_name": "Edward Edwards",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK4708817372": {
+          "ticket_id": "TK4708817372",
+          "booking_id": "BK720047",
+          "passenger_name": "Mark Hernandez",
+          "price": 1256,
+          "status": "issued"
+        },
+        "TK4206039812": {
+          "ticket_id": "TK4206039812",
+          "booking_id": "BK106524",
+          "passenger_name": "Kimberly Adams",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK9464681095": {
+          "ticket_id": "TK9464681095",
+          "booking_id": "BK865977",
+          "passenger_name": "Matthew Walker",
+          "price": 773,
+          "status": "issued"
+        },
+        "TK4589848927": {
+          "ticket_id": "TK4589848927",
+          "booking_id": "BK178177",
+          "passenger_name": "Amanda Campbell",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK3506004697": {
+          "ticket_id": "TK3506004697",
+          "booking_id": "BK673752",
+          "passenger_name": "Linda Thomas",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK1207050871": {
+          "ticket_id": "TK1207050871",
+          "booking_id": "BK784897",
+          "passenger_name": "David Wilson",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK9824711825": {
+          "ticket_id": "TK9824711825",
+          "booking_id": "BK475510",
+          "passenger_name": "Steven Hill",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK3338668631": {
+          "ticket_id": "TK3338668631",
+          "booking_id": "BK822340",
+          "passenger_name": "Christopher Clark",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK8009185787": {
+          "ticket_id": "TK8009185787",
+          "booking_id": "BK493562",
+          "passenger_name": "Nancy Lee",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK7562111639": {
+          "ticket_id": "TK7562111639",
+          "booking_id": "BK452140",
+          "passenger_name": "Michael Miller",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK5925328375": {
+          "ticket_id": "TK5925328375",
+          "booking_id": "BK286045",
+          "passenger_name": "Emily Carter",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK1709367268": {
+          "ticket_id": "TK1709367268",
+          "booking_id": "BK954869",
+          "passenger_name": "Brian Phillips",
+          "price": 686,
+          "status": "issued"
+        },
+        "TK2722195654": {
+          "ticket_id": "TK2722195654",
+          "booking_id": "BK438899",
+          "passenger_name": "Patricia White",
+          "price": 554,
+          "status": "issued"
+        },
+        "TK6059824186": {
+          "ticket_id": "TK6059824186",
+          "booking_id": "BK415277",
+          "passenger_name": "Melissa Evans",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK3213211910": {
+          "ticket_id": "TK3213211910",
+          "booking_id": "BK118883",
+          "passenger_name": "Paul Green",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK7153865099": {
+          "ticket_id": "TK7153865099",
+          "booking_id": "BK388600",
+          "passenger_name": "Steven Hill",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK7876644228": {
+          "ticket_id": "TK7876644228",
+          "booking_id": "BK496053",
+          "passenger_name": "Michelle Perez",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK2301432318": {
+          "ticket_id": "TK2301432318",
+          "booking_id": "BK533214",
+          "passenger_name": "Stephanie Sanchez",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK6004781215": {
+          "ticket_id": "TK6004781215",
+          "booking_id": "BK894629",
+          "passenger_name": "Mark Hernandez",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK6730867709": {
+          "ticket_id": "TK6730867709",
+          "booking_id": "BK184640",
+          "passenger_name": "Maria Garcia",
+          "price": 1254,
+          "status": "issued"
+        },
+        "TK4499472132": {
+          "ticket_id": "TK4499472132",
+          "booking_id": "BK554084",
+          "passenger_name": "Sandra Lopez",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK1908781999": {
+          "ticket_id": "TK1908781999",
+          "booking_id": "BK580336",
+          "passenger_name": "Deborah Collins",
+          "price": 554,
+          "status": "issued"
+        },
+        "TK7326377611": {
+          "ticket_id": "TK7326377611",
+          "booking_id": "BK569383",
+          "passenger_name": "Kevin Roberts",
+          "price": 1416,
+          "status": "issued"
+        },
+        "TK8233837283": {
+          "ticket_id": "TK8233837283",
+          "booking_id": "BK238447",
+          "passenger_name": "Steven Hill",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK6100893415": {
+          "ticket_id": "TK6100893415",
+          "booking_id": "BK440393",
+          "passenger_name": "Joseph Harris",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK5044417280": {
+          "ticket_id": "TK5044417280",
+          "booking_id": "BK351164",
+          "passenger_name": "William Anderson",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK4685389925": {
+          "ticket_id": "TK4685389925",
+          "booking_id": "BK210284",
+          "passenger_name": "Richard Jackson",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK3835386704": {
+          "ticket_id": "TK3835386704",
+          "booking_id": "BK229292",
+          "passenger_name": "Anthony Allen",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK5522140819": {
+          "ticket_id": "TK5522140819",
+          "booking_id": "BK455564",
+          "passenger_name": "Linda Thomas",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK2513754808": {
+          "ticket_id": "TK2513754808",
+          "booking_id": "BK184872",
+          "passenger_name": "Paul Green",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK4785587193": {
+          "ticket_id": "TK4785587193",
+          "booking_id": "BK519897",
+          "passenger_name": "Thomas Thompson",
+          "price": 1125,
+          "status": "issued"
+        },
+        "TK3853392377": {
+          "ticket_id": "TK3853392377",
+          "booking_id": "BK467628",
+          "passenger_name": "Daniel Lewis",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK4890250622": {
+          "ticket_id": "TK4890250622",
+          "booking_id": "BK276307",
+          "passenger_name": "Robert Johnson",
+          "price": 686,
+          "status": "issued"
+        },
+        "TK6427188617": {
+          "ticket_id": "TK6427188617",
+          "booking_id": "BK175568",
+          "passenger_name": "Maria Garcia",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK2574311120": {
+          "ticket_id": "TK2574311120",
+          "booking_id": "BK776724",
+          "passenger_name": "Michael Miller",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK3554014690": {
+          "ticket_id": "TK3554014690",
+          "booking_id": "BK702462",
+          "passenger_name": "Patricia White",
+          "price": 1254,
+          "status": "issued"
+        },
+        "TK4491375920": {
+          "ticket_id": "TK4491375920",
+          "booking_id": "BK214810",
+          "passenger_name": "Deborah Collins",
+          "price": 525,
+          "status": "issued"
+        },
+        "TK6917362549": {
+          "ticket_id": "TK6917362549",
+          "booking_id": "BK489857",
+          "passenger_name": "Lisa Davis",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK5857818431": {
+          "ticket_id": "TK5857818431",
+          "booking_id": "BK129280",
+          "passenger_name": "David Wilson",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK7122789418": {
+          "ticket_id": "TK7122789418",
+          "booking_id": "BK683416",
+          "passenger_name": "Emily Carter",
+          "price": 580,
+          "status": "issued"
+        },
+        "TK8595466906": {
+          "ticket_id": "TK8595466906",
+          "booking_id": "BK361493",
+          "passenger_name": "George Parker",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK3937284413": {
+          "ticket_id": "TK3937284413",
+          "booking_id": "BK100696",
+          "passenger_name": "Patricia White",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK3896051556": {
+          "ticket_id": "TK3896051556",
+          "booking_id": "BK806706",
+          "passenger_name": "Joshua Nelson",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK7922314813": {
+          "ticket_id": "TK7922314813",
+          "booking_id": "BK932329",
+          "passenger_name": "William Anderson",
+          "price": 850,
+          "status": "issued"
+        },
+        "TK2280805917": {
+          "ticket_id": "TK2280805917",
+          "booking_id": "BK148815",
+          "passenger_name": "Emily Carter",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK8879622525": {
+          "ticket_id": "TK8879622525",
+          "booking_id": "BK305854",
+          "passenger_name": "Robert Johnson",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK6251887788": {
+          "ticket_id": "TK6251887788",
+          "booking_id": "BK614796",
+          "passenger_name": "Deborah Collins",
+          "price": 686,
+          "status": "issued"
+        },
+        "TK9997628019": {
+          "ticket_id": "TK9997628019",
+          "booking_id": "BK530740",
+          "passenger_name": "Brian Phillips",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK7029129378": {
+          "ticket_id": "TK7029129378",
+          "booking_id": "BK962580",
+          "passenger_name": "Andrew Baker",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK9352517334": {
+          "ticket_id": "TK9352517334",
+          "booking_id": "BK295417",
+          "passenger_name": "Ronald Stewart",
+          "price": 338,
+          "status": "issued"
+        },
+        "TK1731787997": {
+          "ticket_id": "TK1731787997",
+          "booking_id": "BK550067",
+          "passenger_name": "Nancy Lee",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK6150267998": {
+          "ticket_id": "TK6150267998",
+          "booking_id": "BK826333",
+          "passenger_name": "Joshua Nelson",
+          "price": 1202,
+          "status": "issued"
+        },
+        "TK2847159268": {
+          "ticket_id": "TK2847159268",
+          "booking_id": "BK960309",
+          "passenger_name": "Matthew Walker",
+          "price": 580,
+          "status": "issued"
+        },
+        "TK9810154651": {
+          "ticket_id": "TK9810154651",
+          "booking_id": "BK621270",
+          "passenger_name": "Kimberly Adams",
+          "price": 953,
+          "status": "issued"
+        },
+        "TK7976142530": {
+          "ticket_id": "TK7976142530",
+          "booking_id": "BK349896",
+          "passenger_name": "Daniel Lewis",
+          "price": 850,
+          "status": "issued"
+        },
+        "TK9678302859": {
+          "ticket_id": "TK9678302859",
+          "booking_id": "BK956294",
+          "passenger_name": "Joseph Harris",
+          "price": 773,
+          "status": "issued"
+        },
+        "TK7424280824": {
+          "ticket_id": "TK7424280824",
+          "booking_id": "BK699823",
+          "passenger_name": "Joseph Harris",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK1534781005": {
+          "ticket_id": "TK1534781005",
+          "booking_id": "BK526073",
+          "passenger_name": "Susan Martin",
+          "price": 775,
+          "status": "issued"
+        },
+        "TK1681135197": {
+          "ticket_id": "TK1681135197",
+          "booking_id": "BK715675",
+          "passenger_name": "Sarah Robinson",
+          "price": 489,
+          "status": "issued"
+        },
+        "TK5588894725": {
+          "ticket_id": "TK5588894725",
+          "booking_id": "BK508967",
+          "passenger_name": "William Anderson",
+          "price": 773,
+          "status": "issued"
+        },
+        "TK5632071627": {
+          "ticket_id": "TK5632071627",
+          "booking_id": "BK271680",
+          "passenger_name": "Kenneth Mitchell",
+          "price": 317,
+          "status": "issued"
+        },
+        "TK9765743477": {
+          "ticket_id": "TK9765743477",
+          "booking_id": "BK578153",
+          "passenger_name": "Emily Carter",
+          "price": 1001,
+          "status": "issued"
+        },
+        "TK1210266904": {
+          "ticket_id": "TK1210266904",
+          "booking_id": "BK513937",
+          "passenger_name": "Ronald Stewart",
+          "price": 773,
+          "status": "issued"
+        },
+        "TK5415024523": {
+          "ticket_id": "TK5415024523",
+          "booking_id": "BK700292",
+          "passenger_name": "Steven Hill",
+          "price": 686,
+          "status": "issued"
+        },
+        "TK3896804443": {
+          "ticket_id": "TK3896804443",
+          "booking_id": "BK523343",
+          "passenger_name": "Kevin Roberts",
+          "price": 384,
+          "status": "issued"
+        },
+        "TK7305939587": {
+          "ticket_id": "TK7305939587",
+          "booking_id": "BK730467",
+          "passenger_name": "Andrew Baker",
+          "price": 1416,
+          "status": "issued"
+        },
+        "TK6208059514": {
+          "ticket_id": "TK6208059514",
+          "booking_id": "BK688939",
+          "passenger_name": "Brian Phillips",
+          "price": 850,
+          "status": "issued"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tickets-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: tickets
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Tickets API
+      description: E-ticket issuance and management
+    servers:
+      - url: {{ include "airlines.tickets.apiUrl" . }}
+    paths:
+      /tickets/issue:
+        post:
+          summary: Issue new ticket
+          operationId: issueTicket
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id: {type: string}
+                    passenger_id: {type: string}
+          responses:
+            '200':
+              description: Ticket issued
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          ticket_number: {type: string}
+      /tickets/void:
+        post:
+          summary: Void ticket
+          operationId: voidTicket
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    ticket_number: {type: string}
+          responses:
+            '200':
+              description: Ticket voided
+      /tickets/{ticketNumber}:
+        get:
+          summary: Get ticket details
+          operationId: getTicket
+          parameters:
+            - name: ticketNumber
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Ticket details
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tickets-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: tickets
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: tickets-app
+  template:
+    metadata:
+      labels:
+        app: tickets-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: tickets-data
+        - name: openapi
+          configMap:
+            name: tickets-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tickets-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: tickets
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: tickets-app

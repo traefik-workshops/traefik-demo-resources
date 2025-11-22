@@ -1,0 +1,29 @@
+entryPoints:
+  - websecure
+
+domain: triple-gate.traefik.ai
+
+keycloak:
+  clientSecret: "your-client-secret-here"
+  adminUsername: "admin"
+  adminPassword: "admin"
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/traefik-workshops/api-server
+  tag: v0.1.0
+  pullPolicy: IfNotPresent
+
+mcpImage:
+  repository: python
+  tag: "3.11-slim"
+  pullPolicy: IfNotPresent
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

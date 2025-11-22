@@ -1,0 +1,963 @@
+---
+# Bookings API - Reservation Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bookings-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+data:
+  api.json: |
+    {
+      "bookings": {
+        "BK159936": {
+          "booking_id": "BK159936",
+          "flight_id": "FL516",
+          "passenger_id": "P10002",
+          "status": "confirmed",
+          "booking_date": "2025-09-30T18:00:44.422329",
+          "class": "economy"
+        },
+        "BK904665": {
+          "booking_id": "BK904665",
+          "flight_id": "FL333",
+          "passenger_id": "P10047",
+          "status": "confirmed",
+          "booking_date": "2025-10-20T18:00:44.422337",
+          "class": "economy"
+        },
+        "BK961185": {
+          "booking_id": "BK961185",
+          "flight_id": "FL757",
+          "passenger_id": "P10039",
+          "status": "confirmed",
+          "booking_date": "2025-10-03T18:00:44.422344",
+          "class": "economy"
+        },
+        "BK685890": {
+          "booking_id": "BK685890",
+          "flight_id": "FL182",
+          "passenger_id": "P10020",
+          "status": "confirmed",
+          "booking_date": "2025-09-23T18:00:44.422348",
+          "class": "first"
+        },
+        "BK928211": {
+          "booking_id": "BK928211",
+          "flight_id": "FL333",
+          "passenger_id": "P10006",
+          "status": "confirmed",
+          "booking_date": "2025-11-11T18:00:44.422351",
+          "class": "economy"
+        },
+        "BK517789": {
+          "booking_id": "BK517789",
+          "flight_id": "FL488",
+          "passenger_id": "P10039",
+          "status": "confirmed",
+          "booking_date": "2025-10-30T18:00:44.422356",
+          "class": "economy"
+        },
+        "BK600403": {
+          "booking_id": "BK600403",
+          "flight_id": "FL361",
+          "passenger_id": "P10031",
+          "status": "confirmed",
+          "booking_date": "2025-10-20T18:00:44.422358",
+          "class": "first"
+        },
+        "BK544123": {
+          "booking_id": "BK544123",
+          "flight_id": "FL773",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-11-15T18:00:44.422362",
+          "class": "business"
+        },
+        "BK310340": {
+          "booking_id": "BK310340",
+          "flight_id": "FL601",
+          "passenger_id": "P10040",
+          "status": "confirmed",
+          "booking_date": "2025-10-24T18:00:44.422365",
+          "class": "business"
+        },
+        "BK571530": {
+          "booking_id": "BK571530",
+          "flight_id": "FL231",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-10-01T18:00:44.422369",
+          "class": "economy"
+        },
+        "BK838919": {
+          "booking_id": "BK838919",
+          "flight_id": "FL601",
+          "passenger_id": "P10016",
+          "status": "confirmed",
+          "booking_date": "2025-09-27T18:00:44.422372",
+          "class": "business"
+        },
+        "BK723432": {
+          "booking_id": "BK723432",
+          "flight_id": "FL879",
+          "passenger_id": "P10016",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422375",
+          "class": "business"
+        },
+        "BK452322": {
+          "booking_id": "BK452322",
+          "flight_id": "FL810",
+          "passenger_id": "P10040",
+          "status": "confirmed",
+          "booking_date": "2025-10-22T18:00:44.422378",
+          "class": "economy"
+        },
+        "BK844044": {
+          "booking_id": "BK844044",
+          "flight_id": "FL361",
+          "passenger_id": "P10032",
+          "status": "confirmed",
+          "booking_date": "2025-10-30T18:00:44.422382",
+          "class": "first"
+        },
+        "BK125489": {
+          "booking_id": "BK125489",
+          "flight_id": "FL545",
+          "passenger_id": "P10021",
+          "status": "confirmed",
+          "booking_date": "2025-10-15T18:00:44.422389",
+          "class": "business"
+        },
+        "BK333340": {
+          "booking_id": "BK333340",
+          "flight_id": "FL132",
+          "passenger_id": "P10048",
+          "status": "cancelled",
+          "booking_date": "2025-11-10T18:00:44.422393",
+          "class": "business"
+        },
+        "BK197892": {
+          "booking_id": "BK197892",
+          "flight_id": "FL810",
+          "passenger_id": "P10003",
+          "status": "confirmed",
+          "booking_date": "2025-10-23T18:00:44.422395",
+          "class": "first"
+        },
+        "BK297191": {
+          "booking_id": "BK297191",
+          "flight_id": "FL182",
+          "passenger_id": "P10008",
+          "status": "confirmed",
+          "booking_date": "2025-11-05T18:00:44.422399",
+          "class": "economy"
+        },
+        "BK704075": {
+          "booking_id": "BK704075",
+          "flight_id": "FL326",
+          "passenger_id": "P10016",
+          "status": "confirmed",
+          "booking_date": "2025-09-29T18:00:44.422403",
+          "class": "first"
+        },
+        "BK731906": {
+          "booking_id": "BK731906",
+          "flight_id": "FL326",
+          "passenger_id": "P10010",
+          "status": "confirmed",
+          "booking_date": "2025-10-04T18:00:44.422407",
+          "class": "first"
+        },
+        "BK468257": {
+          "booking_id": "BK468257",
+          "flight_id": "FL326",
+          "passenger_id": "P10007",
+          "status": "confirmed",
+          "booking_date": "2025-10-12T18:00:44.422409",
+          "class": "business"
+        },
+        "BK615481": {
+          "booking_id": "BK615481",
+          "flight_id": "FL105",
+          "passenger_id": "P10009",
+          "status": "confirmed",
+          "booking_date": "2025-10-26T18:00:44.422413",
+          "class": "economy"
+        },
+        "BK887704": {
+          "booking_id": "BK887704",
+          "flight_id": "FL851",
+          "passenger_id": "P10017",
+          "status": "confirmed",
+          "booking_date": "2025-11-18T18:00:44.422415",
+          "class": "economy"
+        },
+        "BK221246": {
+          "booking_id": "BK221246",
+          "flight_id": "FL810",
+          "passenger_id": "P10024",
+          "status": "confirmed",
+          "booking_date": "2025-10-31T18:00:44.422418",
+          "class": "business"
+        },
+        "BK173538": {
+          "booking_id": "BK173538",
+          "flight_id": "FL545",
+          "passenger_id": "P10019",
+          "status": "confirmed",
+          "booking_date": "2025-10-26T18:00:44.422420",
+          "class": "economy"
+        },
+        "BK133466": {
+          "booking_id": "BK133466",
+          "flight_id": "FL545",
+          "passenger_id": "P10011",
+          "status": "confirmed",
+          "booking_date": "2025-11-01T18:00:44.422422",
+          "class": "business"
+        },
+        "BK239768": {
+          "booking_id": "BK239768",
+          "flight_id": "FL326",
+          "passenger_id": "P10043",
+          "status": "confirmed",
+          "booking_date": "2025-11-20T18:00:44.422426",
+          "class": "economy"
+        },
+        "BK132819": {
+          "booking_id": "BK132819",
+          "flight_id": "FL545",
+          "passenger_id": "P10038",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422429",
+          "class": "business"
+        },
+        "BK827167": {
+          "booking_id": "BK827167",
+          "flight_id": "FL516",
+          "passenger_id": "P10005",
+          "status": "confirmed",
+          "booking_date": "2025-10-28T18:00:44.422431",
+          "class": "economy"
+        },
+        "BK796111": {
+          "booking_id": "BK796111",
+          "flight_id": "FL601",
+          "passenger_id": "P10046",
+          "status": "confirmed",
+          "booking_date": "2025-10-06T18:00:44.422433",
+          "class": "business"
+        },
+        "BK720047": {
+          "booking_id": "BK720047",
+          "flight_id": "FL340",
+          "passenger_id": "P10026",
+          "status": "confirmed",
+          "booking_date": "2025-11-03T18:00:44.422435",
+          "class": "first"
+        },
+        "BK106524": {
+          "booking_id": "BK106524",
+          "flight_id": "FL601",
+          "passenger_id": "P10033",
+          "status": "confirmed",
+          "booking_date": "2025-09-23T18:00:44.422439",
+          "class": "business"
+        },
+        "BK865977": {
+          "booking_id": "BK865977",
+          "flight_id": "FL223",
+          "passenger_id": "P10022",
+          "status": "confirmed",
+          "booking_date": "2025-10-29T18:00:44.422443",
+          "class": "business"
+        },
+        "BK178177": {
+          "booking_id": "BK178177",
+          "flight_id": "FL545",
+          "passenger_id": "P10043",
+          "status": "confirmed",
+          "booking_date": "2025-11-10T18:00:44.422447",
+          "class": "business"
+        },
+        "BK673752": {
+          "booking_id": "BK673752",
+          "flight_id": "FL516",
+          "passenger_id": "P10009",
+          "status": "confirmed",
+          "booking_date": "2025-10-07T18:00:44.422450",
+          "class": "economy"
+        },
+        "BK784897": {
+          "booking_id": "BK784897",
+          "flight_id": "FL607",
+          "passenger_id": "P10004",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422453",
+          "class": "first"
+        },
+        "BK475510": {
+          "booking_id": "BK475510",
+          "flight_id": "FL545",
+          "passenger_id": "P10030",
+          "status": "confirmed",
+          "booking_date": "2025-09-26T18:00:44.422455",
+          "class": "business"
+        },
+        "BK537576": {
+          "booking_id": "BK537576",
+          "flight_id": "FL132",
+          "passenger_id": "P10026",
+          "status": "cancelled",
+          "booking_date": "2025-10-23T18:00:44.422457",
+          "class": "first"
+        },
+        "BK822340": {
+          "booking_id": "BK822340",
+          "flight_id": "FL601",
+          "passenger_id": "P10018",
+          "status": "confirmed",
+          "booking_date": "2025-10-06T18:00:44.422459",
+          "class": "first"
+        },
+        "BK493562": {
+          "booking_id": "BK493562",
+          "flight_id": "FL810",
+          "passenger_id": "P10021",
+          "status": "confirmed",
+          "booking_date": "2025-10-14T18:00:44.422463",
+          "class": "first"
+        },
+        "BK452140": {
+          "booking_id": "BK452140",
+          "flight_id": "FL810",
+          "passenger_id": "P10006",
+          "status": "confirmed",
+          "booking_date": "2025-10-09T18:00:44.422467",
+          "class": "first"
+        },
+        "BK286045": {
+          "booking_id": "BK286045",
+          "flight_id": "FL361",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-11-02T18:00:44.422469",
+          "class": "first"
+        },
+        "BK954869": {
+          "booking_id": "BK954869",
+          "flight_id": "FL851",
+          "passenger_id": "P10042",
+          "status": "confirmed",
+          "booking_date": "2025-11-06T18:00:44.422471",
+          "class": "first"
+        },
+        "BK438899": {
+          "booking_id": "BK438899",
+          "flight_id": "FL182",
+          "passenger_id": "P10011",
+          "status": "confirmed",
+          "booking_date": "2025-11-15T18:00:44.422475",
+          "class": "first"
+        },
+        "BK280433": {
+          "booking_id": "BK280433",
+          "flight_id": "FL132",
+          "passenger_id": "P10008",
+          "status": "cancelled",
+          "booking_date": "2025-10-19T18:00:44.422478",
+          "class": "business"
+        },
+        "BK415277": {
+          "booking_id": "BK415277",
+          "flight_id": "FL516",
+          "passenger_id": "P10045",
+          "status": "confirmed",
+          "booking_date": "2025-11-11T18:00:44.422480",
+          "class": "economy"
+        },
+        "BK662552": {
+          "booking_id": "BK662552",
+          "flight_id": "FL132",
+          "passenger_id": "P10028",
+          "status": "cancelled",
+          "booking_date": "2025-11-04T18:00:44.422482",
+          "class": "business"
+        },
+        "BK118883": {
+          "booking_id": "BK118883",
+          "flight_id": "FL516",
+          "passenger_id": "P10032",
+          "status": "confirmed",
+          "booking_date": "2025-11-19T18:00:44.422484",
+          "class": "economy"
+        },
+        "BK388600": {
+          "booking_id": "BK388600",
+          "flight_id": "FL757",
+          "passenger_id": "P10030",
+          "status": "confirmed",
+          "booking_date": "2025-09-25T18:00:44.422486",
+          "class": "economy"
+        },
+        "BK496053": {
+          "booking_id": "BK496053",
+          "flight_id": "FL105",
+          "passenger_id": "P10039",
+          "status": "confirmed",
+          "booking_date": "2025-11-12T18:00:44.422490",
+          "class": "business"
+        },
+        "BK533214": {
+          "booking_id": "BK533214",
+          "flight_id": "FL545",
+          "passenger_id": "P10049",
+          "status": "confirmed",
+          "booking_date": "2025-10-04T18:00:44.422492",
+          "class": "economy"
+        },
+        "BK894629": {
+          "booking_id": "BK894629",
+          "flight_id": "FL105",
+          "passenger_id": "P10026",
+          "status": "confirmed",
+          "booking_date": "2025-11-19T18:00:44.422496",
+          "class": "economy"
+        },
+        "BK184640": {
+          "booking_id": "BK184640",
+          "flight_id": "FL488",
+          "passenger_id": "P10001",
+          "status": "confirmed",
+          "booking_date": "2025-09-27T18:00:44.422500",
+          "class": "first"
+        },
+        "BK554084": {
+          "booking_id": "BK554084",
+          "flight_id": "FL361",
+          "passenger_id": "P10029",
+          "status": "confirmed",
+          "booking_date": "2025-10-17T18:00:44.422503",
+          "class": "business"
+        },
+        "BK580336": {
+          "booking_id": "BK580336",
+          "flight_id": "FL182",
+          "passenger_id": "P10047",
+          "status": "confirmed",
+          "booking_date": "2025-10-04T18:00:44.422506",
+          "class": "business"
+        },
+        "BK569383": {
+          "booking_id": "BK569383",
+          "flight_id": "FL879",
+          "passenger_id": "P10040",
+          "status": "confirmed",
+          "booking_date": "2025-10-10T18:00:44.422509",
+          "class": "first"
+        },
+        "BK238447": {
+          "booking_id": "BK238447",
+          "flight_id": "FL773",
+          "passenger_id": "P10030",
+          "status": "confirmed",
+          "booking_date": "2025-10-10T18:00:44.422511",
+          "class": "business"
+        },
+        "BK440393": {
+          "booking_id": "BK440393",
+          "flight_id": "FL105",
+          "passenger_id": "P10012",
+          "status": "confirmed",
+          "booking_date": "2025-11-10T18:00:44.422515",
+          "class": "business"
+        },
+        "BK351164": {
+          "booking_id": "BK351164",
+          "flight_id": "FL773",
+          "passenger_id": "P10008",
+          "status": "confirmed",
+          "booking_date": "2025-10-20T18:00:44.422517",
+          "class": "economy"
+        },
+        "BK210284": {
+          "booking_id": "BK210284",
+          "flight_id": "FL810",
+          "passenger_id": "P10010",
+          "status": "confirmed",
+          "booking_date": "2025-10-08T18:00:44.422521",
+          "class": "first"
+        },
+        "BK229292": {
+          "booking_id": "BK229292",
+          "flight_id": "FL607",
+          "passenger_id": "P10024",
+          "status": "confirmed",
+          "booking_date": "2025-09-29T18:00:44.422525",
+          "class": "economy"
+        },
+        "BK455564": {
+          "booking_id": "BK455564",
+          "flight_id": "FL105",
+          "passenger_id": "P10009",
+          "status": "confirmed",
+          "booking_date": "2025-10-31T18:00:44.422527",
+          "class": "economy"
+        },
+        "BK184872": {
+          "booking_id": "BK184872",
+          "flight_id": "FL607",
+          "passenger_id": "P10032",
+          "status": "confirmed",
+          "booking_date": "2025-10-17T18:00:44.422529",
+          "class": "first"
+        },
+        "BK519897": {
+          "booking_id": "BK519897",
+          "flight_id": "FL810",
+          "passenger_id": "P10014",
+          "status": "confirmed",
+          "booking_date": "2025-10-06T18:00:44.422533",
+          "class": "economy"
+        },
+        "BK467628": {
+          "booking_id": "BK467628",
+          "flight_id": "FL773",
+          "passenger_id": "P10020",
+          "status": "confirmed",
+          "booking_date": "2025-11-08T18:00:44.422536",
+          "class": "first"
+        },
+        "BK276307": {
+          "booking_id": "BK276307",
+          "flight_id": "FL851",
+          "passenger_id": "P10002",
+          "status": "confirmed",
+          "booking_date": "2025-10-04T18:00:44.422540",
+          "class": "first"
+        },
+        "BK175568": {
+          "booking_id": "BK175568",
+          "flight_id": "FL545",
+          "passenger_id": "P10001",
+          "status": "confirmed",
+          "booking_date": "2025-10-29T18:00:44.422542",
+          "class": "business"
+        },
+        "BK776724": {
+          "booking_id": "BK776724",
+          "flight_id": "FL326",
+          "passenger_id": "P10006",
+          "status": "confirmed",
+          "booking_date": "2025-10-19T18:00:44.422545",
+          "class": "economy"
+        },
+        "BK702462": {
+          "booking_id": "BK702462",
+          "flight_id": "FL488",
+          "passenger_id": "P10011",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422547",
+          "class": "first"
+        },
+        "BK214810": {
+          "booking_id": "BK214810",
+          "flight_id": "FL516",
+          "passenger_id": "P10047",
+          "status": "confirmed",
+          "booking_date": "2025-11-08T18:00:44.422550",
+          "class": "economy"
+        },
+        "BK489857": {
+          "booking_id": "BK489857",
+          "flight_id": "FL757",
+          "passenger_id": "P10003",
+          "status": "confirmed",
+          "booking_date": "2025-11-02T18:00:44.422554",
+          "class": "first"
+        },
+        "BK129280": {
+          "booking_id": "BK129280",
+          "flight_id": "FL757",
+          "passenger_id": "P10004",
+          "status": "confirmed",
+          "booking_date": "2025-10-18T18:00:44.422556",
+          "class": "economy"
+        },
+        "BK683416": {
+          "booking_id": "BK683416",
+          "flight_id": "FL333",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-10-01T18:00:44.422558",
+          "class": "first"
+        },
+        "BK361493": {
+          "booking_id": "BK361493",
+          "flight_id": "FL773",
+          "passenger_id": "P10044",
+          "status": "confirmed",
+          "booking_date": "2025-10-29T18:00:44.422560",
+          "class": "business"
+        },
+        "BK100696": {
+          "booking_id": "BK100696",
+          "flight_id": "FL607",
+          "passenger_id": "P10011",
+          "status": "confirmed",
+          "booking_date": "2025-11-15T18:00:44.422562",
+          "class": "business"
+        },
+        "BK806706": {
+          "booking_id": "BK806706",
+          "flight_id": "FL607",
+          "passenger_id": "P10036",
+          "status": "confirmed",
+          "booking_date": "2025-11-12T18:00:44.422566",
+          "class": "business"
+        },
+        "BK932329": {
+          "booking_id": "BK932329",
+          "flight_id": "FL231",
+          "passenger_id": "P10008",
+          "status": "confirmed",
+          "booking_date": "2025-09-24T18:00:44.422568",
+          "class": "business"
+        },
+        "BK148815": {
+          "booking_id": "BK148815",
+          "flight_id": "FL326",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-10-15T18:00:44.422570",
+          "class": "economy"
+        },
+        "BK305854": {
+          "booking_id": "BK305854",
+          "flight_id": "FL361",
+          "passenger_id": "P10002",
+          "status": "confirmed",
+          "booking_date": "2025-11-06T18:00:44.422574",
+          "class": "first"
+        },
+        "BK614796": {
+          "booking_id": "BK614796",
+          "flight_id": "FL851",
+          "passenger_id": "P10047",
+          "status": "confirmed",
+          "booking_date": "2025-10-28T18:00:44.422578",
+          "class": "business"
+        },
+        "BK530740": {
+          "booking_id": "BK530740",
+          "flight_id": "FL607",
+          "passenger_id": "P10042",
+          "status": "confirmed",
+          "booking_date": "2025-10-19T18:00:44.422581",
+          "class": "first"
+        },
+        "BK962580": {
+          "booking_id": "BK962580",
+          "flight_id": "FL105",
+          "passenger_id": "P10034",
+          "status": "confirmed",
+          "booking_date": "2025-11-16T18:00:44.422585",
+          "class": "economy"
+        },
+        "BK295417": {
+          "booking_id": "BK295417",
+          "flight_id": "FL361",
+          "passenger_id": "P10048",
+          "status": "confirmed",
+          "booking_date": "2025-09-25T18:00:44.422589",
+          "class": "business"
+        },
+        "BK550067": {
+          "booking_id": "BK550067",
+          "flight_id": "FL757",
+          "passenger_id": "P10021",
+          "status": "confirmed",
+          "booking_date": "2025-11-07T18:00:44.422591",
+          "class": "economy"
+        },
+        "BK826333": {
+          "booking_id": "BK826333",
+          "flight_id": "FL105",
+          "passenger_id": "P10036",
+          "status": "confirmed",
+          "booking_date": "2025-10-21T18:00:44.422593",
+          "class": "first"
+        },
+        "BK960309": {
+          "booking_id": "BK960309",
+          "flight_id": "FL333",
+          "passenger_id": "P10022",
+          "status": "confirmed",
+          "booking_date": "2025-10-09T18:00:44.422597",
+          "class": "business"
+        },
+        "BK621270": {
+          "booking_id": "BK621270",
+          "flight_id": "FL601",
+          "passenger_id": "P10033",
+          "status": "confirmed",
+          "booking_date": "2025-10-21T18:00:44.422600",
+          "class": "business"
+        },
+        "BK349896": {
+          "booking_id": "BK349896",
+          "flight_id": "FL231",
+          "passenger_id": "P10020",
+          "status": "confirmed",
+          "booking_date": "2025-10-22T18:00:44.422604",
+          "class": "business"
+        },
+        "BK956294": {
+          "booking_id": "BK956294",
+          "flight_id": "FL223",
+          "passenger_id": "P10012",
+          "status": "confirmed",
+          "booking_date": "2025-10-19T18:00:44.422608",
+          "class": "business"
+        },
+        "BK699823": {
+          "booking_id": "BK699823",
+          "flight_id": "FL326",
+          "passenger_id": "P10012",
+          "status": "confirmed",
+          "booking_date": "2025-10-29T18:00:44.422612",
+          "class": "first"
+        },
+        "BK526073": {
+          "booking_id": "BK526073",
+          "flight_id": "FL773",
+          "passenger_id": "P10013",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422614",
+          "class": "first"
+        },
+        "BK715675": {
+          "booking_id": "BK715675",
+          "flight_id": "FL326",
+          "passenger_id": "P10017",
+          "status": "confirmed",
+          "booking_date": "2025-10-01T18:00:44.422618",
+          "class": "first"
+        },
+        "BK508967": {
+          "booking_id": "BK508967",
+          "flight_id": "FL223",
+          "passenger_id": "P10008",
+          "status": "confirmed",
+          "booking_date": "2025-11-17T18:00:44.422624",
+          "class": "economy"
+        },
+        "BK271680": {
+          "booking_id": "BK271680",
+          "flight_id": "FL607",
+          "passenger_id": "P10038",
+          "status": "confirmed",
+          "booking_date": "2025-10-30T18:00:44.422627",
+          "class": "economy"
+        },
+        "BK578153": {
+          "booking_id": "BK578153",
+          "flight_id": "FL757",
+          "passenger_id": "P10037",
+          "status": "confirmed",
+          "booking_date": "2025-10-15T18:00:44.422630",
+          "class": "first"
+        },
+        "BK513937": {
+          "booking_id": "BK513937",
+          "flight_id": "FL223",
+          "passenger_id": "P10048",
+          "status": "confirmed",
+          "booking_date": "2025-10-18T18:00:44.422634",
+          "class": "first"
+        },
+        "BK700292": {
+          "booking_id": "BK700292",
+          "flight_id": "FL851",
+          "passenger_id": "P10030",
+          "status": "confirmed",
+          "booking_date": "2025-09-30T18:00:44.422638",
+          "class": "economy"
+        },
+        "BK523343": {
+          "booking_id": "BK523343",
+          "flight_id": "FL545",
+          "passenger_id": "P10040",
+          "status": "confirmed",
+          "booking_date": "2025-11-06T18:00:44.422640",
+          "class": "economy"
+        },
+        "BK730467": {
+          "booking_id": "BK730467",
+          "flight_id": "FL879",
+          "passenger_id": "P10034",
+          "status": "confirmed",
+          "booking_date": "2025-11-01T18:00:44.422642",
+          "class": "first"
+        },
+        "BK688939": {
+          "booking_id": "BK688939",
+          "flight_id": "FL231",
+          "passenger_id": "P10042",
+          "status": "confirmed",
+          "booking_date": "2025-09-26T18:00:44.422644",
+          "class": "economy"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bookings-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Bookings API
+      description: Flight reservation management
+    servers:
+      - url: {{ include "airlines.bookings.apiUrl" . }}
+    paths:
+      /bookings:
+        get:
+          summary: List all bookings
+          operationId: listBookings
+          responses:
+            '200':
+              description: List of bookings
+        post:
+          summary: Create new booking
+          operationId: createBooking
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    flight_id: {type: string}
+                    passenger_id: {type: string}
+                    total_price: {type: number}
+          responses:
+            '201':
+              description: Booking created
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          booking_id: {type: string}
+      /bookings/{bookingId}:
+        get:
+          summary: Get booking details
+          operationId: getBooking
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Booking details
+        put:
+          summary: Update booking
+          operationId: updateBooking
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Booking updated
+        delete:
+          summary: Cancel booking
+          operationId: cancelBooking
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Booking cancelled
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookings-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: bookings-app
+  template:
+    metadata:
+      labels:
+        app: bookings-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: bookings-data
+        - name: openapi
+          configMap:
+            name: bookings-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookings-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: bookings-app

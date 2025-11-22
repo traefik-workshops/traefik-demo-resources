@@ -1,0 +1,41 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: notifications-api
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  title: "Notifications API"
+  description: "Email and SMS notification services"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.notifications.apiUrl" . }}
+  cors:
+    allowHeadersList: ["Authorization", "Content-Type"]
+    allowOriginsList: ["*"]
+    allowMethodsList: ["POST"]
+    allowCredentials: true
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: notifications-route
+  namespace: airlines
+  annotations:
+    hub.traefik.io/api: notifications-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.notifications.hostMatch" . }}
+      services:
+        - name: notifications-app
+          port: 3000

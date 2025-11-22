@@ -1,0 +1,170 @@
+{{/*
+Expand the name of the chart.
+*/}}
+{{- define "airlines.name" -}}
+{{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Create a default fully qualified app name.
+*/}}
+{{- define "airlines.fullname" -}}
+{{- if .Values.fullnameOverride }}
+{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- $name := default .Chart.Name .Values.nameOverride }}
+{{- if contains $name .Release.Name }}
+{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- else }}
+{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create chart name and version as used by the chart label.
+*/}}
+{{- define "airlines.chart" -}}
+{{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Common labels
+*/}}
+{{- define "airlines.labels" -}}
+helm.sh/chart: {{ include "airlines.chart" . }}
+{{ include "airlines.selectorLabels" . }}
+{{- if .Chart.AppVersion }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+{{- end }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end }}
+
+{{/*
+Selector labels
+*/}}
+{{- define "airlines.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "airlines.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+
+{{/*
+Flights API URL
+*/}}
+{{- define "airlines.flights.apiUrl" -}}
+https://flights.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.flights.hostMatch" -}}
+Host(`flights.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Bookings API URL
+*/}}
+{{- define "airlines.bookings.apiUrl" -}}
+https://bookings.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.bookings.hostMatch" -}}
+Host(`bookings.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Tickets API URL
+*/}}
+{{- define "airlines.tickets.apiUrl" -}}
+https://tickets.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.tickets.hostMatch" -}}
+Host(`tickets.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Passengers API URL
+*/}}
+{{- define "airlines.passengers.apiUrl" -}}
+https://passengers.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.passengers.hostMatch" -}}
+Host(`passengers.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Loyalty API URL
+*/}}
+{{- define "airlines.loyalty.apiUrl" -}}
+https://loyalty.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.loyalty.hostMatch" -}}
+Host(`loyalty.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Checkin API URL
+*/}}
+{{- define "airlines.checkin.apiUrl" -}}
+https://checkin.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.checkin.hostMatch" -}}
+Host(`checkin.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Baggage API URL
+*/}}
+{{- define "airlines.baggage.apiUrl" -}}
+https://baggage.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.baggage.hostMatch" -}}
+Host(`baggage.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Pricing API URL
+*/}}
+{{- define "airlines.pricing.apiUrl" -}}
+https://pricing.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.pricing.hostMatch" -}}
+Host(`pricing.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Partners API URL
+*/}}
+{{- define "airlines.partners.apiUrl" -}}
+https://partners.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.partners.hostMatch" -}}
+Host(`partners.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Notifications API URL
+*/}}
+{{- define "airlines.notifications.apiUrl" -}}
+https://notifications.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.notifications.hostMatch" -}}
+Host(`notifications.{{ .Values.domain }}`)
+{{- end }}
+
+{{/*
+Ancillaries API URL
+*/}}
+{{- define "airlines.ancillaries.apiUrl" -}}
+https://ancillaries.{{ .Values.domain }}
+{{- end }}
+
+{{- define "airlines.ancillaries.hostMatch" -}}
+Host(`ancillaries.{{ .Values.domain }}`)
+{{- end }}

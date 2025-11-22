@@ -1,0 +1,516 @@
+---
+# Loyalty API - Frequent Flyer Program
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loyalty-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: loyalty
+data:
+  api.json: |
+    {
+      "members": {
+        "LM10000": {
+          "member_id": "LM10000",
+          "passenger_id": "P10000",
+          "tier": "Silver",
+          "miles_balance": 56250,
+          "status": "active"
+        },
+        "LM10001": {
+          "member_id": "LM10001",
+          "passenger_id": "P10001",
+          "tier": "Gold",
+          "miles_balance": 468656,
+          "status": "active"
+        },
+        "LM10002": {
+          "member_id": "LM10002",
+          "passenger_id": "P10002",
+          "tier": "Diamond",
+          "miles_balance": 156476,
+          "status": "active"
+        },
+        "LM10003": {
+          "member_id": "LM10003",
+          "passenger_id": "P10003",
+          "tier": "Gold",
+          "miles_balance": 365082,
+          "status": "active"
+        },
+        "LM10004": {
+          "member_id": "LM10004",
+          "passenger_id": "P10004",
+          "tier": "Platinum",
+          "miles_balance": 458219,
+          "status": "active"
+        },
+        "LM10005": {
+          "member_id": "LM10005",
+          "passenger_id": "P10005",
+          "tier": "Silver",
+          "miles_balance": 318399,
+          "status": "active"
+        },
+        "LM10006": {
+          "member_id": "LM10006",
+          "passenger_id": "P10006",
+          "tier": "Platinum",
+          "miles_balance": 416671,
+          "status": "active"
+        },
+        "LM10007": {
+          "member_id": "LM10007",
+          "passenger_id": "P10007",
+          "tier": "Diamond",
+          "miles_balance": 411633,
+          "status": "active"
+        },
+        "LM10008": {
+          "member_id": "LM10008",
+          "passenger_id": "P10008",
+          "tier": "Standard",
+          "miles_balance": 16657,
+          "status": "active"
+        },
+        "LM10009": {
+          "member_id": "LM10009",
+          "passenger_id": "P10009",
+          "tier": "Platinum",
+          "miles_balance": 487549,
+          "status": "active"
+        },
+        "LM10010": {
+          "member_id": "LM10010",
+          "passenger_id": "P10010",
+          "tier": "Diamond",
+          "miles_balance": 25386,
+          "status": "active"
+        },
+        "LM10011": {
+          "member_id": "LM10011",
+          "passenger_id": "P10011",
+          "tier": "Gold",
+          "miles_balance": 79719,
+          "status": "active"
+        },
+        "LM10012": {
+          "member_id": "LM10012",
+          "passenger_id": "P10012",
+          "tier": "Platinum",
+          "miles_balance": 250478,
+          "status": "active"
+        },
+        "LM10013": {
+          "member_id": "LM10013",
+          "passenger_id": "P10013",
+          "tier": "Silver",
+          "miles_balance": 449540,
+          "status": "active"
+        },
+        "LM10014": {
+          "member_id": "LM10014",
+          "passenger_id": "P10014",
+          "tier": "Platinum",
+          "miles_balance": 33417,
+          "status": "active"
+        },
+        "LM10015": {
+          "member_id": "LM10015",
+          "passenger_id": "P10015",
+          "tier": "Diamond",
+          "miles_balance": 437035,
+          "status": "active"
+        },
+        "LM10016": {
+          "member_id": "LM10016",
+          "passenger_id": "P10016",
+          "tier": "Diamond",
+          "miles_balance": 496018,
+          "status": "active"
+        },
+        "LM10017": {
+          "member_id": "LM10017",
+          "passenger_id": "P10017",
+          "tier": "Standard",
+          "miles_balance": 16680,
+          "status": "active"
+        },
+        "LM10018": {
+          "member_id": "LM10018",
+          "passenger_id": "P10018",
+          "tier": "Standard",
+          "miles_balance": 9278,
+          "status": "active"
+        },
+        "LM10019": {
+          "member_id": "LM10019",
+          "passenger_id": "P10019",
+          "tier": "Platinum",
+          "miles_balance": 247710,
+          "status": "active"
+        },
+        "LM10020": {
+          "member_id": "LM10020",
+          "passenger_id": "P10020",
+          "tier": "Silver",
+          "miles_balance": 391081,
+          "status": "active"
+        },
+        "LM10021": {
+          "member_id": "LM10021",
+          "passenger_id": "P10021",
+          "tier": "Diamond",
+          "miles_balance": 120578,
+          "status": "active"
+        },
+        "LM10022": {
+          "member_id": "LM10022",
+          "passenger_id": "P10022",
+          "tier": "Platinum",
+          "miles_balance": 208128,
+          "status": "active"
+        },
+        "LM10023": {
+          "member_id": "LM10023",
+          "passenger_id": "P10023",
+          "tier": "Diamond",
+          "miles_balance": 141629,
+          "status": "active"
+        },
+        "LM10024": {
+          "member_id": "LM10024",
+          "passenger_id": "P10024",
+          "tier": "Silver",
+          "miles_balance": 163243,
+          "status": "active"
+        },
+        "LM10025": {
+          "member_id": "LM10025",
+          "passenger_id": "P10025",
+          "tier": "Diamond",
+          "miles_balance": 240659,
+          "status": "active"
+        },
+        "LM10026": {
+          "member_id": "LM10026",
+          "passenger_id": "P10026",
+          "tier": "Diamond",
+          "miles_balance": 270595,
+          "status": "active"
+        },
+        "LM10027": {
+          "member_id": "LM10027",
+          "passenger_id": "P10027",
+          "tier": "Standard",
+          "miles_balance": 14125,
+          "status": "active"
+        },
+        "LM10028": {
+          "member_id": "LM10028",
+          "passenger_id": "P10028",
+          "tier": "Diamond",
+          "miles_balance": 220666,
+          "status": "active"
+        },
+        "LM10029": {
+          "member_id": "LM10029",
+          "passenger_id": "P10029",
+          "tier": "Silver",
+          "miles_balance": 218452,
+          "status": "active"
+        },
+        "LM10030": {
+          "member_id": "LM10030",
+          "passenger_id": "P10030",
+          "tier": "Diamond",
+          "miles_balance": 483019,
+          "status": "active"
+        },
+        "LM10031": {
+          "member_id": "LM10031",
+          "passenger_id": "P10031",
+          "tier": "Silver",
+          "miles_balance": 417958,
+          "status": "active"
+        },
+        "LM10032": {
+          "member_id": "LM10032",
+          "passenger_id": "P10032",
+          "tier": "Silver",
+          "miles_balance": 479724,
+          "status": "active"
+        },
+        "LM10033": {
+          "member_id": "LM10033",
+          "passenger_id": "P10033",
+          "tier": "Silver",
+          "miles_balance": 242506,
+          "status": "active"
+        },
+        "LM10034": {
+          "member_id": "LM10034",
+          "passenger_id": "P10034",
+          "tier": "Standard",
+          "miles_balance": 17153,
+          "status": "active"
+        },
+        "LM10035": {
+          "member_id": "LM10035",
+          "passenger_id": "P10035",
+          "tier": "Silver",
+          "miles_balance": 455322,
+          "status": "active"
+        },
+        "LM10036": {
+          "member_id": "LM10036",
+          "passenger_id": "P10036",
+          "tier": "Gold",
+          "miles_balance": 229948,
+          "status": "active"
+        },
+        "LM10037": {
+          "member_id": "LM10037",
+          "passenger_id": "P10037",
+          "tier": "Gold",
+          "miles_balance": 417371,
+          "status": "active"
+        },
+        "LM10038": {
+          "member_id": "LM10038",
+          "passenger_id": "P10038",
+          "tier": "Gold",
+          "miles_balance": 260139,
+          "status": "active"
+        },
+        "LM10039": {
+          "member_id": "LM10039",
+          "passenger_id": "P10039",
+          "tier": "Silver",
+          "miles_balance": 273019,
+          "status": "active"
+        },
+        "LM10040": {
+          "member_id": "LM10040",
+          "passenger_id": "P10040",
+          "tier": "Standard",
+          "miles_balance": 17187,
+          "status": "active"
+        },
+        "LM10041": {
+          "member_id": "LM10041",
+          "passenger_id": "P10041",
+          "tier": "Platinum",
+          "miles_balance": 236380,
+          "status": "active"
+        },
+        "LM10042": {
+          "member_id": "LM10042",
+          "passenger_id": "P10042",
+          "tier": "Gold",
+          "miles_balance": 203190,
+          "status": "active"
+        },
+        "LM10043": {
+          "member_id": "LM10043",
+          "passenger_id": "P10043",
+          "tier": "Gold",
+          "miles_balance": 199218,
+          "status": "active"
+        },
+        "LM10044": {
+          "member_id": "LM10044",
+          "passenger_id": "P10044",
+          "tier": "Standard",
+          "miles_balance": 3588,
+          "status": "active"
+        },
+        "LM10045": {
+          "member_id": "LM10045",
+          "passenger_id": "P10045",
+          "tier": "Diamond",
+          "miles_balance": 3241,
+          "status": "active"
+        },
+        "LM10046": {
+          "member_id": "LM10046",
+          "passenger_id": "P10046",
+          "tier": "Standard",
+          "miles_balance": 7555,
+          "status": "active"
+        },
+        "LM10047": {
+          "member_id": "LM10047",
+          "passenger_id": "P10047",
+          "tier": "Silver",
+          "miles_balance": 381987,
+          "status": "active"
+        },
+        "LM10048": {
+          "member_id": "LM10048",
+          "passenger_id": "P10048",
+          "tier": "Standard",
+          "miles_balance": 12788,
+          "status": "active"
+        },
+        "LM10049": {
+          "member_id": "LM10049",
+          "passenger_id": "P10049",
+          "tier": "Platinum",
+          "miles_balance": 422101,
+          "status": "active"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loyalty-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: loyalty
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Loyalty API
+      description: Frequent flyer program management
+    servers:
+      - url: {{ include "airlines.loyalty.apiUrl" . }}
+    paths:
+      /loyalty/members/{loyaltyNumber}:
+        get:
+          summary: Get member loyalty status
+          operationId: getLoyaltyMember
+          parameters:
+            - name: loyaltyNumber
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Member details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/LoyaltyMember'
+      /loyalty/miles/deduct:
+        post:
+          summary: Deduct miles from account
+          operationId: deductMiles
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    loyalty_number:
+                      type: string
+                    miles:
+                      type: integer
+          responses:
+            '200':
+              description: Miles deducted
+      /loyalty/miles/earn:
+        post:
+          summary: Add miles to account
+          operationId: earnMiles
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    loyalty_number:
+                      type: string
+                    miles:
+                      type: integer
+          responses:
+            '200':
+              description: Miles added
+    components:
+      schemas:
+        LoyaltyMember:
+          type: object
+          properties:
+            loyalty_number:
+              type: string
+            name:
+              type: string
+            tier:
+              type: string
+              enum: [Standard, Silver, Gold, Platinum, Diamond]
+            miles:
+              type: integer
+            tier_qualifying_miles:
+              type: integer
+            member_since:
+              type: string
+              format: date
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loyalty-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: loyalty
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: loyalty-app
+  template:
+    metadata:
+      labels:
+        app: loyalty-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: loyalty-data
+        - name: openapi
+          configMap:
+            name: loyalty-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: loyalty-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: loyalty
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: loyalty-app

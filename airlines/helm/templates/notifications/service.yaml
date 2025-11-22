@@ -1,0 +1,117 @@
+---
+# Notifications API - Email & SMS Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notifications-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+data:
+  api.json: |
+    {
+      "templates": {
+        "booking_confirmation": {"subject": "Booking Confirmed", "body": "Your booking {booking_id} is confirmed"},
+        "flight_reminder": {"subject": "Flight Reminder", "body": "Your flight departs in 24 hours"},
+        "disruption_alert": {"subject": "Flight Disruption", "body": "Your flight has been affected"},
+        "baggage_claim": {"subject": "Baggage Claim Received", "body": "We have received your claim for bag {bag_tag}"}
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: notifications-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Notifications API
+      description: Email and SMS notification services
+    servers:
+      - url: {{ include "airlines.notifications.apiUrl" . }}
+    paths:
+      /notifications/send:
+        post:
+          summary: Send notification
+          operationId: sendNotification
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    type: {type: string}
+                    recipient: {type: string}
+                    booking_id: {type: string}
+                    flight_id: {type: string}
+                    bag_tag: {type: string}
+          responses:
+            '200':
+              description: Notification sent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifications-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: notifications-app
+  template:
+    metadata:
+      labels:
+        app: notifications-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: notifications-data
+        - name: openapi
+          configMap:
+            name: notifications-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notifications-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: notifications-app

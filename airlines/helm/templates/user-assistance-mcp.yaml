@@ -1,0 +1,563 @@
+---
+# User Assistance MCP Server - Customer Support & Issues
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: user-assistance-mcp-server
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: user-assistance-mcp
+data:
+  main.py: |
+    #!/usr/bin/env python3
+    """
+    User Assistance MCP Server - Customer Support & Disruption Management
+    
+    orchestrates multiple APIs for customer support operations, disruption handling,
+    and issue resolution with comprehensive tracing.
+    """
+
+    from typing import Any, Dict, List, Optional
+    import logging, aiohttp, anyio, json
+    from datetime import datetime, timedelta
+    from mcp.server import Server
+    from mcp.server.stdio import stdio_server
+    from mcp.types import Tool
+
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("user-assistance-mcp")
+
+    server = Server("user-assistance-mcp")
+
+    API_BASE_URLS = {
+        "flights": "http://flights-app.airlines.svc.cluster.local:3000",
+        "bookings": "http://bookings-app.airlines.svc.cluster.local:3000",
+        "tickets": "http://tickets-app.airlines.svc.cluster.local:3000",
+        "passengers": "http://passengers-app.airlines.svc.cluster.local:3000",
+        "loyalty": "http://loyalty-app.airlines.svc.cluster.local:3000",
+        "baggage": "http://baggage-app.airlines.svc.cluster.local:3000",
+        "notifications": "http://notifications-app.airlines.svc.cluster.local:3000",
+        "pricing": "http://pricing-app.airlines.svc.cluster.local:3000",
+    }
+    
+    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
+    KEYCLOAK_CREDENTIALS = {
+        "client_id": "traefik",
+        "grant_type": "password",
+        "client_secret": "{{ .Values.keycloak.clientSecret }}",
+        "scope": "openid",
+        "username": "{{ .Values.keycloak.adminUsername }}",
+        "password": "{{ .Values.keycloak.adminPassword }}",
+    }
+
+    jwt_token: Optional[str] = None
+
+    @server.list_tools()
+    async def list_tools():
+        """List available user assistance tools"""
+        return [
+            Tool(
+                name="ping",
+                description="Health check",
+                inputSchema={"type": "object", "properties": {}}
+            ),
+            Tool(
+                name="handle_flight_disruption",
+                description="Handle flight cancellation or major delay with automated passenger rebooking",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Affected flight ID"},
+                        "reason": {"type": "string", "description": "Disruption reason (cancelled, delayed, etc)"},
+                        "delay_hours": {"type": "integer", "description": "Hours of delay (if applicable)"}
+                    },
+                    "required": ["flight_id", "reason"]
+                }
+            ),
+            Tool(
+                name="process_baggage_claim",
+                description="Process lost or damaged baggage claim",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "bag_tag": {"type": "string", "description": "Baggage tag number"},
+                        "passenger_id": {"type": "string", "description": "Passenger ID"},
+                        "issue_type": {"type": "string", "enum": ["lost", "damaged", "delayed"], "description": "Type of issue"}
+                    },
+                    "required": ["bag_tag", "passenger_id", "issue_type"]
+                }
+            ),
+            Tool(
+                name="calculate_delay_compensation",
+                description="Calculate compensation for flight delays per regulations",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID"},
+                        "delay_hours": {"type": "integer", "description": "Hours of delay"},
+                        "passenger_count": {"type": "integer", "description": "Number of affected passengers"}
+                    },
+                    "required": ["flight_id", "delay_hours"]
+                }
+            )
+        ]
+
+    async def get_jwt_token() -> str:
+        """Get JWT token from Keycloak"""
+        global jwt_token
+        if jwt_token:
+            return jwt_token
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                KEYCLOAK_URL,
+                data=KEYCLOAK_CREDENTIALS,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            ) as r:
+                if r.status != 200:
+                    raise RuntimeError(f"Keycloak token error: {r.status}")
+                data = await r.json()
+                jwt_token = data.get("access_token")
+                return jwt_token
+
+    async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
+        """Make authenticated API request"""
+        token = await get_jwt_token()
+        url = f"{API_BASE_URLS[service]}{endpoint}"
+        headers = {"Authorization": f"Bearer {token}"}
+        if method in ["POST", "PUT", "PATCH"]:
+            headers["Content-Type"] = "application/json"
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.request(method, url, headers=headers, json=data) as r:
+                response_text = await r.text()
+                if r.status == 200:
+                    try:
+                        return await r.json() if not response_text else json.loads(response_text)
+                    except:
+                        return {"data": response_text, "status": 200}
+                elif r.status == 201:
+                    try:
+                        return {"status": "created", "data": await r.json() if response_text else {}}
+                    except:
+                        return {"status": "created"}
+                elif r.status == 404:
+                    return {"error": "Not found", "status": 404}
+                else:
+                    return {"error": f"API error {r.status}: {response_text}", "status": r.status}
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict):
+        """Handle tool calls with detailed execution tracing"""
+        logger.info(f"Tool called: {name} with args: {arguments}")
+        
+        if name == "ping":
+            return [{"type": "text", "text": "pong - User Assistance MCP Server is operational"}]
+        
+        elif name == "handle_flight_disruption":
+            flight_id = arguments.get("flight_id")
+            reason = arguments.get("reason")
+            delay_hours = arguments.get("delay_hours", 0)
+            
+            try:
+                steps = []
+                warnings = []
+                errors = []
+                
+                steps.append("🚨 **FLIGHT DISRUPTION HANDLER**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"⚠️  Reason: {reason}")
+                steps.append("")
+                
+                # Step 1: Get flight details
+                steps.append("1️⃣ Retrieving flight information...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+                if "error" in flight:
+                    errors.append(f"Flight not found: {flight['error']}")
+                    steps.append(f"   ❌ {errors[-1]}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+                
+                flight_num = flight.get("flight_number", "Unknown")
+                origin = flight.get("origin", "???")
+                dest = flight.get("destination", "???")
+                dept_time = flight.get("departure_time", "Unknown")
+                steps.append(f"   ✅ Flight {flight_num}: {origin} → {dest}")
+                
+                # Step 2: Find all affected bookings (mock for now)
+                steps.append("\n2️⃣ Identifying affected passengers...")
+                # In a real system, we'd query bookings API for all bookings on this flight
+                affected_count = 156  # Mock
+                steps.append(f"   ✅ Found {affected_count} passengers on flight {flight_num}")
+                
+                # Step 3: Find alternative flights
+                steps.append("\n3️⃣ Finding alternative flights...")
+                search_result = await api_request(
+                    "flights",
+                    f"/flights/search?origin={origin}&dest={dest}"
+                )
+                
+                if "error" not in search_result:
+                    alt_flights = search_result.get("flights", [])
+                    steps.append(f"   ✅ Found {len(alt_flights)} alternative flights")
+                    for alt in alt_flights[:3]:
+                        alt_id = alt.get("id", "Unknown")
+                        alt_dept = alt.get("departure_time", "Unknown")
+                        steps.append(f"   • {alt_id} departing {alt_dept}")
+                else:
+                    warnings.append("No alternative flights found")
+                    steps.append(f"   ⚠️  {warnings[-1]}")
+                
+                # Step 4: Calculate compensation
+                steps.append("\n4️⃣ Calculating compensation eligibility...")
+                if reason == "cancelled" or delay_hours >= 3:
+                    compensation_per_pax = 600 if delay_hours >= 4 else 400
+                    total_compensation = compensation_per_pax * affected_count
+                    steps.append(f"   ✅ EU261 applies: €{compensation_per_pax} per passenger")
+                    steps.append(f"   ✅ Total compensation: €{total_compensation:,}")
+                else:
+                    steps.append(f"   ℹ️  No compensation required (delay < 3 hours)")
+                
+                # Step 5: Issue meal vouchers
+                steps.append("\n5️⃣ Issuing meal vouchers...")
+                voucher_amount = 15.00
+                total_vouchers = voucher_amount * affected_count
+                steps.append(f"   ✅ ${voucher_amount} meal voucher per passenger")
+                steps.append(f"   ✅ Total vouchers: ${total_vouchers:,.2f}")
+                
+                # Step 6: Send notifications
+                steps.append("\n6️⃣ Sending notifications to passengers...")
+                notification = await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {
+                        "type": "disruption_alert",
+                        "recipient": "all_passengers",
+                        "flight_id": flight_id
+                    }
+                )
+                
+                if "error" not in notification:
+                    steps.append(f"   ✅ SMS and email sent to all {affected_count} passengers")
+                else:
+                    warnings.append(f"Notification failed: {notification['error']}")
+                    steps.append(f"   ⚠️  {warnings[-1]}")
+                
+                # Build final response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**DISRUPTION HANDLED** ✅\n"
+                response += "="*60
+                response += f"\n\n**Affected Passengers**: {affected_count}"
+                response += f"\n**Alternative Flights**: {len(alt_flights) if 'alt_flights' in locals() else 0}"
+                if reason == "cancelled" or delay_hours >= 3:
+                    response += f"\n**Total Compensation**: €{total_compensation:,}"
+                response += f"\n**Warnings**: {len(warnings)}"
+                response += f"\n**Errors**: {len(errors)}"
+                
+                if warnings:
+                    response += "\n\n**Warnings**:"
+                    for w in warnings:
+                        response += f"\n• {w}"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in handle_flight_disruption: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}\n\nPartial trace:\n" + "\n".join(steps)}]
+        
+        elif name == "process_baggage_claim":
+            bag_tag = arguments.get("bag_tag")
+            passenger_id = arguments.get("passenger_id")
+            issue_type = arguments.get("issue_type")
+            
+            try:
+                steps = []
+                steps.append("🧳 **BAGGAGE CLAIM PROCESSING**")
+                steps.append(f"🏷️  Bag Tag: {bag_tag}")
+                steps.append(f"👤 Passenger: {passenger_id}")
+                steps.append(f"⚠️  Issue: {issue_type}")
+                steps.append("")
+                
+                # Step 1: Track baggage
+                steps.append("1️⃣ Tracking baggage...")
+                baggage = await api_request("baggage", f"/baggage/track/{bag_tag}")
+                
+                if "error" in baggage:
+                    steps.append(f"   ⚠️  Bag not found in system")
+                else:
+                    status = baggage.get("status", "unknown")
+                    steps.append(f"   ✅ Last known status: {status}")
+                
+                # Step 2: Get passenger details
+                steps.append("\n2️⃣ Retrieving passenger information...")
+                passenger = await api_request("passengers", f"/passengers/{passenger_id}")
+                
+                if "error" not in passenger:
+                    name = passenger.get("name", "Unknown")
+                    loyalty_num = passenger.get("loyalty_number")
+                    steps.append(f"   ✅ Passenger: {name}")
+                    
+                    # Check loyalty status for expedited processing
+                    if loyalty_num:
+                        loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_num}")
+                        if "error" not in loyalty:
+                            tier = loyalty.get("tier", "Standard")
+                            steps.append(f"   ✅ Loyalty tier: {tier}")
+                            if tier in ["Platinum", "Diamond"]:
+                                steps.append(f"   🏆 Expedited processing for {tier} member")
+                
+                # Step 3: Calculate compensation
+                steps.append("\n3️⃣ Calculating compensation...")
+                if issue_type == "lost":
+                    compensation = 1500.00
+                    steps.append(f"   💰 Lost baggage compensation: ${compensation:,.2f}")
+                elif issue_type == "damaged":
+                    compensation = 500.00
+                    steps.append(f"   💰 Damage compensation: ${compensation:,.2f}")
+                else:  # delayed
+                    compensation = 100.00
+                    steps.append(f"   💰 Delay compensation: ${compensation:,.2f}")
+                
+                # Step 4: Issue interim allowance
+                steps.append("\n4️⃣ Issuing interim allowance...")
+                allowance = 150.00
+                steps.append(f"   ✅ ${allowance:.2f} toiletries/essentials allowance approved")
+                
+                # Step 5: Send notification
+                steps.append("\n5️⃣ Notifying passenger...")
+                notification = await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "baggage_claim", "recipient": passenger_id, "bag_tag": bag_tag}
+                )
+                
+                if "error" not in notification:
+                    steps.append(f"   ✅ Claim confirmation sent")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**CLAIM PROCESSED** ✅\n"
+                response += "="*60
+                response += f"\n\n**Claim Reference**: BC{bag_tag[2:]}"
+                response += f"\n**Compensation**: ${compensation + allowance:,.2f}"
+                response += f"\n**Processing Time**: Expedited (2-3 business days)" if tier in ["Platinum", "Diamond"] else "\n**Processing Time**: Standard (5-7 business days)"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in process_baggage_claim: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "calculate_delay_compensation":
+            flight_id = arguments.get("flight_id")
+            delay_hours = arguments.get("delay_hours")
+            passenger_count = arguments.get("passenger_count", 1)
+            
+            try:
+                steps = []
+                steps.append("💰 **DELAY COMPENSATION CALCULATOR**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"⏱️  Delay: {delay_hours} hours")
+                steps.append(f"👥 Passengers: {passenger_count}")
+                steps.append("")
+                
+                # Get flight details
+                steps.append("1️⃣ Retrieving flight information...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+                
+                if "error" not in flight:
+                    origin = flight.get("origin", "???")
+                    dest = flight.get("destination", "???")
+                    steps.append(f"   ✅ Route: {origin} → {dest}")
+                    
+                    # Determine distance category
+                    international = origin[:2] != dest[:2]  # Simple check
+                    steps.append(f"   ✅ Type: {'International' if international else 'Domestic'}")
+                
+                # Calculate compensation
+                steps.append("\n2️⃣ Calculating compensation...")
+                
+                if delay_hours < 3:
+                    compensation_per_pax = 0
+                    steps.append(f"   ℹ️  No compensation (delay < 3 hours)")
+                elif delay_hours >= 3 and delay_hours < 4:
+                    compensation_per_pax = 400 if international else 250
+                    steps.append(f"   ✅ EU261/DOT: €{compensation_per_pax} per passenger")
+                else:  # >= 4 hours
+                    compensation_per_pax = 600 if international else 400
+                    steps.append(f"   ✅ EU261/DOT: €{compensation_per_pax} per passenger")
+                
+                total_compensation = compensation_per_pax * passenger_count
+                
+                # Additional benefits
+                steps.append("\n3️⃣ Additional benefits...")
+                if delay_hours >= 2:
+                    steps.append(f"   ✅ Meal vouchers: ${15 * passenger_count:,.2f}")
+                if delay_hours >= 4:
+                    steps.append(f"   ✅ Hotel accommodation (if overnight)")
+                if delay_hours >= 5:
+                    steps.append(f"   ✅ Transport to/from hotel")
+                
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**COMPENSATION SUMMARY** ✅\n"
+                response += "="*60
+                response += f"\n\n**Per Passenger**: €{compensation_per_pax}"
+                response += f"\n**Total Compensation**: €{total_compensation:,}"
+                response += f"\n**Regulation**: EU261/US DOT"
+                response += f"\n**Processing Time**: 7-14 days"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in calculate_delay_compensation: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        else:
+            return [{"type": "text", "text": f"❌ Unknown tool: {name}"}]
+
+    async def main():
+        """Run the MCP server with SSE transport"""
+        from starlette.applications import Starlette
+        from starlette.routing import Route
+        from mcp.server.sse import SseServerTransport
+        import uvicorn
+
+        sse = SseServerTransport("/messages")
+
+        async def handle_sse(request):
+            async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
+                await server.run(streams[0], streams[1], server.create_initialization_options())
+
+        async def handle_messages(request):
+            await sse.handle_post_message(request.scope, request.receive, request._send)
+
+        app = Starlette(debug=True, routes=[
+            Route("/sse", endpoint=handle_sse),
+            Route("/messages", endpoint=handle_messages, methods=["POST"])
+        ])
+
+        config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
+        server_instance = uvicorn.Server(config)
+        await server_instance.serve()
+
+    if __name__ == "__main__":
+        import asyncio
+        asyncio.run(main())
+
+  requirements.txt: |
+    mcp>=1.0.0
+    aiohttp>=3.9.0
+    anyio>=4.0.0
+    starlette>=0.30.0
+    uvicorn>=0.20.0
+    sse-starlette>=1.8.0
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-assistance-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: user-assistance-mcp
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: user-assistance-mcp
+  template:
+    metadata:
+      labels:
+        app: user-assistance-mcp
+        component: mcp
+    spec:
+      containers:
+        - name: mcp-server
+          image: "{{ .Values.mcpImage.repository }}:{{ .Values.mcpImage.tag }}"
+          imagePullPolicy: {{ .Values.mcpImage.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir -r /app/requirements.txt && \
+              python /app/main.py
+          volumeMounts:
+            - name: mcp-code
+              mountPath: /app
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: mcp-code
+          configMap:
+            name: user-assistance-mcp-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-assistance-mcp
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: user-assistance-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: mcp
+  selector:
+    app: user-assistance-mcp
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: user-assistance-mcp-gateway
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: user-assistance-mcp
+spec:
+  plugin:
+    mcp:
+      policies:
+        - match: Equals(`mcp.method`, `initialize`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/list`)
+          action: allow
+        - match: Equals(`mcp.method`, `ping`)
+          action: allow
+        - match: Equals(`mcp.method`, `tools/call`)
+          action: allow
+      defaultAction: deny
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: user-assistance-mcp-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: user-assistance-mcp
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: Host(`user-assistance.{{ .Values.domain }}`)
+      middlewares:
+        - name: user-assistance-mcp-gateway
+      services:
+        - name: user-assistance-mcp
+          port: 8080

@@ -1,0 +1,119 @@
+---
+# Flights API - Traefik Hub API Definition and IngressRoute
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: flights-api
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+
+spec:
+  title: "Flights API"
+  description: "Flight schedules, search, and real-time status information for Traefik Airlines"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.flights.apiUrl" . }}
+    operationSets:
+      # Public operations - anyone can search and view flights
+      - name: public-ops
+        matchers:
+          - path: /flights/search
+            methods:
+              - GET
+          - path: /flights
+            methods:
+              - GET
+          - pathRegex: "/flights/[^/]+$"
+            methods:
+              - GET
+          - pathRegex: "/flights/[^/]+/inventory$"
+            methods:
+              - GET
+      
+      # Agent operations - customer service agents (includes all public ops)
+      - name: agent-ops
+        matchers:
+          - pathPrefix: /
+            methods:
+              - GET
+      
+      # Operations team - can modify flight data
+      - name: operations-ops
+        matchers:
+          - pathPrefix: /
+            methods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+      
+      # Admin operations - full access
+      - name: admin-ops
+        matchers:
+          - pathPrefix: /
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+  
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+      - "X-Requested-With"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "PATCH"
+      - "DELETE"
+      - "OPTIONS"
+    exposeHeadersList:
+      - "X-Total-Count"
+      - "X-Request-ID"
+    addVaryHeader: true
+    allowCredentials: true
+    maxAge: 86400
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flights-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+  annotations:
+    hub.traefik.io/api: flights-api
+
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.flights.hostMatch" . }}
+      services:
+        - name: flights-app
+          namespace: airlines
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+      # Middlewares can be added here for:
+      # - Rate limiting
+      # - API authentication  
+      # - Request/response transformation
+      # middlewares:
+      #   - name: api-auth-flights
+      #   - name: rate-limit-flights

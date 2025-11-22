@@ -1,0 +1,299 @@
+---
+# Baggage API - Tracking & Fee Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: baggage-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+data:
+  api.json: |
+    {
+      "baggage": {
+        "BT904665-1": {
+          "bag_tag": "BT904665-1",
+          "booking_id": "BK904665",
+          "weight": 21,
+          "status": "checked",
+          "location": "CDG"
+        },
+        "BT961185-1": {
+          "bag_tag": "BT961185-1",
+          "booking_id": "BK961185",
+          "weight": 20,
+          "status": "checked",
+          "location": "AMS"
+        },
+        "BT928211-1": {
+          "bag_tag": "BT928211-1",
+          "booking_id": "BK928211",
+          "weight": 24,
+          "status": "checked",
+          "location": "CDG"
+        },
+        "BT310340-1": {
+          "bag_tag": "BT310340-1",
+          "booking_id": "BK310340",
+          "weight": 17,
+          "status": "checked",
+          "location": "HND"
+        },
+        "BT125489-1": {
+          "bag_tag": "BT125489-1",
+          "booking_id": "BK125489",
+          "weight": 20,
+          "status": "checked",
+          "location": "LAX"
+        },
+        "BT704075-1": {
+          "bag_tag": "BT704075-1",
+          "booking_id": "BK704075",
+          "weight": 17,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT720047-1": {
+          "bag_tag": "BT720047-1",
+          "booking_id": "BK720047",
+          "weight": 18,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT865977-1": {
+          "bag_tag": "BT865977-1",
+          "booking_id": "BK865977",
+          "weight": 15,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT822340-1": {
+          "bag_tag": "BT822340-1",
+          "booking_id": "BK822340",
+          "weight": 18,
+          "status": "checked",
+          "location": "HND"
+        },
+        "BT493562-1": {
+          "bag_tag": "BT493562-1",
+          "booking_id": "BK493562",
+          "weight": 22,
+          "status": "checked",
+          "location": "SIN"
+        },
+        "BT533214-1": {
+          "bag_tag": "BT533214-1",
+          "booking_id": "BK533214",
+          "weight": 18,
+          "status": "checked",
+          "location": "LAX"
+        },
+        "BT894629-1": {
+          "bag_tag": "BT894629-1",
+          "booking_id": "BK894629",
+          "weight": 25,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT238447-1": {
+          "bag_tag": "BT238447-1",
+          "booking_id": "BK238447",
+          "weight": 23,
+          "status": "checked",
+          "location": "LAX"
+        },
+        "BT210284-1": {
+          "bag_tag": "BT210284-1",
+          "booking_id": "BK210284",
+          "weight": 25,
+          "status": "checked",
+          "location": "SIN"
+        },
+        "BT467628-1": {
+          "bag_tag": "BT467628-1",
+          "booking_id": "BK467628",
+          "weight": 25,
+          "status": "checked",
+          "location": "LAX"
+        },
+        "BT214810-1": {
+          "bag_tag": "BT214810-1",
+          "booking_id": "BK214810",
+          "weight": 20,
+          "status": "checked",
+          "location": "HND"
+        },
+        "BT614796-1": {
+          "bag_tag": "BT614796-1",
+          "booking_id": "BK614796",
+          "weight": 17,
+          "status": "checked",
+          "location": "FRA"
+        },
+        "BT530740-1": {
+          "bag_tag": "BT530740-1",
+          "booking_id": "BK530740",
+          "weight": 15,
+          "status": "checked",
+          "location": "FRA"
+        },
+        "BT962580-1": {
+          "bag_tag": "BT962580-1",
+          "booking_id": "BK962580",
+          "weight": 20,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT826333-1": {
+          "bag_tag": "BT826333-1",
+          "booking_id": "BK826333",
+          "weight": 21,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT621270-1": {
+          "bag_tag": "BT621270-1",
+          "booking_id": "BK621270",
+          "weight": 20,
+          "status": "checked",
+          "location": "HND"
+        },
+        "BT956294-1": {
+          "bag_tag": "BT956294-1",
+          "booking_id": "BK956294",
+          "weight": 23,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT715675-1": {
+          "bag_tag": "BT715675-1",
+          "booking_id": "BK715675",
+          "weight": 21,
+          "status": "checked",
+          "location": "JFK"
+        },
+        "BT688939-1": {
+          "bag_tag": "BT688939-1",
+          "booking_id": "BK688939",
+          "weight": 15,
+          "status": "checked",
+          "location": "DXB"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: baggage-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Baggage API
+      description: Baggage tracking and fee management
+    servers:
+      - url: {{ include "airlines.baggage.apiUrl" . }}
+    paths:
+      /baggage/add:
+        post:
+          summary: Add checked baggage
+          operationId: addBaggage
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id: {type: string}
+                    bags: {type: integer}
+          responses:
+            '200':
+              description: Baggage added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          fee: {type: number}
+      /baggage/track/{bagTag}:
+        get:
+          summary: Track baggage
+          operationId: trackBaggage
+          parameters:
+            - name: bagTag
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Baggage status
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: baggage-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: baggage-app
+  template:
+    metadata:
+      labels:
+        app: baggage-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: baggage-data
+        - name: openapi
+          configMap:
+            name: baggage-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: baggage-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: baggage-app

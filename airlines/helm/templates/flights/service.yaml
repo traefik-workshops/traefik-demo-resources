@@ -1,0 +1,626 @@
+---
+# Flights API Service - Complete Example
+# This demonstrates the pattern for all airline API services
+# Includes: ConfigMap (data + OAS), Deployment, Service
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flights-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+data:
+  api.json: |
+    {
+      "flights": {
+        "FL333": {
+          "flight_id": "FL333",
+          "origin": "CDG",
+          "destination": "LAX",
+          "departure_time": "2025-12-08T20:15:44.422165",
+          "arrival_time": "2025-12-09T09:15:44.422165",
+          "status": "scheduled",
+          "aircraft": "A350",
+          "seats_available": 19,
+          "price": 580
+        },
+        "FL231": {
+          "flight_id": "FL231",
+          "origin": "DXB",
+          "destination": "SIN",
+          "departure_time": "2025-12-20T21:00:44.422183",
+          "arrival_time": "2025-12-21T08:00:44.422183",
+          "status": "scheduled",
+          "aircraft": "A350",
+          "seats_available": 48,
+          "price": 850
+        },
+        "FL601": {
+          "flight_id": "FL601",
+          "origin": "HND",
+          "destination": "SYD",
+          "departure_time": "2025-11-29T12:15:44.422190",
+          "arrival_time": "2025-11-29T16:15:44.422190",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 10,
+          "price": 953
+        },
+        "FL545": {
+          "flight_id": "FL545",
+          "origin": "LAX",
+          "destination": "CDG",
+          "departure_time": "2025-12-16T19:15:44.422195",
+          "arrival_time": "2025-12-17T07:15:44.422195",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 31,
+          "price": 384
+        },
+        "FL607": {
+          "flight_id": "FL607",
+          "origin": "FRA",
+          "destination": "JFK",
+          "departure_time": "2025-11-24T18:00:44.422247",
+          "arrival_time": "2025-11-25T00:00:44.422247",
+          "status": "scheduled",
+          "aircraft": "A320",
+          "seats_available": 16,
+          "price": 317
+        },
+        "FL810": {
+          "flight_id": "FL810",
+          "origin": "SIN",
+          "destination": "JFK",
+          "departure_time": "2025-12-07T17:45:44.422203",
+          "arrival_time": "2025-12-07T19:45:44.422203",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 49,
+          "price": 1125
+        },
+        "FL361": {
+          "flight_id": "FL361",
+          "origin": "CDG",
+          "destination": "AMS",
+          "departure_time": "2025-11-25T18:30:44.422208",
+          "arrival_time": "2025-11-26T01:30:44.422208",
+          "status": "scheduled",
+          "aircraft": "A320",
+          "seats_available": 2,
+          "price": 338
+        },
+        "FL182": {
+          "flight_id": "FL182",
+          "origin": "SYD",
+          "destination": "JFK",
+          "departure_time": "2025-12-11T20:45:44.422211",
+          "arrival_time": "2025-12-12T07:45:44.422211",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 42,
+          "price": 554
+        },
+        "FL132": {
+          "flight_id": "FL132",
+          "origin": "DXB",
+          "destination": "LAX",
+          "departure_time": "2025-12-20T20:45:44.422215",
+          "arrival_time": "2025-12-21T04:45:44.422215",
+          "status": "cancelled",
+          "aircraft": "B787",
+          "seats_available": 13,
+          "price": 270
+        },
+        "FL340": {
+          "flight_id": "FL340",
+          "origin": "JFK",
+          "destination": "DXB",
+          "departure_time": "2025-12-01T12:45:44.422219",
+          "arrival_time": "2025-12-01T21:45:44.422219",
+          "status": "scheduled",
+          "aircraft": "A320",
+          "seats_available": 9,
+          "price": 1256
+        },
+        "FL773": {
+          "flight_id": "FL773",
+          "origin": "LAX",
+          "destination": "CDG",
+          "departure_time": "2025-12-20T06:00:44.422223",
+          "arrival_time": "2025-12-20T17:00:44.422223",
+          "status": "scheduled",
+          "aircraft": "A350",
+          "seats_available": 46,
+          "price": 775
+        },
+        "FL326": {
+          "flight_id": "FL326",
+          "origin": "JFK",
+          "destination": "AMS",
+          "departure_time": "2025-11-30T19:45:44.422228",
+          "arrival_time": "2025-12-01T05:45:44.422228",
+          "status": "scheduled",
+          "aircraft": "B787",
+          "seats_available": 1,
+          "price": 489
+        },
+        "FL488": {
+          "flight_id": "FL488",
+          "origin": "CDG",
+          "destination": "HND",
+          "departure_time": "2025-11-22T18:15:44.422232",
+          "arrival_time": "2025-11-23T05:15:44.422232",
+          "status": "scheduled",
+          "aircraft": "A350",
+          "seats_available": 16,
+          "price": 1254
+        },
+        "FL757": {
+          "flight_id": "FL757",
+          "origin": "AMS",
+          "destination": "DXB",
+          "departure_time": "2025-12-12T06:30:44.422236",
+          "arrival_time": "2025-12-12T10:30:44.422236",
+          "status": "scheduled",
+          "aircraft": "B787",
+          "seats_available": 15,
+          "price": 1001
+        },
+        "FL223": {
+          "flight_id": "FL223",
+          "origin": "JFK",
+          "destination": "FRA",
+          "departure_time": "2025-11-29T06:15:44.422239",
+          "arrival_time": "2025-11-29T09:15:44.422239",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 27,
+          "price": 773
+        },
+        "FL516": {
+          "flight_id": "FL516",
+          "origin": "HND",
+          "destination": "CDG",
+          "departure_time": "2025-12-08T21:45:44.422243",
+          "arrival_time": "2025-12-09T04:45:44.422243",
+          "status": "scheduled",
+          "aircraft": "B737",
+          "seats_available": 23,
+          "price": 525
+        },
+        "FL879": {
+          "flight_id": "FL879",
+          "origin": "HND",
+          "destination": "DXB",
+          "departure_time": "2025-12-18T13:15:44.422251",
+          "arrival_time": "2025-12-18T20:15:44.422251",
+          "status": "scheduled",
+          "aircraft": "A350",
+          "seats_available": 20,
+          "price": 1416
+        },
+        "FL851": {
+          "flight_id": "FL851",
+          "origin": "FRA",
+          "destination": "LAX",
+          "departure_time": "2025-12-21T06:30:44.422255",
+          "arrival_time": "2025-12-21T17:30:44.422255",
+          "status": "scheduled",
+          "aircraft": "A320",
+          "seats_available": 31,
+          "price": 686
+        },
+        "FL105": {
+          "flight_id": "FL105",
+          "origin": "JFK",
+          "destination": "CDG",
+          "departure_time": "2025-12-20T17:45:44.422259",
+          "arrival_time": "2025-12-21T02:45:44.422259",
+          "status": "scheduled",
+          "aircraft": "A320",
+          "seats_available": 19,
+          "price": 1202
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flights-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Flights API
+      description: Flight schedules, search, and real-time status information
+      contact:
+        name: Traefik Airlines Engineering
+        email: engineering@traefik-airlines.example.com
+      license:
+        name: Apache 2.0
+        url: 'https://www.apache.org/licenses/LICENSE-2.0.html'
+    
+    servers:
+      - url: {{ include "airlines.flights.apiUrl" . }}
+        description: Flights API Server
+    
+    tags:
+      - name: flights
+        description: Flight operations
+      - name: search
+        description: Flight search
+      - name: inventory
+        description: Seat inventory
+    
+    paths:
+      /flights:
+        get:
+          summary: List all flights
+          description: Retrieve a list of all scheduled flights
+          operationId: listFlights
+          tags:
+            - flights
+          parameters:
+            - name: limit
+              in: query
+              description: Maximum number of flights to return
+              required: false
+              schema:
+                type: integer
+                maximum: 100
+                default: 20
+            - name: origin
+              in: query
+              description: Filter by origin airport code
+              required: false
+              schema:
+                type: string
+                pattern: '^[A-Z]{3}$'
+            - name: destination
+              in: query
+              description: Filter by destination airport code
+              required: false
+              schema:
+                type: string
+                pattern: '^[A-Z]{3}$'
+          responses:
+            '200':
+              description: List of flights
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      flights:
+                        type: object
+                        additionalProperties:
+                          $ref: '#/components/schemas/Flight'
+            '400':
+              description: Invalid request
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+    
+      /flights/search:
+        get:
+          summary: Search for flights
+          description: Search for available flights between origin and destination
+          operationId: searchFlights
+          tags:
+            - search
+          parameters:
+            - name: origin
+              in: query
+              description: Origin airport code (IATA)
+              required: true
+              schema:
+                type: string
+                pattern: '^[A-Z]{3}$'
+                example: 'JFK'
+            - name: dest
+              in: query
+              description: Destination airport code (IATA)
+              required: true
+              schema:
+                type: string
+                pattern: '^[A-Z]{3}$'
+                example: 'LAX'
+            - name: date
+              in: query
+              description: Travel date (YYYY-MM-DD)
+              required: false
+              schema:
+                type: string
+                format: date
+                example: '2024-03-15'
+          responses:
+            '200':
+              description: Search results
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      flights:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Flight'
+                      search_params:
+                        type: object
+                        properties:
+                          origin:
+                            type: string
+                          destination:
+                            type: string
+                          date:
+                            type: string
+            '400':
+              description: Invalid search parameters
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+    
+      /flights/{flightId}:
+        get:
+          summary: Get flight details
+          description: Retrieve detailed information for a specific flight
+          operationId: getFlightById
+          tags:
+            - flights
+          parameters:
+            - name: flightId
+              in: path
+              description: The flight ID
+              required: true
+              schema:
+                type: string
+                example: 'FL123'
+          responses:
+            '200':
+              description: Flight details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Flight'
+            '404':
+              description: Flight not found
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+      
+      /flights/{flightId}/inventory:
+        get:
+          summary: Get seat inventory
+          description: Retrieve seat inventory and availability for a flight
+          operationId: getFlightInventory
+          tags:
+            - inventory
+          parameters:
+            - name: flightId
+              in: path
+              description: The flight ID
+              required: true
+              schema:
+                type: string
+                example: 'FL123'
+          responses:
+            '200':
+              description: Seat inventory
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Inventory'
+            '404':
+              description: Flight not found
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+    
+    components:
+      schemas:
+        Flight:
+          type: object
+          required:
+            - id
+            - flight_number
+            - origin
+            - destination
+          properties:
+            id:
+              type: string
+              description: Unique flight identifier
+              example: 'FL123'
+            flight_number:
+              type: string
+              description: Commercial flight number
+              example: 'TL123'
+            origin:
+              type: string
+              description: Origin airport code (IATA)
+              pattern: '^[A-Z]{3}$'
+              example: 'JFK'
+            origin_name:
+              type: string
+              description: Origin airport name
+              example: 'New York John F. Kennedy'
+            destination:
+              type: string
+              description: Destination airport code (IATA)
+              pattern: '^[A-Z]{3}$'
+              example: 'LAX'
+            destination_name:
+              type: string
+              description: Destination airport name
+              example: 'Los Angeles International'
+            departure_time:
+              type: string
+              format: date-time
+              description: Scheduled departure time (ISO 8601)
+              example: '2024-03-15T08:00:00Z'
+            arrival_time:
+              type: string
+              format: date-time
+              description: Scheduled arrival time (ISO 8601)
+              example: '2024-03-15T11:30:00Z'
+            duration_minutes:
+              type: integer
+              description: Flight duration in minutes
+              example: 330
+            aircraft:
+              type: string
+              description: Aircraft type
+              example: 'B737-800'
+            status:
+              type: string
+              description: Flight status
+              enum:
+                - scheduled
+                - boarding
+                - departed
+                - in_flight
+                - landed
+                - cancelled
+                - delayed
+              example: 'scheduled'
+            gate:
+              type: string
+              description: Departure gate
+              example: 'B22'
+            terminal:
+              type: string
+              description: Departure terminal
+              example: '4'
+        
+        Inventory:
+          type: object
+          description: Seat inventory by cabin class
+          additionalProperties:
+            type: object
+            properties:
+              total_seats:
+                type: integer
+                description: Total number of seats in cabin
+              available_seats:
+                type: integer
+                description: Number of available seats
+              booked_seats:
+                type: integer
+                description: Number of booked seats
+          example:
+            economy:
+              total_seats: 150
+              available_seats: 45
+              booked_seats: 105
+            business:
+              total_seats: 20
+              available_seats: 8
+              booked_seats: 12
+        
+        Error:
+          type: object
+          required:
+            - error
+            - status
+          properties:
+            error:
+              type: string
+              description: Error message
+            status:
+              type: integer
+              description: HTTP status code
+            details:
+              type: string
+              description: Additional error details
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flights-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: flights-app
+  template:
+    metadata:
+      labels:
+        app: flights-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "-data"
+            - "/api/api.json"
+            - "-openapi"
+            - "/public/openapi.yaml"
+            - "-errorrate"
+            - "0"
+          ports:
+            - containerPort: 3000
+              name: http
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          livenessProbe:
+            httpGet:
+              path: /flights
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /flights
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: flights-data
+        - name: openapi
+          configMap:
+            name: flights-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flights-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: flights-app

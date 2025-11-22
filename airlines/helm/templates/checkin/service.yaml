@@ -1,0 +1,485 @@
+---
+# Checkin API - Boarding Pass & Seat Management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: checkin-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+data:
+  api.json: |
+    {
+      "checkins": {
+        "BK159936": {
+          "booking_id": "BK159936",
+          "seat": "1D",
+          "boarding_pass": "BP159936",
+          "checked_in_at": "2025-11-21T18:00:44.422335",
+          "gate": "C7"
+        },
+        "BK904665": {
+          "booking_id": "BK904665",
+          "seat": "7E",
+          "boarding_pass": "BP904665",
+          "checked_in_at": "2025-11-21T18:00:44.422341",
+          "gate": "A28"
+        },
+        "BK961185": {
+          "booking_id": "BK961185",
+          "seat": "28C",
+          "boarding_pass": "BP961185",
+          "checked_in_at": "2025-11-21T18:00:44.422346",
+          "gate": "B9"
+        },
+        "BK928211": {
+          "booking_id": "BK928211",
+          "seat": "1B",
+          "boarding_pass": "BP928211",
+          "checked_in_at": "2025-11-21T18:00:44.422353",
+          "gate": "C45"
+        },
+        "BK600403": {
+          "booking_id": "BK600403",
+          "seat": "18A",
+          "boarding_pass": "BP600403",
+          "checked_in_at": "2025-11-21T18:00:44.422361",
+          "gate": "A31"
+        },
+        "BK310340": {
+          "booking_id": "BK310340",
+          "seat": "21A",
+          "boarding_pass": "BP310340",
+          "checked_in_at": "2025-11-21T18:00:44.422367",
+          "gate": "C43"
+        },
+        "BK723432": {
+          "booking_id": "BK723432",
+          "seat": "6D",
+          "boarding_pass": "BP723432",
+          "checked_in_at": "2025-11-21T18:00:44.422377",
+          "gate": "C35"
+        },
+        "BK452322": {
+          "booking_id": "BK452322",
+          "seat": "8F",
+          "boarding_pass": "BP452322",
+          "checked_in_at": "2025-11-21T18:00:44.422380",
+          "gate": "A2"
+        },
+        "BK125489": {
+          "booking_id": "BK125489",
+          "seat": "1A",
+          "boarding_pass": "BP125489",
+          "checked_in_at": "2025-11-21T18:00:44.422391",
+          "gate": "A32"
+        },
+        "BK197892": {
+          "booking_id": "BK197892",
+          "seat": "9B",
+          "boarding_pass": "BP197892",
+          "checked_in_at": "2025-11-21T18:00:44.422398",
+          "gate": "B26"
+        },
+        "BK297191": {
+          "booking_id": "BK297191",
+          "seat": "22E",
+          "boarding_pass": "BP297191",
+          "checked_in_at": "2025-11-21T18:00:44.422401",
+          "gate": "C39"
+        },
+        "BK704075": {
+          "booking_id": "BK704075",
+          "seat": "24D",
+          "boarding_pass": "BP704075",
+          "checked_in_at": "2025-11-21T18:00:44.422405",
+          "gate": "A25"
+        },
+        "BK468257": {
+          "booking_id": "BK468257",
+          "seat": "18B",
+          "boarding_pass": "BP468257",
+          "checked_in_at": "2025-11-21T18:00:44.422411",
+          "gate": "C16"
+        },
+        "BK133466": {
+          "booking_id": "BK133466",
+          "seat": "30A",
+          "boarding_pass": "BP133466",
+          "checked_in_at": "2025-11-21T18:00:44.422425",
+          "gate": "C49"
+        },
+        "BK720047": {
+          "booking_id": "BK720047",
+          "seat": "13C",
+          "boarding_pass": "BP720047",
+          "checked_in_at": "2025-11-21T18:00:44.422437",
+          "gate": "A11"
+        },
+        "BK106524": {
+          "booking_id": "BK106524",
+          "seat": "18E",
+          "boarding_pass": "BP106524",
+          "checked_in_at": "2025-11-21T18:00:44.422441",
+          "gate": "A16"
+        },
+        "BK865977": {
+          "booking_id": "BK865977",
+          "seat": "11A",
+          "boarding_pass": "BP865977",
+          "checked_in_at": "2025-11-21T18:00:44.422445",
+          "gate": "A48"
+        },
+        "BK178177": {
+          "booking_id": "BK178177",
+          "seat": "23D",
+          "boarding_pass": "BP178177",
+          "checked_in_at": "2025-11-21T18:00:44.422449",
+          "gate": "A27"
+        },
+        "BK822340": {
+          "booking_id": "BK822340",
+          "seat": "22A",
+          "boarding_pass": "BP822340",
+          "checked_in_at": "2025-11-21T18:00:44.422461",
+          "gate": "B49"
+        },
+        "BK493562": {
+          "booking_id": "BK493562",
+          "seat": "17F",
+          "boarding_pass": "BP493562",
+          "checked_in_at": "2025-11-21T18:00:44.422465",
+          "gate": "A4"
+        },
+        "BK954869": {
+          "booking_id": "BK954869",
+          "seat": "23E",
+          "boarding_pass": "BP954869",
+          "checked_in_at": "2025-11-21T18:00:44.422474",
+          "gate": "B21"
+        },
+        "BK388600": {
+          "booking_id": "BK388600",
+          "seat": "3E",
+          "boarding_pass": "BP388600",
+          "checked_in_at": "2025-11-21T18:00:44.422488",
+          "gate": "B28"
+        },
+        "BK533214": {
+          "booking_id": "BK533214",
+          "seat": "3F",
+          "boarding_pass": "BP533214",
+          "checked_in_at": "2025-11-21T18:00:44.422494",
+          "gate": "B28"
+        },
+        "BK894629": {
+          "booking_id": "BK894629",
+          "seat": "16E",
+          "boarding_pass": "BP894629",
+          "checked_in_at": "2025-11-21T18:00:44.422498",
+          "gate": "A2"
+        },
+        "BK554084": {
+          "booking_id": "BK554084",
+          "seat": "4B",
+          "boarding_pass": "BP554084",
+          "checked_in_at": "2025-11-21T18:00:44.422505",
+          "gate": "A10"
+        },
+        "BK238447": {
+          "booking_id": "BK238447",
+          "seat": "2A",
+          "boarding_pass": "BP238447",
+          "checked_in_at": "2025-11-21T18:00:44.422513",
+          "gate": "A50"
+        },
+        "BK351164": {
+          "booking_id": "BK351164",
+          "seat": "13C",
+          "boarding_pass": "BP351164",
+          "checked_in_at": "2025-11-21T18:00:44.422519",
+          "gate": "B39"
+        },
+        "BK210284": {
+          "booking_id": "BK210284",
+          "seat": "5F",
+          "boarding_pass": "BP210284",
+          "checked_in_at": "2025-11-21T18:00:44.422523",
+          "gate": "B11"
+        },
+        "BK184872": {
+          "booking_id": "BK184872",
+          "seat": "5B",
+          "boarding_pass": "BP184872",
+          "checked_in_at": "2025-11-21T18:00:44.422531",
+          "gate": "B12"
+        },
+        "BK519897": {
+          "booking_id": "BK519897",
+          "seat": "22F",
+          "boarding_pass": "BP519897",
+          "checked_in_at": "2025-11-21T18:00:44.422535",
+          "gate": "C26"
+        },
+        "BK467628": {
+          "booking_id": "BK467628",
+          "seat": "3D",
+          "boarding_pass": "BP467628",
+          "checked_in_at": "2025-11-21T18:00:44.422538",
+          "gate": "B18"
+        },
+        "BK214810": {
+          "booking_id": "BK214810",
+          "seat": "20F",
+          "boarding_pass": "BP214810",
+          "checked_in_at": "2025-11-21T18:00:44.422552",
+          "gate": "A28"
+        },
+        "BK100696": {
+          "booking_id": "BK100696",
+          "seat": "20F",
+          "boarding_pass": "BP100696",
+          "checked_in_at": "2025-11-21T18:00:44.422564",
+          "gate": "C12"
+        },
+        "BK148815": {
+          "booking_id": "BK148815",
+          "seat": "9B",
+          "boarding_pass": "BP148815",
+          "checked_in_at": "2025-11-21T18:00:44.422572",
+          "gate": "C21"
+        },
+        "BK305854": {
+          "booking_id": "BK305854",
+          "seat": "9C",
+          "boarding_pass": "BP305854",
+          "checked_in_at": "2025-11-21T18:00:44.422576",
+          "gate": "A40"
+        },
+        "BK614796": {
+          "booking_id": "BK614796",
+          "seat": "15B",
+          "boarding_pass": "BP614796",
+          "checked_in_at": "2025-11-21T18:00:44.422580",
+          "gate": "A24"
+        },
+        "BK530740": {
+          "booking_id": "BK530740",
+          "seat": "25D",
+          "boarding_pass": "BP530740",
+          "checked_in_at": "2025-11-21T18:00:44.422583",
+          "gate": "B31"
+        },
+        "BK962580": {
+          "booking_id": "BK962580",
+          "seat": "13E",
+          "boarding_pass": "BP962580",
+          "checked_in_at": "2025-11-21T18:00:44.422587",
+          "gate": "B23"
+        },
+        "BK826333": {
+          "booking_id": "BK826333",
+          "seat": "24C",
+          "boarding_pass": "BP826333",
+          "checked_in_at": "2025-11-21T18:00:44.422596",
+          "gate": "A47"
+        },
+        "BK621270": {
+          "booking_id": "BK621270",
+          "seat": "24A",
+          "boarding_pass": "BP621270",
+          "checked_in_at": "2025-11-21T18:00:44.422602",
+          "gate": "A18"
+        },
+        "BK349896": {
+          "booking_id": "BK349896",
+          "seat": "18A",
+          "boarding_pass": "BP349896",
+          "checked_in_at": "2025-11-21T18:00:44.422606",
+          "gate": "A22"
+        },
+        "BK956294": {
+          "booking_id": "BK956294",
+          "seat": "23B",
+          "boarding_pass": "BP956294",
+          "checked_in_at": "2025-11-21T18:00:44.422610",
+          "gate": "B33"
+        },
+        "BK526073": {
+          "booking_id": "BK526073",
+          "seat": "9C",
+          "boarding_pass": "BP526073",
+          "checked_in_at": "2025-11-21T18:00:44.422617",
+          "gate": "B43"
+        },
+        "BK715675": {
+          "booking_id": "BK715675",
+          "seat": "16E",
+          "boarding_pass": "BP715675",
+          "checked_in_at": "2025-11-21T18:00:44.422621",
+          "gate": "C3"
+        },
+        "BK271680": {
+          "booking_id": "BK271680",
+          "seat": "23D",
+          "boarding_pass": "BP271680",
+          "checked_in_at": "2025-11-21T18:00:44.422629",
+          "gate": "B2"
+        },
+        "BK578153": {
+          "booking_id": "BK578153",
+          "seat": "13D",
+          "boarding_pass": "BP578153",
+          "checked_in_at": "2025-11-21T18:00:44.422632",
+          "gate": "C29"
+        },
+        "BK513937": {
+          "booking_id": "BK513937",
+          "seat": "17F",
+          "boarding_pass": "BP513937",
+          "checked_in_at": "2025-11-21T18:00:44.422636",
+          "gate": "B3"
+        },
+        "BK688939": {
+          "booking_id": "BK688939",
+          "seat": "22E",
+          "boarding_pass": "BP688939",
+          "checked_in_at": "2025-11-21T18:00:44.422646",
+          "gate": "C26"
+        }
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: checkin-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Checkin API
+      description: Boarding pass and seat assignment management
+    servers:
+      - url: {{ include "airlines.checkin.apiUrl" . }}
+    paths:
+      /checkin/{bookingId}/seat:
+        post:
+          summary: Assign seat
+          operationId: assignSeat
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    seat: {type: string}
+          responses:
+            '200':
+              description: Seat assigned
+      /checkin/{bookingId}/seat/auto:
+        post:
+          summary: Auto-assign seat
+          operationId: autoAssignSeat
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Seat auto-assigned
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          seat: {type: string}
+      /checkin/{bookingId}/boarding-pass:
+        get:
+          summary: Get boarding pass
+          operationId: getBoardingPass
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Boarding pass details
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: checkin-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: checkin-app
+  template:
+    metadata:
+      labels:
+        app: checkin-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: checkin-data
+        - name: openapi
+          configMap:
+            name: checkin-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: checkin-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: checkin-app

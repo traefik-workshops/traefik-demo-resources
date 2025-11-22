@@ -1,0 +1,131 @@
+---
+# Ancillaries API - Meals, Upgrades & Services
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ancillaries-data
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ancillaries
+data:
+  api.json: |
+    {
+      "meals": {
+        "standard": {"name": "Standard Meal", "price": 0, "description": "Regular in-flight meal"},
+        "vegetarian": {"name": "Vegetarian Meal", "price": 0, "description": "Meat-free meal"},
+        "vegan": {"name": "Vegan Meal", "price": 0, "description": "Plant-based meal"},
+        "kosher": {"name": "Kosher Meal", "price": 15.00, "description": "Certified Kosher meal"},
+        "halal": {"name": "Halal Meal", "price": 15.00, "description": "Certified Halal meal"},
+        "gluten_free": {"name": "Gluten-Free Meal", "price": 10.00, "description": "Gluten-free meal"}
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ancillaries-openapi
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ancillaries
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Ancillaries API
+      description: Management of ancillary services like meals and upgrades
+    servers:
+      - url: {{ include "airlines.ancillaries.apiUrl" . }}
+    paths:
+      /ancillaries/meal:
+        post:
+          summary: Record meal preference
+          operationId: recordMealPreference
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id: {type: string}
+                    preference: {type: string}
+          responses:
+            '200':
+              description: Meal preference recorded
+      /ancillaries/seat-upgrade:
+        post:
+          summary: Upgrade seat
+          operationId: upgradeSeat
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    booking_id: {type: string}
+                    new_seat: {type: string}
+          responses:
+            '200':
+              description: Seat upgraded
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ancillaries-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ancillaries
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ancillaries-app
+  template:
+    metadata:
+      labels:
+        app: ancillaries-app
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
+          ports:
+            - containerPort: 3000
+          volumeMounts:
+            - name: api-data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: api-data
+          configMap:
+            name: ancillaries-data
+        - name: openapi
+          configMap:
+            name: ancillaries-openapi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ancillaries-app
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ancillaries
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  selector:
+    app: ancillaries-app
