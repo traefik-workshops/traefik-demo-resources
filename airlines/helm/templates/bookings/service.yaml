@@ -852,6 +852,7 @@ data:
                   properties:
                     flight_id: {type: string}
                     passenger_id: {type: string}
+                    class: {type: string}
                     total_price: {type: number}
           responses:
             '201':
