@@ -7,6 +7,7 @@ oidc:
   clientId: ""
   clientSecret: ""
   issuerUrl: ""
+  jwksUrl: ""
 
 tokens:
   ticketing: ""

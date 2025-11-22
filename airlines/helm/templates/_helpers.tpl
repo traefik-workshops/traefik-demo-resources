@@ -180,7 +180,11 @@ Host(`portal.{{ .Values.domain }}`)
 OIDC JWKS URL
 */}}
 {{- define "airlines.oidc.jwksUrl" -}}
+{{- if .Values.oidc.jwksUrl -}}
+{{ .Values.oidc.jwksUrl }}
+{{- else -}}
 https://keycloak.{{ .Values.domain }}/realms/traefik/protocol/openid-connect/certs
+{{- end -}}
 {{- end }}
 
 {{/*
