@@ -159,16 +159,6 @@ spec:
     **Built with ❤️ by Traefik Labs**
   trustedUrls:
     - portal.{{ .Values.domain }}
-    - {{ include "airlines.flights.apiUrl" . }}
-    - {{ include "airlines.bookings.apiUrl" . }}
-    - {{ include "airlines.tickets.apiUrl" . }}
-    - {{ include "airlines.passengers.apiUrl" . }}
-    - {{ include "airlines.loyalty.apiUrl" . }}
-    - {{ include "airlines.checkin.apiUrl" . }}
-    - {{ include "airlines.baggage.apiUrl" . }}
-    - {{ include "airlines.pricing.apiUrl" . }}
-    - {{ include "airlines.ancillaries.apiUrl" . }}
-    - {{ include "airlines.notifications.apiUrl" . }}
   auth:
     name: oidc-portal-auth
 ---
