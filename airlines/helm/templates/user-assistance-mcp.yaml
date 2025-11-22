@@ -254,45 +254,35 @@ data:
                 steps.append("1️⃣ Retrieving profile...")
                 passenger = await api_request("passengers", f"/passengers/{passenger_id}")
                 
-                    steps.append(f"   💰 Lost baggage compensation: ${compensation:,.2f}")
-                elif issue_type == "damaged":
-                    compensation = 500.00
-                    steps.append(f"   💰 Damage compensation: ${compensation:,.2f}")
-                else:  # delayed
-                    compensation = 100.00
-                    steps.append(f"   💰 Delay compensation: ${compensation:,.2f}")
+                if "error" in passenger:
+                    steps.append(f"   ❌ Passenger not found: {passenger['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
                 
-                # Step 4: Issue interim allowance
-                steps.append("\n4️⃣ Issuing interim allowance...")
-                allowance = 150.00
-                steps.append(f"   ✅ ${allowance:.2f} toiletries/essentials allowance approved")
+                name = passenger.get("name", "Unknown")
+                email = passenger.get("email", "Unknown")
+                phone = passenger.get("phone", "Unknown")
                 
-                # Step 5: Send notification
-                steps.append("\n5️⃣ Notifying passenger...")
-                notification = await api_request(
-                    "notifications",
-                    "/notifications/send",
-                    "POST",
-                    {"type": "baggage_claim", "recipient": passenger_id, "bag_tag": bag_tag}
-                )
+                steps.append(f"   ✅ Name: {name}")
+                steps.append(f"   📧 Email: {email}")
+                steps.append(f"   📱 Phone: {phone}")
                 
-                if "error" not in notification:
-                    steps.append(f"   ✅ Claim confirmation sent")
+                # Step 2: Get loyalty status
+                steps.append("\n2️⃣ Checking loyalty status...")
+                loyalty = await api_request("loyalty", f"/loyalty/{passenger_id}")
                 
-                # Build response
-                response = "\n".join(steps)
-                response += "\n\n" + "="*60
-                response += "\n**CLAIM PROCESSED** ✅\n"
-                response += "="*60
-                response += f"\n\n**Claim Reference**: BC{bag_tag[2:]}"
-                response += f"\n**Compensation**: ${compensation + allowance:,.2f}"
-                response += f"\n**Processing Time**: Expedited (2-3 business days)" if tier in ["Platinum", "Diamond"] else "\n**Processing Time**: Standard (5-7 business days)"
+                if "error" not in loyalty:
+                    tier = loyalty.get("tier", "None")
+                    points = loyalty.get("points", 0)
+                    steps.append(f"   ✨ Tier: {tier}")
+                    steps.append(f"   🎯 Points: {points:,}")
+                else:
+                    steps.append(f"   ℹ️  No loyalty membership")
                 
-                return [{"type": "text", "text": response}]
+                return [{"type": "text", "text": "\n".join(steps)}]
                 
             except Exception as e:
-                logger.error(f"Error in process_baggage_claim: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+                logger.error(f"Error in get_passenger_details: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
         
         elif name == "calculate_delay_compensation":
             flight_id = arguments.get("flight_id")
