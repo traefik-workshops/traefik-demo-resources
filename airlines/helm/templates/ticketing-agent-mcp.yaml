@@ -23,6 +23,7 @@ data:
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.types import Tool
+
     # Configure logging
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("ticketing-agent-mcp")
@@ -273,7 +274,9 @@ data:
                     response += f"\n{i}. **Flight {flight_num}** (ID: {flight.get('id')})\n"
                     response += f"   Departure: {dept_time} | Arrival: {arr_time}\n"
                     response += f"   Price: ${price:.2f} | Seats: {seats}\n"
-                                
+                
+                response += "\n\n**Next Step**: Use `book_flight_itinerary` with a flight_id to complete booking"
+                
                 return [{"type": "text", "text": response}]
                 
             except Exception as e:
