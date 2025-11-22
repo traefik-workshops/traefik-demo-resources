@@ -102,13 +102,13 @@ spec:
     
     ```bash
     # Get access token
-    curl -X POST https://keycloak.triple-gate.traefik.ai/realms/traefik/protocol/openid-connect/token \
+    curl -X POST https://keycloak.{{ .Values.domain }}/realms/traefik/protocol/openid-connect/token \
       -H "Content-Type: application/x-www-form-urlencoded" \
       -d "client_id=traefik&grant_type=password&username=YOUR_USER&password=YOUR_PASS"
     
     # Use token in API requests
     curl -H "Authorization: Bearer YOUR_TOKEN" \
-      https://flights.triple-gate.traefik.ai/flights
+      https://flights.{{ .Values.domain }}/flights
     ```
     
     ## Rate Limiting

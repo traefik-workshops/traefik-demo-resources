@@ -3,44 +3,31 @@ entryPoints:
 
 domain: triple-gate.traefik.ai
 
-# OIDC Middleware Configuration (Incoming Auth)
-oidc:
-  ticketing:
-    clientID: ""
-    clientSecret: ""
-    issuerURL: ""
-  userAssistance:
-    clientID: ""
-    clientSecret: ""
-    issuerURL: ""
-  partnerAssistance:
-    clientID: ""
-    clientSecret: ""
-    issuerURL: ""
+# Keycloak User IDs (passed from Terraform)
+keycloak:
+  adminId: ""
+  developerId: ""
+  agentId: ""
+  clientSecret: "your-client-secret-here"
+  # Default credentials (fallback)
+  adminUsername: "admin"
+  adminPassword: "topsecretpassword"
+  developerUsername: "developer"
+  developerPassword: "topsecretpassword"
+  agentUsername: "agent"
+  agentPassword: "topsecretpassword"
 
-# MCP Server Identities (Outgoing Auth)
-identities:
-  ticketing:
-    username: "agent"
-    password: "topsecretpassword"
-  userAssistance:
-    username: "admin"
-    password: "topsecretpassword"
-  partnerAssistance:
-    username: "developer"
-    password: "topsecretpassword"
+# JWT Tokens for MCP Servers (passed from Terraform)
+tokens:
+  ticketing: ""
+  userAssistance: ""
+  partnerAssistance: ""
 
-# Dashboard OIDC (existing)
+# Dashboard OIDC
 dashboardOidc:
   clientID: ""
   clientSecret: ""
   issuerURL: ""
-
-# Legacy Keycloak (to be removed/deprecated)
-keycloak:
-  clientSecret: "your-client-secret-here"
-  adminUsername: "admin"
-  adminPassword: "admin"
 
 replicaCount: 1
 

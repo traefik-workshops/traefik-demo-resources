@@ -20,7 +20,6 @@ data:
 
     from typing import Any, Dict, List, Optional
     import logging, aiohttp, anyio, json
-    from datetime import datetime, timedelta
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.types import Tool
@@ -31,32 +30,23 @@ data:
 
     # Create MCP server instance
     server = Server("ticketing-agent-mcp")
-
+    
     # API Configuration
     API_BASE_URLS = {
-        "flights": "http://flights-app.airlines.svc.cluster.local:3000",
-        "bookings": "http://bookings-app.airlines.svc.cluster.local:3000",
-        "tickets": "http://tickets-app.airlines.svc.cluster.local:3000",
-        "passengers": "http://passengers-app.airlines.svc.cluster.local:3000",
-        "loyalty": "http://loyalty-app.airlines.svc.cluster.local:3000",
-        "checkin": "http://checkin-app.airlines.svc.cluster.local:3000",
-        "pricing": "http://pricing-app.airlines.svc.cluster.local:3000",
-        "baggage": "http://baggage-app.airlines.svc.cluster.local:3000",
-        "notifications": "http://notifications-app.airlines.svc.cluster.local:3000",
-        "ancillaries": "http://ancillaries-app.airlines.svc.cluster.local:3000",
+        "flights": "{{ include "airlines.flights.apiUrl" . }}",
+        "bookings": "{{ include "airlines.bookings.apiUrl" . }}",
+        "tickets": "{{ include "airlines.tickets.apiUrl" . }}",
+        "passengers": "{{ include "airlines.passengers.apiUrl" . }}",
+        "loyalty": "{{ include "airlines.loyalty.apiUrl" . }}",
+        "checkin": "{{ include "airlines.checkin.apiUrl" . }}",
+        "pricing": "{{ include "airlines.pricing.apiUrl" . }}",
+        "baggage": "{{ include "airlines.baggage.apiUrl" . }}",
+        "notifications": "{{ include "airlines.notifications.apiUrl" . }}",
+        "ancillaries": "{{ include "airlines.ancillaries.apiUrl" . }}",
     }
     
-    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
-    KEYCLOAK_CREDENTIALS = {
-        "client_id": "traefik",
-        "grant_type": "password",
-        "client_secret": "{{ .Values.keycloak.clientSecret }}",
-        "scope": "openid",
-        "username": "{{ .Values.identities.ticketing.username }}",
-        "password": "{{ .Values.identities.ticketing.password }}",
-    }
-
-    jwt_token: Optional[str] = None
+    # Static JWT Token passed from Helm/Terraform
+    jwt_token: str = "{{ .Values.tokens.ticketing }}"
 
     @server.list_tools()
     async def list_tools():
@@ -64,12 +54,12 @@ data:
         return [
             Tool(
                 name="ping",
-                description="Health check - returns pong",
+                description="Health check tool that returns a simple 'pong' response. Use this to verify that the MCP server is running and responsive. It requires no arguments.",
                 inputSchema={"type": "object", "properties": {}}
             ),
             Tool(
                 name="search_flights",
-                description="Search for available flights between origin and destination",
+                description="Searches for available flights based on origin, destination, and date. Use this tool when a user wants to find flight options. It returns a list of flights with pricing and availability. Requires origin, destination, and date.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -89,7 +79,7 @@ data:
             ),
             Tool(
                 name="book_flight_itinerary",
-                description="Complete end-to-end flight booking including loyalty benefits, seat selection, and ticket issuance. This demonstrates orchestration of multiple APIs.",
+                description="Completes an end-to-end flight booking process. This tool orchestrates multiple APIs to create a booking, issue a ticket, select seats, and handle loyalty benefits. Use this when a user has selected a specific flight and wants to proceed with booking. Requires flight_id and passenger_id.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -110,7 +100,7 @@ data:
             ),
             Tool(
                 name="modify_booking",
-                description="Modify an existing booking with change fee calculation and rebooking",
+                description="Modifies an existing booking by changing the flight. This tool calculates change fees and processes the rebooking. Use this when a user wants to change their flight. Requires booking_id and new_flight_id.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -123,7 +113,7 @@ data:
             ),
             Tool(
                 name="cancel_booking_with_refund",
-                description="Cancel booking and process refund based on fare rules and loyalty status",
+                description="Cancels an existing booking and processes any applicable refund. Use this tool when a user wishes to cancel their trip. It checks fare rules and loyalty status to determine refund eligibility. Requires booking_id.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -135,7 +125,7 @@ data:
             ),
             Tool(
                 name="check_in_and_generate_boarding_pass",
-                description="Complete online check-in, select seats, and generate boarding pass",
+                description="Performs online check-in for a passenger and generates their boarding pass. Use this tool when a user is ready to check in for their flight. It can also handle seat selection during check-in. Requires booking_id.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -147,7 +137,7 @@ data:
             ),
             Tool(
                 name="get_loyalty_status",
-                description="Get detailed loyalty program status including miles, tier, and benefits",
+                description="Retrieves detailed information about a customer's loyalty program status. Use this tool to check miles balance, tier status, and available benefits. Requires loyalty_number.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -158,7 +148,7 @@ data:
             ),
             Tool(
                 name="redeem_miles_for_flight",
-                description="Book a flight using loyalty miles with automatic tier benefits application",
+                description="Books a flight using loyalty miles instead of currency. This tool handles the redemption process and applies tier benefits. Use this when a user wants to use their miles for a flight. Requires flight_id, passenger_id, loyalty_number, and miles_to_use.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -173,21 +163,8 @@ data:
         ]
 
     async def get_jwt_token() -> str:
-        """Get JWT token from Keycloak"""
-        global jwt_token
-        if jwt_token:
-            return jwt_token
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                KEYCLOAK_URL,
-                data=KEYCLOAK_CREDENTIALS,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            ) as r:
-                if r.status != 200:
-                    raise RuntimeError(f"Keycloak token error: {r.status}")
-                data = await r.json()
-                jwt_token = data.get("access_token")
-                return jwt_token
+        """Get JWT token (static)"""
+        return jwt_token
 
     async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
         """Make authenticated API request and return response"""
@@ -720,15 +697,35 @@ spec:
   plugin:
     mcp:
       policies:
-        - match: Equals(`mcp.method`, `initialize`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `initialize`)
           action: allow
-        - match: Equals(`mcp.method`, `tools/list`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `tools/list`)
           action: allow
-        - match: Equals(`mcp.method`, `ping`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `ping`)
           action: allow
-        - match: Equals(`mcp.method`, `tools/call`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `tools/call`)
           action: allow
       defaultAction: deny
+
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: ticketing-agent-api
+  namespace: airlines
+spec:
+  title: "Ticketing Agent MCP"
+  description: "MCP Server for Booking & Ticketing"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: https://ticketing-agent.{{ .Values.domain }}
+  cors:
+    allowHeadersList: ["Authorization", "Content-Type"]
+    allowOriginsList: ["*"]
+    allowMethodsList: ["GET", "POST"]
+    allowCredentials: true
 
 ---
 apiVersion: traefik.io/v1alpha1
@@ -739,6 +736,8 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: ticketing-agent-mcp
+  annotations:
+    hub.traefik.io/api: ticketing-agent-api
 spec:
   entryPoints:
     {{- range .Values.entryPoints }}
@@ -749,7 +748,7 @@ spec:
       match: Host(`ticketing-agent.{{ .Values.domain }}`)
       middlewares:
         - name: ticketing-mcp-gateway
-        - name: ticketing-oidc
       services:
         - name: ticketing-agent-mcp
           port: 8080
+```

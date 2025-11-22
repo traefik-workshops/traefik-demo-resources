@@ -78,10 +78,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`ops.{{ .Values.domain }}`)
-      middlewares:
-        - name: dashboard-oidc
-          namespace: airlines
+      match: Host(`airlines.{{ .Values.domain }}`)
       services:
         - name: dashboard
           port: 80

@@ -31,23 +31,14 @@ data:
     server = Server("partner-assistance-mcp")
 
     API_BASE_URLS = {
-        "flights": "http://flights-app.airlines.svc.cluster.local:3000",
-        "bookings": "http://bookings-app.airlines.svc.cluster.local:3000",
-        "pricing": "http://pricing-app.airlines.svc.cluster.local:3000",
-        "notifications": "http://notifications-app.airlines.svc.cluster.local:3000",
+        "flights": "{{ include "airlines.flights.apiUrl" . }}",
+        "bookings": "{{ include "airlines.bookings.apiUrl" . }}",
+        "pricing": "{{ include "airlines.pricing.apiUrl" . }}",
+        "notifications": "{{ include "airlines.notifications.apiUrl" . }}",
     }
     
-    KEYCLOAK_URL = "http://keycloak-service.traefik-security.svc.cluster.local:8080/realms/traefik/protocol/openid-connect/token"
-    KEYCLOAK_CREDENTIALS = {
-        "client_id": "traefik",
-        "grant_type": "password",
-        "client_secret": "{{ .Values.keycloak.clientSecret }}",
-        "scope": "openid",
-        "username": "{{ .Values.identities.partnerAssistance.username }}",
-        "password": "{{ .Values.identities.partnerAssistance.password }}",
-    }
-
-    jwt_token: Optional[str] = None
+    # Static JWT Token passed from Helm/Terraform
+    jwt_token: str = "{{ .Values.tokens.partnerAssistance }}"
 
     @server.list_tools()
     async def list_tools():
@@ -55,12 +46,12 @@ data:
         return [
             Tool(
                 name="ping",
-                description="Health check",
+                description="Health check tool that returns a simple 'pong' response. Use this to verify that the MCP server is running and responsive. It requires no arguments.",
                 inputSchema={"type": "object", "properties": {}}
             ),
             Tool(
                 name="enroll_partner_flight",
-                description="Register a partner airline flight for codeshare",
+                description="Registers a partner airline flight for codeshare agreements. This tool allows partners to add their flights to the network, making them available for booking. Use this when a partner wants to expand their reach. Requires partner_code, flight_number, origin, destination, and departure_time.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -76,7 +67,7 @@ data:
             ),
             Tool(
                 name="update_partner_schedule",
-                description="Update schedule for a partner flight and notify affected systems",
+                description="Updates the schedule for a partner flight and notifies affected systems and passengers. Use this tool when a partner airline reports a schedule change or delay. Requires partner_code, flight_number, and new_departure_time.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -90,7 +81,7 @@ data:
             ),
             Tool(
                 name="create_alliance_booking",
-                description="Create a multi-airline alliance booking",
+                description="Creates a multi-airline alliance booking involving segments from different carriers. This tool handles interline pricing and PNR creation across systems. Use this for complex itineraries involving partners. Requires passenger_id and segments.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -112,7 +103,7 @@ data:
             ),
             Tool(
                 name="reconcile_partner_revenue",
-                description="Calculate revenue sharing for a specific flight or period",
+                description="Calculates revenue sharing for a specific flight or period based on prorate factors. This tool generates settlement reports for clearing houses. Use this for financial reconciliation with partners. Requires partner_code and period.",
                 inputSchema={
                     "type": "object",
                     "properties": {
@@ -126,21 +117,8 @@ data:
         ]
 
     async def get_jwt_token() -> str:
-        """Get JWT token from Keycloak"""
-        global jwt_token
-        if jwt_token:
-            return jwt_token
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                KEYCLOAK_URL,
-                data=KEYCLOAK_CREDENTIALS,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-            ) as r:
-                if r.status != 200:
-                    raise RuntimeError(f"Keycloak token error: {r.status}")
-                data = await r.json()
-                jwt_token = data.get("access_token")
-                return jwt_token
+        """Get JWT token (static)"""
+        return jwt_token
 
     async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
         """Make authenticated API request"""
@@ -548,15 +526,35 @@ spec:
   plugin:
     mcp:
       policies:
-        - match: Equals(`mcp.method`, `initialize`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `initialize`)
           action: allow
-        - match: Equals(`mcp.method`, `tools/list`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `tools/list`)
           action: allow
-        - match: Equals(`mcp.method`, `ping`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `ping`)
           action: allow
-        - match: Equals(`mcp.method`, `tools/call`)
+        - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `tools/call`)
           action: allow
       defaultAction: deny
+
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: partner-assistance-api
+  namespace: airlines
+spec:
+  title: "Partner Assistance MCP"
+  description: "MCP Server for B2B & Alliance Operations"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: https://partner-assistance.{{ .Values.domain }}
+  cors:
+    allowHeadersList: ["Authorization", "Content-Type"]
+    allowOriginsList: ["*"]
+    allowMethodsList: ["GET", "POST"]
+    allowCredentials: true
 
 ---
 apiVersion: traefik.io/v1alpha1
@@ -567,6 +565,8 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: partner-assistance-mcp
+  annotations:
+    hub.traefik.io/api: partner-assistance-api
 spec:
   entryPoints:
     {{- range .Values.entryPoints }}
@@ -577,7 +577,6 @@ spec:
       match: Host(`partner-assistance.{{ .Values.domain }}`)
       middlewares:
         - name: partner-assistance-mcp-gateway
-        - name: partner-assistance-oidc
       services:
         - name: partner-assistance-mcp
           port: 8080
