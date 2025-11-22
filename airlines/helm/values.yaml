@@ -3,7 +3,11 @@ entryPoints:
 
 domain: triple-gate.traefik.ai
 
-# JWT Tokens for MCP Servers (passed from Terraform)
+oidc:
+  clientId: ""
+  clientSecret: ""
+  issuerUrl: ""
+
 tokens:
   ticketing: ""
   userAssistance: ""
