@@ -441,6 +441,20 @@ data:
           responses:
             '200':
               description: List of passengers
+      /passengers/{passengerId}:
+        get:
+          summary: Get passenger details
+          operationId: getPassenger
+          tags: [passengers]
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+          responses:
+            '200':
+              description: Passenger details
     components:
       schemas:
         Passenger:
