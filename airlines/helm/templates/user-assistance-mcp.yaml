@@ -481,11 +481,6 @@ metadata:
 spec:
   title: "User Assistance MCP"
   description: "MCP Server for Customer Support & Issues"
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: https://user-assistance.{{ .Values.domain }}
   cors:
     allowHeadersList: ["Authorization", "Content-Type"]
     allowOriginsList: ["*"]

@@ -711,11 +711,6 @@ metadata:
 spec:
   title: "Ticketing Agent MCP"
   description: "MCP Server for Booking & Ticketing"
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: https://ticketing-agent.{{ .Values.domain }}
   cors:
     allowHeadersList: ["Authorization", "Content-Type"]
     allowOriginsList: ["*"]
