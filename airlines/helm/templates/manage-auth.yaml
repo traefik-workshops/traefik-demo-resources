@@ -17,50 +17,91 @@ spec:
     period: 750h
 ---
 apiVersion: hub.traefik.io/v1alpha1
-kind: ManagedApplication
+kind: APIPlan
 metadata:
-  name: admin-application
+  name: airlines-admin-access
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
-  appId: "admins"
-  owner: {{ .Values.keycloak.adminId }}
+  title: "Airlines Admin Access"
+  description: "A plan with **lower** rate limits and quotas"
+  rateLimit:
+    limit: 10000
+    period: 1s
+  quota:
+    limit: 100000
+    period: 750h
+{{- $toolGroups := list -}}
+{{- range $key, $val := .Values.tool-access -}}
+  {{- $toolGroups = append $toolGroups $val.group -}}
+{{- end -}}
+{{- $uniqueToolGroups := $toolGroups | uniq -}}
+{{- range $group := $uniqueToolGroups }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedApplication
 metadata:
-  name: developer-application
+  name: {{ $group }}-application
   namespace: airlines
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
 spec:
-  appId: "developers"
-  owner: {{ .Values.keycloak.developerId }}
+  appId: {{ $group | quote }}
+  owner: {{ $group | quote }}
+{{- end }}
+{{- range .Values.user-access }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedApplication
 metadata:
-  name: agent-application
+  name: {{ .name }}-application
   namespace: airlines
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
 spec:
-  appId: "agents"
-  owner: {{ .Values.keycloak.agentId }}
+  appId: {{ .name | quote }}
+  owner: {{ .id | quote }}
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedSubscription
 metadata:
-  name: subscription
+  name: users-subscription
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   managedApplications:
-    - name: admin-application
-    - name: developer-application
-    - name: agent-application
+    {{- range .Values.user-access }}
+    - name: {{ .name }}-application
+    {{- end }}
+  apis:
+    - name: baggage-api
+    - name: bookings-api
+    - name: checkin-api
+    - name: flights-api
+    - name: loyalty-api
+    - name: notifications-api
+    - name: pricing-api
+    - name: tickets-api
+    - name: user-assistance-api
+  apiPlan:
+    name: airlines-access
+  weight: 10
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: ManagedSubscription
+metadata:
+  name: admins-subscription
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  managedApplications:
+    {{- range $group := $uniqueToolGroups }}
+    - name: {{ $group }}-application
+    {{- end }}
   apis:
     - name: ancillaries-api
     - name: baggage-api
@@ -76,5 +117,5 @@ spec:
     - name: ticketing-agent-api
     - name: user-assistance-api
   apiPlan:
-    name: airlines-access
-  weight: 10
+    name: airlines-admin-access
+  weight: 100

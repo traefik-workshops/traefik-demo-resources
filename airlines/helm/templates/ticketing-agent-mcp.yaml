@@ -42,7 +42,7 @@ data:
     }
     
     # Static JWT Token passed from Helm/Terraform
-    jwt_token: str = "{{ .Values.tokens.ticketing }}"
+    jwt_token: str = "{{ index .Values "tool-access" "ticketing" "token" }}"
 
     @server.list_tools()
     async def list_tools():

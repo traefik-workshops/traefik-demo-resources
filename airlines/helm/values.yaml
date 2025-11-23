@@ -9,16 +9,23 @@ oidc:
   issuerUrl: ""
   jwksUrl: ""
 
-tokens:
-  ticketing: ""
-  userAssistance: ""
-  partnerAssistance: ""
-  dashboard: ""
-
-keycloak:
-  adminId: "admin-user-id"
-  developerId: "developer-user-id"
-  agentId: "agent-user-id"
+tool-access:
+  dashboard:
+    token: ""
+    group: "tools"
+  users-assistance:
+    token: ""
+    group: "agents"
+  partner-assistance:
+    token: ""
+    group: "agents"
+  ticketing:
+    token: ""
+    group: "agents"
+user-access:
+  - name: "admin"
+    id: ""
+    group: "users"
 
 replicaCount: 1
 
