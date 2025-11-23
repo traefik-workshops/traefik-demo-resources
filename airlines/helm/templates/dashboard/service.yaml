@@ -9,7 +9,7 @@ metadata:
     component: dashboard
 data:
   index.html: |
-{{ .Files.Get "files/dashboard/index.html" | indent 4 }}
+{{ tpl (.Files.Get "files/dashboard/index.html") . | indent 4 }}
 
 ---
 apiVersion: apps/v1
