@@ -165,7 +165,7 @@
 
         // Configuration - dynamically replaced by Helm or defaults
         const DOMAIN = window.location.hostname.replace('ops.', '');
-        const API_BASE = `https://`;
+        const JWT_TOKEN = '{{ .Values.tokens.ticketing }}';
 
         createApp({
             setup() {
@@ -197,25 +197,29 @@
                     });
                 };
 
+                const authHeaders = {
+                    'Authorization': `Bearer ${JWT_TOKEN}`
+                };
+
                 const fetchData = async () => {
                     try {
                         // Fetch Flights
-                        const fRes = await fetch(`https://flights.${DOMAIN}/flights`);
+                        const fRes = await fetch(`https://flights.${DOMAIN}/flights`, { headers: authHeaders });
                         const fData = await fRes.json();
                         flights.value = Object.values(fData.flights || {}).sort((a, b) => new Date(a.departure_time) - new Date(b.departure_time));
 
                         // Fetch Bookings
-                        const bRes = await fetch(`https://bookings.${DOMAIN}/bookings`);
+                        const bRes = await fetch(`https://bookings.${DOMAIN}/bookings`, { headers: authHeaders });
                         const bData = await bRes.json();
                         bookings.value = Object.values(bData.bookings || {}).reverse();
 
                         // Fetch Passengers
-                        const pRes = await fetch(`https://passengers.${DOMAIN}/passengers`);
+                        const pRes = await fetch(`https://passengers.${DOMAIN}/passengers`, { headers: authHeaders });
                         const pData = await pRes.json();
                         passengers.value = Object.values(pData.passengers || {});
 
                         // Fetch Loyalty
-                        const lRes = await fetch(`https://loyalty.${DOMAIN}/members`);
+                        const lRes = await fetch(`https://loyalty.${DOMAIN}/members`, { headers: authHeaders });
                         const lData = await lRes.json();
                         loyalty.value = Object.values(lData.members || {});
 
