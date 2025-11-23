@@ -160,12 +160,13 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
         const { createApp, ref, onMounted, computed } = Vue;
 
-        // Configuration - dynamically replaced by Helm or defaults
+        // Configuration - loaded from config.js
         const DOMAIN = window.location.hostname.replace('ops.', '');
-        const JWT_TOKEN = '{{ .Values.tokens.dashboard }}';
+        const JWT_TOKEN = window.AIRLINES_CONFIG ? window.AIRLINES_CONFIG.jwtToken : '';
 
         createApp({
             setup() {

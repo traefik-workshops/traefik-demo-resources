@@ -8,8 +8,12 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
     component: dashboard
 data:
+  config.js: |
+    window.AIRLINES_CONFIG = {
+      jwtToken: "{{ .Values.tokens.dashboard }}"
+    };
   index.html: |
-{{ tpl (.Files.Get "files/dashboard/index.html") . | indent 4 }}
+{{ .Files.Get "files/dashboard/index.html" | indent 4 }}
 
 ---
 apiVersion: apps/v1
