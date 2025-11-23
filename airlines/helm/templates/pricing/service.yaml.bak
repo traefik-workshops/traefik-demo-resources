@@ -8,9 +8,7 @@ metadata:
 data:
   api.json: |
     {
-      "pricing": {
-        "calculate": {"default": {}},
-        "FL123": {"base_fare": 400, "taxes": 50, "total": 450},
+      "base_fares": {
         "JFK-LAX": {"economy": 400, "premium_economy": 650, "business": 1200, "first": 2500},
         "LAX-JFK": {"economy": 410, "premium_economy": 660, "business": 1250, "first": 2600},
         "SFO-NRT": {"economy": 850, "premium_economy": 1400, "business": 4500, "first": 8500},
@@ -34,19 +32,25 @@ data:
     servers:
       - url: {{ include "airlines.pricing.apiUrl" . }}
     paths:
-      /pricing/FL123:
+      /pricing/{flightId}:
         get:
-          responses:
-            '200':
-              description: Calculated pricing
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/Pricing'
-      /pricing/calculate:
-        post:
-          summary: Calculate flight pricing
-          operationId: calculatePricing
+          summary: Get pricing for a specific flight
+          parameters:
+            - name: flightId
+              in: path
+              required: true
+              schema:
+                type: string
+            - name: class
+              in: query
+              required: true
+              schema:
+                type: string
+            - name: passengers
+              in: query
+              required: true
+              schema:
+                type: integer
           responses:
             '200':
               description: Calculated pricing
@@ -54,17 +58,33 @@ data:
                 application/json:
                   schema:
                     type: object
-    components:
-      schemas:
-        Pricing:
-          type: object
-          properties:
-            base_fare:
-              type: number
-            taxes:
-              type: number
-            total:
-              type: number
+                    properties:
+                      base_fare: {type: number}
+                      taxes: {type: number}
+                      total: {type: number}
+      /pricing/calculate:
+        post:
+          summary: Calculate flight pricing
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    flight_id: {type: string}
+                    class: {type: string}
+                    passengers: {type: integer}
+          responses:
+            '200':
+              description: Calculated pricing
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      base_fare: {type: number}
+                      taxes: {type: number}
+                      total: {type: number}
 
 ---
 apiVersion: apps/v1

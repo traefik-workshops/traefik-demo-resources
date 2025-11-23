@@ -727,6 +727,10 @@ data:
           responses:
             '200':
               description: List of tickets
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TicketList'
       /tickets/TK789012:
         get:
           summary: Get ticket details
@@ -736,6 +740,10 @@ data:
           responses:
             '200':
               description: Ticket details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Ticket'
     components:
       schemas:
         Ticket:

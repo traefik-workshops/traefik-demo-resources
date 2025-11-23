@@ -399,6 +399,10 @@ data:
           responses:
             '200':
               description: Loyalty status
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Loyalty'
       /loyalty/member/LM10001:
         get:
           summary: Get loyalty member details
@@ -408,6 +412,10 @@ data:
           responses:
             '200':
               description: Loyalty member details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/LoyaltyMember'
     components:
       schemas:
         Loyalty:

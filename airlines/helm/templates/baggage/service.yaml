@@ -228,6 +228,10 @@ data:
           responses:
             '200':
               description: Baggage added
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Baggage'
       /baggage/track/{bagTag}:
         get:
           summary: Track baggage
@@ -241,6 +245,10 @@ data:
           responses:
             '200':
               description: Baggage status
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Baggage'
 
       /baggage/booking/{bookingId}:
         get:
@@ -258,12 +266,9 @@ data:
               content:
                 application/json:
                   schema:
-                    type: object
-                    properties:
-                      bags:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Baggage'
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Baggage'
     components:
       schemas:
         Baggage:

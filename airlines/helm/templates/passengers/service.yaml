@@ -441,6 +441,12 @@ data:
           responses:
             '200':
               description: List of passengers
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Passenger'
       /passengers/P10001:
         get:
           summary: Get passenger details
@@ -449,6 +455,10 @@ data:
           responses:
             '200':
               description: Passenger details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Passenger'
     components:
       schemas:
         Passenger:

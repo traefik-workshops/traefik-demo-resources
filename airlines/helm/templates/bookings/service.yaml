@@ -849,6 +849,12 @@ data:
           responses:
             '200':
               description: List of bookings
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
         post:
           summary: Create new booking
           operationId: createBooking
@@ -866,6 +872,10 @@ data:
           responses:
             '201':
               description: Booking created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Booking'
       /bookings/{bookingId}:
         get:
           summary: Get booking details
@@ -879,6 +889,10 @@ data:
           responses:
             '200':
               description: Booking details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Booking'
         put:
           summary: Update booking
           operationId: updateBooking
@@ -891,6 +905,10 @@ data:
           responses:
             '200':
               description: Booking updated
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Booking'
         delete:
           summary: Cancel booking
           operationId: cancelBooking
@@ -903,6 +921,37 @@ data:
           responses:
             '200':
               description: Booking cancelled
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Booking'
+    components:
+      schemas:
+        Booking:
+          type: object
+          required:
+            - booking_id
+            - flight_id
+            - passenger_id
+            - status
+            - booking_date
+            - class
+          properties:
+            booking_id:
+              type: string
+            flight_id:
+              type: string
+            passenger_id:
+              type: string
+            status:
+              type: string
+            booking_date:
+              type: string
+              format: date-time
+            class:
+              type: string
+            total_price:
+              type: number
 
 ---
 apiVersion: apps/v1

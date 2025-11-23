@@ -50,6 +50,12 @@ data:
           responses:
             '200':
               description: Available meal options
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    additionalProperties:
+                      $ref: '#/components/schemas/Meal'
       /ancillaries/meal:
         post:
           summary: Record meal preference
@@ -57,6 +63,10 @@ data:
           responses:
             '200':
               description: Meal preference recorded
+              content:
+                application/json:
+                  schema:
+                    type: object
       /ancillaries/seat-upgrade:
         post:
           summary: Upgrade seat
@@ -72,6 +82,10 @@ data:
           responses:
             '200':
               description: Seat upgraded
+              content:
+                application/json:
+                  schema:
+                    type: object
       /ancillaries:
         post:
           summary: Add ancillary service
@@ -88,6 +102,10 @@ data:
           responses:
             '200':
               description: Ancillary service recorded
+              content:
+                application/json:
+                  schema:
+                    type: object
 
     components:
       schemas:

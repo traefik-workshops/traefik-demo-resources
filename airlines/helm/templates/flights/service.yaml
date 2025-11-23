@@ -306,6 +306,12 @@ data:
           responses:
             '200':
               description: List of flights
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid request
     
@@ -344,6 +350,12 @@ data:
           responses:
             '200':
               description: Search results
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid search parameters
     
@@ -365,6 +377,10 @@ data:
           responses:
             '200':
               description: Flight details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Flight'
             '404':
               description: Flight not found
       
