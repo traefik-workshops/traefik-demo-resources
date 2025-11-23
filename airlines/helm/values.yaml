@@ -13,6 +13,7 @@ tokens:
   ticketing: ""
   userAssistance: ""
   partnerAssistance: ""
+  dashboard: ""
 
 keycloak:
   adminId: "admin-user-id"

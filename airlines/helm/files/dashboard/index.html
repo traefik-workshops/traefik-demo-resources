@@ -165,7 +165,7 @@
 
         // Configuration - dynamically replaced by Helm or defaults
         const DOMAIN = window.location.hostname.replace('ops.', '');
-        const JWT_TOKEN = '{{ .Values.tokens.ticketing }}';
+        const JWT_TOKEN = '{{ .Values.tokens.dashboard }}';
 
         createApp({
             setup() {
