@@ -33,7 +33,7 @@ spec:
     limit: 100000
     period: 750h
 {{- $toolGroups := list -}}
-{{- range $key, $val := .Values.tool-access -}}
+{{- range $key, $val := index .Values "tool-access" -}}
   {{- $toolGroups = append $toolGroups $val.group -}}
 {{- end -}}
 {{- $uniqueToolGroups := $toolGroups | uniq -}}
@@ -50,7 +50,7 @@ spec:
   appId: {{ $group | quote }}
   owner: {{ $group | quote }}
 {{- end }}
-{{- range .Values.user-access }}
+{{- range index .Values "user-access" }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: ManagedApplication
@@ -73,7 +73,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   managedApplications:
-    {{- range .Values.user-access }}
+    {{- range index .Values "user-access" }}
     - name: {{ .name }}-application
     {{- end }}
   apis:
