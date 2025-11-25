@@ -165,7 +165,7 @@
         const { createApp, ref, onMounted, computed } = Vue;
 
         // Configuration - loaded from config.js
-        const DOMAIN = window.location.hostname.replace('ops.', '');
+        const DOMAIN = window.location.hostname.replace('dashboard.', '');
         const JWT_TOKEN = window.AIRLINES_CONFIG ? window.AIRLINES_CONFIG.jwtToken : '';
 
         createApp({
