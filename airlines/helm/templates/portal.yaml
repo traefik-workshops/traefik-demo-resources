@@ -10,137 +10,20 @@ metadata:
 spec:
   title: "Traefik Airlines API Portal"
   description: |
-    **Welcome to Traefik Airlines API Portal**
+    ### Traefik Airlines API Portal
     
     This portal provides access to all Traefik Airlines APIs, demonstrating the 
-    **Triple Gateway Pattern** with API Gateway, MCP Gateway, and AI Gateway middleware.
-    
-    ## Available API Domains
-    
-    ### Flight Operations
-    - **Flights API** - Flight schedules, search, and real-time status
-    - **Bookings API** - Reservation management and modifications
-    - **Tickets API** - E-ticket issuance and operations
-    - **Check-in API** - Online check-in and boarding pass generation
-    
-    ### Customer Services
-    - **Passengers API** - Passenger profiles and preferences
-    - **Loyalty API** - Frequent flyer miles and tier benefits
-    - **Baggage API** - Baggage tracking and claims
-    - **Ancillaries API** - Additional services (meals, seats, wifi)
-    - **Notifications API** - Customer alerts and updates
-    
-    ### Pricing & Payments
-    - **Pricing API** - Fare calculation and dynamic pricing
-    - **Payments API** - Payment processing and refunds
-    
-    ### Operations & Management
-    - **Crew API** - Crew scheduling and assignments
-    - **Aircraft API** - Fleet management and maintenance
-    - **Airports API** - Airport facilities and gate information
-    - **Disruptions API** - Irregular operations handling
-    
-    ### Partner Network
-    - **Partners API** - Alliance and codeshare management
-    - **Reports API** - Analytics and revenue reporting
-    
-    ### Supporting Services
-    - **Inventory API** - Seat inventory management
-    - **Weather API** - Weather data for operations
-    - **Regulations API** - Travel restrictions and requirements
-    
-    ## MCP Servers (AI Agents)
-    
-    Our platform includes three specialized MCP servers that orchestrate multiple APIs
-    to accomplish complex business workflows:
-    
-    ### 1. Ticketing Agent (`ticketing-agent-mcp`)
-    **Purpose**: Customer-facing booking and ticketing operations
-    
-    **Capabilities**:
-    - Search and book complete flight itineraries
-    - Apply loyalty benefits automatically
-    - Handle seat selection with intelligent fallbacks
-    - Process ticket modifications and cancellations
-    - Generate boarding passes
-    - Redeem frequent flyer miles
-    
-    **Example**: Booking a flight orchestrates 8-10 different APIs in a single workflow
-    with full tracing of each step, error handling, and compensation logic.
-    
-    ### 2. User Assistance (`user-assistance-mcp`)
-    **Purpose**: Customer support and issue resolution
-    
-    **Capabilities**:
-    - Handle flight disruptions with automated rebooking
-    - Calculate and issue compensation
-    - Process lost baggage claims
-    - Arrange special assistance (wheelchair, medical)
-    - Upgrade processing
-    - Customer complaint handling
-    
-    **Example**: Flight cancellation triggers automatic passenger identification,
-    alternative flight search, priority rebooking by loyalty tier, compensation
-    calculation, and multi-channel notifications.
-    
-    ### 3. Partner Assistance (`partner-assistance-mcp`)
-    **Purpose**: Airline partnership and operations management
-    
-    **Capabilities**:
-    - Enroll partner flights in the network
-    - Manage codeshare agreements
-    - Process multi-carrier bookings
-    - Revenue reconciliation
-    - Alliance operations coordination
-    
-    **Example**: Partner flight enrollment validates credentials, checks route authority,
-    configures revenue sharing, publishes to GDS systems, and initializes inventory.
-    
-    ## Authentication
-    
-    All APIs require JWT authentication via Keycloak:
-    
-    ```bash
-    # Get access token
-    curl -X POST https://keycloak.{{ .Values.domain }}/realms/traefik/protocol/openid-connect/token \
-      -H "Content-Type: application/x-www-form-urlencoded" \
-      -d "client_id=traefik&grant_type=password&username=YOUR_USER&password=YOUR_PASS"
-    
-    # Use token in API requests
-    curl -H "Authorization: Bearer YOUR_TOKEN" \
-      https://flights.{{ .Values.domain }}/flights
-    ```
-    
-    ## Rate Limiting
-    
-    - **Public tier**: 100 requests per minute
-    - **Authenticated**: 1000 requests per minute
-    - **Partner tier**: 10000 requests per minute
-    
-    ## Getting Started
-    
-    1. **Browse APIs** - Explore available APIs in the catalog below
-    2. **Read Documentation** - Each API includes OpenAPI 3.0 specifications
-    3. **Test in Sandbox** - Use the interactive API explorer
-    4. **Integrate MCP** - Connect MCP servers to AI agents
-    5. **Monitor Usage** - Track API calls and performance
-    
-    ## Support
-    
-    - **Documentation**: https://docs.traefik-airlines.example.com
-    - **Status Page**: https://status.traefik-airlines.example.com
-    - **Support Email**: api-support@traefik-airlines.example.com
-    - **GitHub**: https://github.com/traefik-workshops/traefik-resources
-    
-    ## Triple Gateway Architecture
+    **Triple Gateway Pattern** with API Gateway, MCP Gateway, and AI Gateway.
+
+    #### Triple Gateway Architecture
     
     This platform demonstrates three layers of gateway protection:
     
     1. **API Gateway** (Traefik Hub)
        - Authentication & Authorization
        - Rate limiting
-       - Request/response transformation
        - API versioning and lifecycle
+       - WAF
     
     2. **MCP Gateway** (Traefik MCP Middleware)
        - MCP protocol enforcement
@@ -151,7 +34,7 @@ spec:
     3. **AI Gateway** (Traefik AI Middleware)
        - LLM request routing
        - Prompt filtering
-       - Response guardrails
+       - Request/Response guardrails
        - Cost allocation
     
     ---
