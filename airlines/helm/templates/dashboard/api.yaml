@@ -15,7 +15,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`ops.{{ .Values.domain }}`)
+      match: Host(`dashboard.{{ .Values.domain }}`)
       services:
         - name: dashboard
           port: 80
