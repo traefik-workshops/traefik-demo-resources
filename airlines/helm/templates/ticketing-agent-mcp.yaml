@@ -694,7 +694,7 @@ spec:
           action: allow
         - match: (Equals(`user.groups`, `user`) || Equals(`user.groups`, `ticket-agent`) || Equals(`user.groups`, `partner`)) && Equals(`mcp.method`, `tools/call`)
           action: allow
-      defaultAction: deny
+      defaultAction: allow
 
 ---
 apiVersion: hub.traefik.io/v1alpha1
