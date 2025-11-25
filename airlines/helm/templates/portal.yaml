@@ -78,14 +78,15 @@ spec:
   groups:
     - users
   apis:
-    - name: flights-api
-    - name: pricing-api
-    - name: tickets-api
     - name: baggage-api
     - name: bookings-api
     - name: checkin-api
+    - name: flights-api
     - name: loyalty-api
     - name: notifications-api
+    - name: openai-api
+    - name: pricing-api
+    - name: tickets-api
     - name: user-assistance-api
   apiPlan:
     name: airlines-access
@@ -101,17 +102,18 @@ spec:
   groups:
     - admins
   apis:
-    - name: flights-api
-    - name: pricing-api
-    - name: tickets-api
     - name: ancillaries-api
     - name: baggage-api
     - name: bookings-api
     - name: checkin-api
+    - name: flights-api
     - name: loyalty-api
     - name: notifications-api
-    - name: passengers-api
+    - name: openai-api
     - name: partner-assistance-api
+    - name: passengers-api
+    - name: pricing-api
+    - name: tickets-api
     - name: ticketing-agent-api
     - name: user-assistance-api
   apiPlan:
