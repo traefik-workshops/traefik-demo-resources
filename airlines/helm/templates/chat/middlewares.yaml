@@ -35,7 +35,7 @@ metadata:
 spec:
   headers:
     customRequestHeaders:
-      Authorization: {{ .Values.chat.llms.openai.api_key }}
+      Authorization: "Bearer {{ .Values.chat.llms.openai.api_key }}"
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
