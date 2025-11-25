@@ -255,11 +255,25 @@ data:
                 steps.append("\\n3️⃣ Checking seat availability...")
                 for flight in priced_flights:
                     flight_id = flight.get("flight_id")
-                    inventory = await api_request("flights", f"/flights/{flight_id}/inventory")
-                    if "error" not in inventory:
-                        available_seats = inventory.get("available_seats", 0)
-                        flight["available_seats"] = available_seats
-                        steps.append(f"   ✅ Flight {flight_id}: {available_seats} seats available")
+                    inventory_response = await api_request("flights", f"/flights/{flight_id}/inventory")
+                    
+                    available_seats = 0
+                    if "error" not in inventory_response:
+                        # Handle wrapped inventory
+                        inventory = inventory_response
+                        if "flights" in inventory_response:
+                            inv_data = inventory_response["flights"]
+                            if isinstance(inv_data, dict) and flight_id in inv_data:
+                                inventory = inv_data[flight_id]
+                            elif isinstance(inv_data, list):
+                                found = next((f for f in inv_data if f.get("flight_id") == flight_id), None)
+                                if found:
+                                    inventory = found
+                        
+                        available_seats = inventory.get("seats_available", 0)
+                    
+                    flight["available_seats"] = available_seats
+                    steps.append(f"   ✅ Flight {flight_id}: {available_seats} seats available")
                 
                 # Build response
                 response = "\\n".join(steps)
@@ -333,13 +347,25 @@ data:
                 
                 # Step 2: Get passenger details
                 steps.append("\\n2️⃣ Verifying passenger information...")
-                passenger = await api_request("passengers", f"/passengers/{passenger_id}")
-                if "error" in passenger:
-                    errors.append(f"Passenger not found: {passenger['error']}")
+                passenger_response = await api_request("passengers", f"/passengers/{passenger_id}")
+                if "error" in passenger_response:
+                    errors.append(f"Passenger not found: {passenger_response['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
                 
-                passenger_name = passenger.get("name", "Unknown")
+                # Handle wrapped passenger response
+                passenger = passenger_response
+                if "passengers" in passenger_response:
+                    pax_data = passenger_response["passengers"]
+                    if isinstance(pax_data, dict) and passenger_id in pax_data:
+                        passenger = pax_data[passenger_id]
+                    elif isinstance(pax_data, list):
+                        found = next((p for p in pax_data if p.get("passenger_id") == passenger_id), None)
+                        if found:
+                            passenger = found
+                
+                passenger_name = passenger.get("first_name", "") + " " + passenger.get("last_name", "")
+                if passenger_name.strip() == "": passenger_name = "Unknown"
                 steps.append(f"   ✅ Passenger: {passenger_name}")
                 
                 # Step 3: Check loyalty status (if provided)
@@ -347,10 +373,21 @@ data:
                 loyalty_tier = "None"
                 if loyalty_number:
                     steps.append("\\n3️⃣ Checking loyalty program benefits...")
-                    loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
-                    if "error" not in loyalty:
+                    loyalty_response = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+                    if "error" not in loyalty_response:
+                        # Handle wrapped loyalty response
+                        loyalty = loyalty_response
+                        if "members" in loyalty_response:
+                            members_data = loyalty_response["members"]
+                            if isinstance(members_data, dict) and loyalty_number in members_data:
+                                loyalty = members_data[loyalty_number]
+                            elif isinstance(members_data, list):
+                                found = next((m for m in members_data if m.get("member_id") == loyalty_number), None)
+                                if found:
+                                    loyalty = found
+                        
                         loyalty_tier = loyalty.get("tier", "Standard")
-                        miles_available = loyalty.get("miles", 0)
+                        miles_available = loyalty.get("miles_balance", 0)
                         steps.append(f"   ✅ Tier: {loyalty_tier} | Miles: {miles_available:,}")
                         
                         # Calculate tier discount
@@ -364,7 +401,7 @@ data:
                         if loyalty_discount > 0:
                             steps.append(f"   🎁 {int(loyalty_discount * 100)}% loyalty discount applied")
                     else:
-                        warnings.append(f"Loyalty lookup failed: {loyalty['error']}")
+                        warnings.append(f"Loyalty lookup failed: {loyalty_response['error']}")
                         steps.append(f"   ⚠️  {warnings[-1]}")
                 
                 # Step 4: Calculate pricing
