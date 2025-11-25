@@ -166,35 +166,34 @@ data:
                 steps.append(f"📅 Date: {date}")
                 steps.append("")
                 
-                # Step 1: Search for flight
+                # Step 1: Get flight by flight number
                 steps.append("1️⃣ Locating flight...")
-                # Note: In a real app, we'd search by flight number. Here we simulate finding it.
-                # We'll list flights and filter (inefficient but works for demo)
-                search = await api_request("flights", f"/flights/search?date={date}&origin=JFK&dest=LHR") # Dummy search
+                flight = await api_request("flights", f"/flights/{flight_number}")
                 
-                # For demo purposes, we'll just get a specific flight if the search fails or is generic
-                flight_id = "FL-101" # Fallback
-                
-                flight = await api_request("flights", f"/flights/{flight_id}")
                 if "error" in flight:
                     steps.append(f"   ❌ Flight not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
                 
-                status = flight.get("status", "Unknown")
-                dept_time = flight.get("departure_time", "Unknown")
-                arr_time = flight.get("arrival_time", "Unknown")
-                gate = flight.get("gate", "TBD")
+                steps.append(f"   ✅ Found: {flight.get('flight_number', flight_number)}")
+                steps.append(f"   🛫 {flight.get('origin', 'N/A')} → {flight.get('destination', 'N/A')}")
                 
-                steps.append(f"   ✅ Status: **{status}**")
-                steps.append(f"   🕒 Departure: {dept_time}")
-                steps.append(f"   🕒 Arrival: {arr_time}")
+                # Step 2: Get status details
+                steps.append("\n2️⃣ Checking flight status...")
+                status = flight.get("status", "Unknown")
+                departure = flight.get("departure_time", "N/A")
+                arrival = flight.get("arrival_time", "N/A")
+                gate = flight.get("gate", "TBA")
+                
+                steps.append(f"   📊 Status: {status}")
+                steps.append(f"   🕐 Departure: {departure}")
+                steps.append(f"   🕑 Arrival: {arrival}")
                 steps.append(f"   🚪 Gate: {gate}")
                 
                 return [{"type": "text", "text": "\n".join(steps)}]
                 
             except Exception as e:
                 logger.error(f"Error in get_flight_status: {e}")
-                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+                return [{"type": "text", "text": f"❌ Error checking flight status: {str(e)}"}]
 
         elif name == "get_booking_details":
             booking_id = arguments.get("booking_id")
