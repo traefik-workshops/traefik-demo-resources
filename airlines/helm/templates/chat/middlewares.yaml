@@ -2,44 +2,6 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: openai-cc
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: openai
-spec:
-  plugin:
-    chat-completion:
-      model: gpt-4.1-nano
-      allowModelOverride: true
-      allowParamsOverride: false
-      gracefulErrors: true
-      mockStreaming: true
-      customResponseHeaderMetrics:
-        cache_status: "X-Cache-Status"
-      params:
-        temperature: 1
-        topP: 1
-        maxTokens: 2048
-        frequencyPenalty: 0
-        presencePenalty: 0
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: cc-authtoken
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: openai
-spec:
-  headers:
-    customRequestHeaders:
-      Authorization: "Bearer {{ .Values.chat.llms.openai.api_key }}"
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
   name: cc-content-guard
   namespace: airlines
   labels:

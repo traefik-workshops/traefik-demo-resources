@@ -83,10 +83,15 @@ spec:
     - name: flights-api
     - name: loyalty-api
     - name: notifications-api
-    - name: openai-api
     - name: pricing-api
     - name: tickets-api
     - name: user-assistance-api
+    {{- if .Values.chat.llms.openai.enabled }}
+    - name: openai-api
+    {{- end }}
+    {{- if .Values.chat.llms.gpt.enabled }}
+    - name: gpt-api
+    {{- end }}
   apiPlan:
     name: airlines-access
   weight: 10
@@ -112,13 +117,18 @@ spec:
     - name: flights-api
     - name: loyalty-api
     - name: notifications-api
-    - name: openai-api
     - name: partner-assistance-api
     - name: passengers-api
     - name: pricing-api
     - name: tickets-api
     - name: ticketing-agent-api
     - name: user-assistance-api
+    {{- if .Values.chat.llms.openai.enabled }}
+    - name: openai-api
+    {{- end }}
+    {{- if .Values.chat.llms.gpt.enabled }}
+    - name: gpt-api
+    {{- end }}
   apiPlan:
     name: airlines-admins-access
   weight: 100

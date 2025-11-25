@@ -31,7 +31,7 @@ chat:
     openai:
       enabled: false
       api_key: ""
-    gpt_oss:
+    gpt:
       enabled: false
       host: ""
   guards:

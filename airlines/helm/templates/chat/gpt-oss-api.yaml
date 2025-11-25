@@ -1,0 +1,135 @@
+{{- if .Values.chat.llms.gpt.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gpt
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gpt
+spec:
+  type: ExternalName
+  externalName: {{ .Values.chat.llms.gpt.host | quote }}
+  ports:
+    - port: 443
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gpt-cc
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gpt
+spec:
+  plugin:
+    chat-completion:
+      model: openai/gpt-oss-20b
+      allowModelOverride: true
+      allowParamsOverride: false
+      gracefulErrors: true
+      mockStreaming: true
+      customResponseHeaderMetrics:
+        cache_status: "X-Cache-Status"
+      params:
+        temperature: 1
+        topP: 1
+        maxTokens: 2048
+        frequencyPenalty: 0
+        presencePenalty: 0
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: gpt-api
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gpt
+spec:
+  title: "GPT OSS API"
+  description: "GPT OSS API spec"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: https://gpt.{{ .Values.domain }} 
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gpt-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gpt
+  annotations:
+    hub.traefik.io/api: gpt-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: Host(`gpt.{{ .Values.domain }}`)
+      services:
+        - name: gpt
+          namespace: airlines
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+    - kind: Rule
+      match: Host(`gpt.{{ .Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
+      services:
+        - name: gpt
+          namespace: airlines
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        - name: gpt-cc
+        {{- if .Values.chat.semantic_cache.enabled }}
+        - name: cc-semantic-cache
+        {{- end }}
+        {{- if .Values.chat.content_guard.enabled }}
+        - name: cc-content-guard
+        {{- end }}
+        {{- if .Values.chat.guards.enabled }}
+        {{- if .Values.chat.guards.parallel }}
+        - name: cc-llmguard-chain
+        {{- else }}
+        {{- if .Values.chat.guards.topic_control.enabled }}
+        - name: cc-topic-control-guard
+        {{- end }}
+        {{- if .Values.chat.guards.content_safety.enabled }}
+        - name: cc-content-safety-guard
+        {{- end }}
+        {{- if .Values.chat.guards.jailbreak_detection.enabled }}
+        - name: cc-jailbreak-detection-guard
+        {{- end }}
+        {{- if .Values.chat.guards.granite_guardian.enabled }}
+        - name: cc-granite-guard
+        {{- end }}
+        {{- end }}
+        {{- end }}
+{{- end }}
