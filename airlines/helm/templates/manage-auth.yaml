@@ -19,7 +19,7 @@ spec:
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPlan
 metadata:
-  name: airlines-admin-access
+  name: airlines-admins-access
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
@@ -136,5 +136,5 @@ spec:
     - name: user-assistance-api
     - name: openai-api
   apiPlan:
-    name: airlines-admin-access
+    name: airlines-admins-access
   weight: 100
