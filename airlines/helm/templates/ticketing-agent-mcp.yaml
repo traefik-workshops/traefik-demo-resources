@@ -584,41 +584,35 @@ data:
         else:
             return [{"type": "text", "text": f"❌ Unknown tool: {name}"}]
 
-    async def main():
-        """Run the MCP server with SSE transport"""
-        from starlette.applications import Starlette
-        from starlette.routing import Route
-        from mcp.server.sse import SseServerTransport
-        import uvicorn
-
-        sse = SseServerTransport("/messages")
-
-        async def handle_sse(request):
-            async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
-                await server.run(streams[0], streams[1], server.create_initialization_options())
-
-        async def handle_messages(request):
-            await sse.handle_post_message(request.scope, request.receive, request._send)
-
-        app = Starlette(debug=True, routes=[
-            Route("/sse", endpoint=handle_sse),
-            Route("/messages", endpoint=handle_messages, methods=["POST"])
-        ])
-
-        config = uvicorn.Config(app, host="0.0.0.0", port=8080, log_level="info")
-        server_instance = uvicorn.Server(config)
-        await server_instance.serve()
-
     if __name__ == "__main__":
         import asyncio
-        asyncio.run(main())
+        from mcp.server.fastmcp import FastMCP
+        import uvicorn
+        
+        mcp_app = FastMCP("ticketing-agent-mcp", stateless_http=True, json_response=True)
+        
+        tools_list =asyncio.run(list_tools())
+        
+        for tool_def in tools_list:
+            def make_tool_wrapper(tool_name_capture):
+                async def tool_wrapper(**kwargs):
+                    result = await call_tool(tool_name_capture, kwargs)
+                    if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                        return result[0]["text"]
+                    return str(result)
+                return tool_wrapper
+            
+            mcp_app.tool(name=tool_def.name, description=tool_def.description)(make_tool_wrapper(tool_def.name))
+        
+        logger.info("Starting Ticketing Agent MCP Server with streamable-http...")
+        app = mcp_app.streamable_http_app()
+        uvicorn.run(app, host="0.0.0.0", port=8080)
   requirements.txt: |
-    mcp>=1.0.0
-    aiohttp>=3.9.0
-    anyio>=4.0.0
-    starlette>=0.30.0
-    uvicorn>=0.20.0
-    sse-starlette>=1.8.0
+    mcp>=1.3.0
+    uvicorn>=0.32.1
+    aiohttp==3.9.1
+    anyio==4.11.0
+    httpx>=0.27.0
 
 ---
 apiVersion: apps/v1
