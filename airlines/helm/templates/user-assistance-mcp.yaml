@@ -47,7 +47,7 @@ data:
     }
     
     # Static JWT Token passed from Helm/Terraform
-    jwt_token: str = "{{ index .Values "tool-access" "users-assistance" "token" }}"
+    jwt_token: str = "{{ required "tool-access.users-assistance.token is required" (index .Values "tool-access" "users-assistance" "token") }}"
 
     @server.list_tools()
     async def list_tools():
