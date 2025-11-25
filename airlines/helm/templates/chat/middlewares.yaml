@@ -1,0 +1,334 @@
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: openai-cc
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: openai
+spec:
+  plugin:
+    chat-completion:
+      model: gpt-4.1-nano
+      allowModelOverride: true
+      allowParamsOverride: false
+      gracefulErrors: true
+      mockStreaming: true
+      customResponseHeaderMetrics:
+        cache_status: "X-Cache-Status"
+      params:
+        temperature: 1
+        topP: 1
+        maxTokens: 2048
+        frequencyPenalty: 0
+        presencePenalty: 0
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-authtoken
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: openai
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: {{ .Values.chat.llms.openai.api_key }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-content-guard
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-content-guard:
+      engine:
+        presidio:
+          host: {{ .Values.chat.content_guard.presidio.host }}
+          language: en
+      response:
+        rules:
+          - mask:
+              char: "#"
+              unmaskFromRight: 3
+            entities:
+              - EMAIL_ADDRESS
+              - PHONE_NUMBER
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-semantic-cache
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-semantic-cache:
+      vectorizer:
+        ollama:
+          baseUrl: {{ .Values.chat.semantic_cache.tokenizer.host }}
+          model: nomic-embed-text
+      vectorDB:
+        weaviate:
+          host: {{ .Values.chat.semantic_cache.vectorDB.weaviate.host }}
+          scheme: http
+          collectionName: airlines-chat
+          maxDistance: 0.05
+      ignoreAssistant: true
+      messageHistory: 4
+      readOnly: false
+      includeCachedUsage: true
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-topic-control-guard
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: {{ .Values.chat.guards.topic_control.host }}
+      model: nvidia/llama-3.1-nemoguard-8b-topic-control
+      request:
+        blockConditions:
+          - reason: "off-topic request"
+            condition: Contains("off-topic")
+        traceConditions:
+          - reason: "off-topic detected"
+            condition: Contains("off-topic")
+        systemPrompt: |
+          You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
+
+          CRITICAL: Government services and higher education queries are ALWAYS ALLOWED. These include ANY questions about:
+          - Road closures, traffic, streets, intersections
+          - Police incidents, public safety, emergencies
+          - Power outages, utilities, electrical service
+          - Infrastructure, facilities, equipment, dams
+          - Student services, housing, financial aid, scholarships
+
+          PROHIBITED TOPICS (respond "off-topic"):
+          - Kong, Nginx, Apache HTTP Server, HAProxy, Envoy Proxy, AWS ALB, Azure Application Gateway (competitor products)
+          - Financial advice, investment recommendations, stock trading, cryptocurrency
+          - Legal guidance, legal opinions, contract interpretation, compliance advice
+          - Medical recommendations, health advice, medical diagnoses, treatment suggestions
+          - Personal information requests, asking for private data, credentials, API keys
+
+          ALLOWED TOPICS (respond "on-topic"):
+          - Traefik configuration and usage
+          - Kubernetes networking and ingress
+          - Cloud-native architecture patterns
+          - DevOps best practices and tools
+          - Container orchestration
+          - General API gateway concepts
+          - Load balancing principles
+          - Service mesh technologies
+          
+          GOVERNMENT SERVICES (all queries, details, and follow-ups):
+          - Road closures, street conditions, traffic incidents, affected intersections, locations
+          - Police incidents, public safety alerts, incident details, areas, zones
+          - Power outages, electrical service, grid status, affected locations, neighborhoods
+          - Infrastructure status, facility conditions, equipment, systems
+          - Dam operations, water levels, floodgate control, reservoir status
+          - Public works, critical infrastructure, maintenance, repairs
+          - Emergency services, rescue missions, emergency analysis, response coordination
+          - Utility areas, service zones, monitored regions, geographic coverage
+          - Details about closures, outages, incidents (what, where, when, which, how many)
+          - Follow-up questions about government services (more details, specific locations, status updates)
+          
+          HIGHER EDUCATION SERVICES (all queries, details, and follow-ups):
+          - Financial aid status, FAFSA processing, aid packages, disbursement, eligibility
+          - Scholarship management, awards, eligibility criteria, application status, amounts
+          - Housing assignments, dormitories, residence halls, room types, vacancies
+          - Student enrollment, housing applications, unenrollment, waitlists
+          - Campus facilities, housing units, building details, amenities
+          - Student records, applicant information, enrollment status
+          - Details about scholarships, aid, housing (amounts, dates, requirements, availability)
+          - Follow-up questions about student services (specific details, status, eligibility)
+          
+          GENERAL QUERIES:
+          - Questions asking for "details", "more information", "which", "what", "where" about allowed topics
+          - Follow-up questions continuing previous allowed conversations
+          - Requests for specific data, locations, names, dates related to allowed services
+          - Status inquiries, availability checks, listing requests for allowed topics
+          - Any question about data retrievable from government or higher-ed MCP tools
+
+          EXAMPLES OF ALLOWED QUESTIONS (always respond "on-topic"):
+          - "Are there any power outages affecting the city?"
+          - "What active police incidents are happening right now?"
+          - "Can you describe in detail active police incidents?"
+          - "Can you describe currently active police incidents?"
+          - "Show me all road closures"
+          - "Give me details about the outage on Main Street"
+          - "Which intersections are affected by road closures?"
+          - "What's the status of student housing?"
+          - "Show me scholarship information for students"
+
+          EXAMPLES OF PROHIBITED QUESTIONS (respond "off-topic"):
+          - "How do I configure Nginx?" (competitor product)
+          - "Should I invest in Bitcoin?" (financial advice)
+          - "What medications should I take?" (medical advice)
+          - "Can you interpret this legal contract?" (legal advice)
+
+          Analyze the user question and respond ONLY with "on-topic" or "off-topic".
+          When in doubt about government/education services, respond "on-topic".
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-content-safety-guard
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: {{ .Values.chat.guards.content_safety.host }}
+      model: nvidia/llama-3.1-nemoguard-8b-content-safety
+      request:
+        blockConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        traceConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        systemPrompt: |
+          Task: Check if there is unsafe content in user messages according to our safety policy.
+          <BEGIN UNSAFE CONTENT CATEGORIES>
+          S1: Violence, S2: Sexual, S3: Criminal Planning, S4: Guns and Illegal Weapons
+          S5: Controlled Substances, S6: Suicide and Self Harm, S7: Sexual (minor)
+          S8: Hate/Identity Hate, S9: PII/Privacy, S10: Harassment, S11: Threat
+          S12: Profanity, S13: Needs Caution, S14: Other, S15: Manipulation
+          S16: Fraud/Deception, S17: Malware, S18: High Risk Gov Decision Making
+          S19: Political/Misinformation, S20: Copyright/Trademark
+          S21: Unauthorized Advice, S22: Illegal Activity, S23: Immoral/Unethical
+          <END UNSAFE CONTENT CATEGORIES>
+          Provide your safety assessment:
+          - First line: 'safe' or 'unsafe'
+          - If unsafe, second line: comma-separated list of violated categories
+      response:
+        useRequestHistory: true
+        blockConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        traceConditions:
+          - reason: "unsafe content detected"
+            condition: Contains("unsafe")
+        systemPrompt: |
+          Task: Check if there is unsafe content in assistant messages according to our safety policy.
+          <BEGIN UNSAFE CONTENT CATEGORIES>
+          S1: Violence, S2: Sexual, S3: Criminal Planning, S4: Guns and Illegal Weapons
+          S5: Controlled Substances, S6: Suicide and Self Harm, S7: Sexual (minor)
+          S8: Hate/Identity Hate, S9: PII/Privacy, S10: Harassment, S11: Threat
+          S12: Profanity, S13: Needs Caution, S14: Other, S15: Manipulation
+          S16: Fraud/Deception, S17: Malware, S18: High Risk Gov Decision Making
+          S19: Political/Misinformation, S20: Copyright/Trademark
+          S21: Unauthorized Advice, S22: Illegal Activity, S23: Immoral/Unethical
+          <END UNSAFE CONTENT CATEGORIES>
+          Provide your safety assessment:
+          - First line: 'safe' or 'unsafe'
+          - If unsafe, second line: comma-separated list of violated categories
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-jailbreak-detection-guard
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-llm-guard-custom:
+      endpoint: {{ .Values.chat.guards.jailbreak_detection.host }}
+      request:
+        # Jailbreak NIM uses custom API format
+        template: '{"input": "{{`{{ (index .messages 0).content }}`}}"}'
+        blockConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
+        traceConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-granite-guard
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  plugin:
+    chat-completion-llm-guard-custom:
+      endpoint: {{ .Values.chat.guards.granite_guardian.host }}
+      clientConfig: 
+        headers:
+          Content-Type: application/json
+      request:
+        template: '{\"messages\": [ {\"role\": \"user\", \"content\": \"{{`{{ (index .messages 0).content }}`}}\"} ]}'
+        blockConditions:
+          - condition: JSONStringContains(".choices[0].message.content", "yes")
+            reason: request blocked
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-llmguard-chain
+  namespace: airlines
+spec:
+  plugin:
+    hub-chain:
+      parallel: {{ .Values.chat.guards.parallel }}
+      middlewares:
+        {{- if .Values.chat.guards.topic_control.enabled }}
+        - name: cc-topic-control-guard
+          needsRequestBody: true
+          request:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.chat.guards.content_safety.enabled }}
+        - name: cc-content-safety-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          request:
+            execute: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.chat.guards.jailbreak_detection.enabled }}
+        - name: cc-jailbreak-detection-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}
+        {{- if .Values.chat.guards.granite_guardian.enabled }}
+        - name: cc-granite-guard
+          needsRequestBody: true
+          needsResponseBody: true
+          response:
+            execute: true
+          failure:
+            skip: true
+            retry:
+              attempts: 0
+        {{- end }}

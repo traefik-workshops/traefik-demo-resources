@@ -27,6 +27,41 @@ user-access:
     id: ""
     group: "users"
 
+chat:
+  llms:
+    openai:
+      enabled: false
+      api_key: ""
+    gpt_oss:
+      enabled: false
+      host: ""
+  guards:
+    enabled: false
+    parallel: false
+    topic_control:
+      enabled: false
+      host: ""
+    content_safety:
+      enabled: false
+      host: ""
+    jailbreak_detection:
+      enabled: false
+      host: ""
+    granite_guardian:
+      enabled: false
+      host: ""
+  content_guard:
+    enabled: false
+    presidio:
+      host: ""
+  semantic_cache:
+    enabled: false
+    tokenizer:
+      host: ""
+    vectorDB:
+      weaviate:
+        host: ""
+
 replicaCount: 1
 
 image:

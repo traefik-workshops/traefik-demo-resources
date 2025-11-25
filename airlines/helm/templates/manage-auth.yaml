@@ -86,6 +86,7 @@ spec:
     - name: pricing-api
     - name: tickets-api
     - name: user-assistance-api
+    - name: openai-api
   apiPlan:
     name: airlines-access
   weight: 10
@@ -116,6 +117,7 @@ spec:
     - name: partner-assistance-api
     - name: ticketing-agent-api
     - name: user-assistance-api
+    - name: openai-api
   apiPlan:
     name: airlines-admin-access
   weight: 100
