@@ -77,7 +77,7 @@ metadata:
   labels:
     {{- include "airlines.labels" $ | nindent 4 }}
 spec:
-  appId: {{ .name | quote }}
+  appId: {{ .group | quote }}
   owner: {{ .id | quote }}
 {{- end }}
 ---
