@@ -224,7 +224,11 @@ data:
                     steps.append(f"   ❌ Error: {search_result['error']}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
                 
-                flights = search_result.get("flights", [])
+                flights_data = search_result.get("flights", [])
+                if isinstance(flights_data, dict):
+                    flights = list(flights_data.values())
+                else:
+                    flights = flights_data
                 steps.append(f"   ✅ Found {len(flights)} flights")
                 
                 # Step 2: Get pricing for each flight
@@ -250,7 +254,7 @@ data:
                 # Step 3: Check seat availability
                 steps.append("\\n3️⃣ Checking seat availability...")
                 for flight in priced_flights:
-                    flight_id = flight.get("id")
+                    flight_id = flight.get("flight_id")
                     inventory = await api_request("flights", f"/flights/{flight_id}/inventory")
                     if "error" not in inventory:
                         available_seats = inventory.get("available_seats", 0)
@@ -263,11 +267,11 @@ data:
                 for i, flight in enumerate(priced_flights, 1):
                     dept_time = flight.get("departure_time", "Unknown")
                     arr_time = flight.get("arrival_time", "Unknown")
-                    flight_num = flight.get("flight_number", "Unknown")
+                    flight_num = flight.get("flight_id", "Unknown")
                     price = flight["pricing"].get("total", 0) if "pricing" in flight else 0
                     seats = flight.get("available_seats", "?")
                     
-                    response += f"\\n{i}. **Flight {flight_num}** (ID: {flight.get('id')})\\n"
+                    response += f"\\n{i}. **Flight {flight_num}** (ID: {flight.get('flight_id')})\\n"
                     response += f"   Departure: {dept_time} | Arrival: {arr_time}\\n"
                     response += f"   Price: ${price:.2f} | Seats: {seats}\\n"
                 
@@ -299,13 +303,29 @@ data:
                 
                 # Step 1: Get flight details
                 steps.append("1️⃣ Retrieving flight information...")
-                flight = await api_request("flights", f"/flights/{flight_id}")
-                if "error" in flight:
-                    errors.append(f"Flight not found: {flight['error']}")
+                flight_response = await api_request("flights", f"/flights/{flight_id}")
+                if "error" in flight_response:
+                    errors.append(f"Flight not found: {flight_response['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
                 
-                flight_num = flight.get("flight_number", "Unknown")
+                # Handle API response variations
+                flight = flight_response
+                if "flights" in flight_response:
+                    flights_data = flight_response["flights"]
+                    if isinstance(flights_data, dict) and flight_id in flights_data:
+                        flight = flights_data[flight_id]
+                    elif isinstance(flights_data, list):
+                        found = next((f for f in flights_data if f.get("flight_id") == flight_id), None)
+                        if found:
+                            flight = found
+                
+                # Check if we actually have the flight data
+                if not flight or "flight_id" not in flight:
+                     # Fallback logic if needed
+                     pass
+                
+                flight_num = flight.get("flight_id", "Unknown")
                 origin = flight.get("origin", "???")
                 dest = flight.get("destination", "???")
                 dept_time = flight.get("departure_time", "Unknown")

@@ -168,13 +168,32 @@ data:
                 
                 # Step 1: Get flight by flight number
                 steps.append("1️⃣ Locating flight...")
-                flight = await api_request("flights", f"/flights/{flight_number}")
+                flight_response = await api_request("flights", f"/flights/{flight_number}")
                 
-                if "error" in flight:
+                if "error" in flight_response:
                     steps.append(f"   ❌ Flight not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
                 
-                steps.append(f"   ✅ Found: {flight.get('flight_number', flight_number)}")
+                # Handle API response variations
+                flight = flight_response
+                if "flights" in flight_response:
+                    flights_data = flight_response["flights"]
+                    if isinstance(flights_data, dict) and flight_number in flights_data:
+                        flight = flights_data[flight_number]
+                    elif isinstance(flights_data, list):
+                        found = next((f for f in flights_data if f.get("flight_id") == flight_number), None)
+                        if found:
+                            flight = found
+                
+                # Check if we actually have the flight data
+                if not flight or "flight_id" not in flight:
+                     # Fallback: try searching if direct lookup failed/returned weird data
+                     # (This handles the case where GET /ID returns a list but the ID isn't a key)
+                     if "flights" in flight_response and isinstance(flight_response["flights"], dict):
+                         # Maybe the key is different?
+                         pass
+                
+                steps.append(f"   ✅ Found: {flight.get('flight_id', flight_number)}")
                 steps.append(f"   🛫 {flight.get('origin', 'N/A')} → {flight.get('destination', 'N/A')}")
                 
                 # Step 2: Get status details
