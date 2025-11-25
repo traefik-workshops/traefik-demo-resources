@@ -176,3 +176,14 @@ Portal Host Match
 Host(`portal.{{ .Values.domain }}`)
 {{- end }}
 
+{{/*
+OIDC URL
+*/}}
+{{- define "airlines.oidc.issuerUrl" -}}
+{{ .Values.oidc.issuerUrl }}
+{{- end }}
+{{- define "airlines.oidc.jwksUrl" -}}
+{{ .Values.oidc.issuerUrl }}/protocol/openid-connect/certs
+{{- end }}
+
+
