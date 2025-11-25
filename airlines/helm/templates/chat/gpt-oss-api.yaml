@@ -3,11 +3,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: gpt
+  name: gpt-oss
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
-    component: gpt
+    component: gpt-oss
 spec:
   type: ExternalName
   externalName: {{ .Values.chat.llms.gpt.host | quote }}
@@ -17,11 +17,11 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: gpt-cc
+  name: gpt-oss-cc
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
-    component: gpt
+    component: gpt-oss
 spec:
   plugin:
     chat-completion:
@@ -46,7 +46,7 @@ metadata:
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
-    component: gpt
+    component: gpt-oss
 spec:
   title: "GPT OSS API"
   description: "GPT OSS API spec"
@@ -89,7 +89,7 @@ spec:
     - kind: Rule
       match: Host(`gpt.{{ .Values.domain }}`)
       services:
-        - name: gpt
+        - name: gpt-oss
           namespace: airlines
           port: 443
           scheme: https
@@ -99,7 +99,7 @@ spec:
     - kind: Rule
       match: Host(`gpt.{{ .Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
       services:
-        - name: gpt
+        - name: gpt-oss
           namespace: airlines
           port: 443
           scheme: https
@@ -107,7 +107,7 @@ spec:
       observability:
         traceVerbosity: detailed
       middlewares:
-        - name: gpt-cc
+        - name: gpt-oss-cc
         {{- if .Values.chat.semantic_cache.enabled }}
         - name: cc-semantic-cache
         {{- end }}
