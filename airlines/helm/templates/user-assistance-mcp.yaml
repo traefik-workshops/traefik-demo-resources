@@ -360,31 +360,41 @@ data:
         
         mcp_app = FastMCP("user-assistance-mcp", stateless_http=True, json_response=True)
         
-        # Re-register tools with explicit schemas for open-webui compatibility
-        tools_list = asyncio.run(list_tools())
+        @mcp_app.tool()
+        async def ping() -> str:
+            """Health check tool"""
+            result = await call_tool("ping", {})
+            return result[0]["text"] if result and len(result) > 0 else "pong"
         
-        for tool_def in tools_list:
-            tool_name = tool_def.name
-            tool_desc = tool_def.description
-            tool_schema = tool_def.inputSchema
-            
-            # Create wrapper with proper schema
-            def make_tool(name_capture, schema_capture):
-                async def tool_func(**kwargs):
-                    result = await call_tool(name_capture, kwargs)
-                    return result[0]["text"] if result and len(result) > 0 and "text" in result[0] else str(result)
-                
-                # Set function metadata for FastMCP
-                tool_func.__name__ = name_capture
-                tool_func.__doc__ = tool_desc
-                return tool_func
-            
-            # Register with explicit schema
-            mcp_app.tool(
-                name=tool_name,
-                description=tool_desc,
-                input_schema=tool_schema
-            )(make_tool(tool_name, tool_schema))
+        @mcp_app.tool()
+        async def get_flight_status(flight_number: str, date: str) -> str:
+            """Retrieves real-time operational status for a flight"""
+            result = await call_tool("get_flight_status", {"flight_number": flight_number, "date": date})
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def get_booking_details(booking_id: str) -> str:
+            """Fetches comprehensive information about a booking"""
+            result = await call_tool("get_booking_details", {"booking_id": booking_id})
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def get_passenger_details(passenger_id: str) -> str:
+            """Retrieves passenger profile and travel history"""
+            result = await call_tool("get_passenger_details", {"passenger_id": passenger_id})
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def track_baggage(booking_id: str) -> str:
+            """Locates and provides current status of checked baggage"""
+            result = await call_tool("track_baggage", {"booking_id": booking_id})
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def get_loyalty_profile(loyalty_number: str) -> str:
+            """Accesses customer's loyalty program account"""
+            result = await call_tool("get_loyalty_profile", {"loyalty_number": loyalty_number})
+            return result[0]["text"] if result and len(result) > 0 else str(result)
         
         logger.info("Starting User Assistance MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()
