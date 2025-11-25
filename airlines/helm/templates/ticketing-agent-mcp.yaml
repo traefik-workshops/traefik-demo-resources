@@ -83,7 +83,7 @@ data:
                         "passenger_id": {"type": "string", "description": "Passenger ID"},
                         "loyalty_number": {"type": "string", "description": "Optional loyalty program number"},
                         "seat_preference": {"type": "string", "description": "Preferred seat (e.g., '12A')"},
-                        "include_baggage": {"type": "boolean", "description": "Include checked baggage", "default": false},
+                        "include_baggage": {"type": "boolean", "description": "Include checked baggage", "default": False},
                         "meal_preference": {
                             "type": "string",
                             "enum": ["standard", "vegetarian", "vegan", "kosher", "halal", "gluten_free"],
