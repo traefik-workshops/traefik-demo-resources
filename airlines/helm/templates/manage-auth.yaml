@@ -117,6 +117,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   managedApplications:
+    - name: admins-application
     {{- range $group := $uniqueToolGroups }}
     - name: {{ $group }}-application
     {{- end }}
