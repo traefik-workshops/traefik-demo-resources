@@ -113,7 +113,6 @@ data:
                     },
                     "required": ["loyalty_number"]
                 }
-                }
             ),
             Tool(
                 name="calculate_delay_compensation",
