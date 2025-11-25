@@ -7,7 +7,6 @@ oidc:
   clientId: ""
   clientSecret: ""
   issuerUrl: ""
-  jwksUrl: ""
 
 tool-access:
   dashboard:

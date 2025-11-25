@@ -10,7 +10,7 @@ spec:
   isDefault: true
   jwt:
     appIdClaim: group
-    jwksUrl: {{ include "airlines.oidc.jwksUrl" . }}
+    jwksUrl: {{ .Values.oidc.issuerUrl }}/protocol/openid-connect/certs
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPortalAuth
@@ -21,7 +21,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   oidc:
-    issuerUrl: {{ include "airlines.oidc.issuerUrl" . }}
+    issuerUrl: {{ .Values.oidc.issuerUrl }}
     secretName: oidc-credentials
     scopes:
       - openid

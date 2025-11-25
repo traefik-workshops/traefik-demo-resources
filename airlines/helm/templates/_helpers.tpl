@@ -176,20 +176,3 @@ Portal Host Match
 Host(`portal.{{ .Values.domain }}`)
 {{- end }}
 
-{{/*
-OIDC JWKS URL
-*/}}
-{{- define "airlines.oidc.jwksUrl" -}}
-{{- if .Values.oidc.jwksUrl -}}
-{{ .Values.oidc.jwksUrl }}
-{{- else -}}
-https://keycloak.{{ .Values.domain }}/realms/traefik/protocol/openid-connect/certs
-{{- end -}}
-{{- end }}
-
-{{/*
-OIDC Issuer URL
-*/}}
-{{- define "airlines.oidc.issuerUrl" -}}
-https://keycloak.{{ .Values.domain }}/realms/traefik
-{{- end }}
