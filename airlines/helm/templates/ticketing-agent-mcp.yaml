@@ -591,99 +591,28 @@ data:
         
         mcp_app = FastMCP("ticketing-agent-mcp", stateless_http=True, json_response=True)
         
-        @mcp_app.tool()
-        async def ping() -> str:
-            """Health check tool"""
-            result = await call_tool("ping", {})
-            return result[0]["text"] if result and len(result) > 0 else "pong"
+        # Re-register tools with explicit schemas for open-webui compatibility
+        tools_list = asyncio.run(list_tools())
         
-        @mcp_app.tool()
-        async def search_flights(
-            origin: str,
-            destination: str,
-            date: str,
-            passengers: int = 1,
-            cabin_class: str = "economy"
-        ) -> str:
-            """Searches for available flights"""
-            result = await call_tool("search_flights", {
-                "origin": origin,
-                "destination": destination,
-                "date": date,
-                "passengers": passengers,
-                "cabin_class": cabin_class
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def book_flight_itinerary(
-            flight_id: str,
-            passenger_id: str,
-            loyalty_number: str = None,
-            seat_preference: str = None,
-            include_baggage: bool = False,
-            meal_preference: str = "standard"
-        ) -> str:
-            """Completes end-to-end flight booking process"""
-            result = await call_tool("book_flight_itinerary", {
-                "flight_id": flight_id,
-                "passenger_id": passenger_id,
-                "loyalty_number": loyalty_number,
-                "seat_preference": seat_preference,
-                "include_baggage": include_baggage,
-                "meal_preference": meal_preference
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def modify_booking(booking_id: str, new_flight_id: str, reason: str = None) -> str:
-            """Modifies an existing booking by changing the flight"""
-            result = await call_tool("modify_booking", {
-                "booking_id": booking_id,
-                "new_flight_id": new_flight_id,
-                "reason": reason
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def cancel_booking_with_refund(booking_id: str, reason: str = None) -> str:
-            """Cancels an existing booking and processes refund"""
-            result = await call_tool("cancel_booking_with_refund", {
-                "booking_id": booking_id,
-                "reason": reason
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def check_in_and_generate_boarding_pass(booking_id: str, seat_selection: str = None) -> str:
-            """Performs online check-in and generates boarding pass"""
-            result = await call_tool("check_in_and_generate_boarding_pass", {
-                "booking_id": booking_id,
-                "seat_selection": seat_selection
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def get_loyalty_status(loyalty_number: str) -> str:
-            """Retrieves loyalty program status"""
-            result = await call_tool("get_loyalty_status", {"loyalty_number": loyalty_number})
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def redeem_miles_for_flight(
-            flight_id: str,
-            passenger_id: str,
-            loyalty_number: str,
-            miles_to_use: int
-        ) -> str:
-            """Books a flight using loyalty miles"""
-            result = await call_tool("redeem_miles_for_flight", {
-                "flight_id": flight_id,
-                "passenger_id": passenger_id,
-                "loyalty_number": loyalty_number,
-                "miles_to_use": miles_to_use
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
+        for tool_def in tools_list:
+            tool_name = tool_def.name
+            tool_desc = tool_def.description
+            tool_schema = tool_def.inputSchema
+            
+            def make_tool(name_capture, schema_capture):
+                async def tool_func(**kwargs):
+                    result = await call_tool(name_capture, kwargs)
+                    return result[0]["text"] if result and len(result) > 0 and "text" in result[0] else str(result)
+                
+                tool_func.__name__ = name_capture
+                tool_func.__doc__ = tool_desc
+                return tool_func
+            
+            mcp_app.tool(
+                name=tool_name,
+                description=tool_desc,
+                input_schema=tool_schema
+            )(make_tool(tool_name, tool_schema))
         
         logger.info("Starting Ticketing Agent MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()

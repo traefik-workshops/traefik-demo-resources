@@ -424,66 +424,28 @@ data:
         
         mcp_app = FastMCP("partner-assistance-mcp", stateless_http=True, json_response=True)
         
-        @mcp_app.tool()
-        async def ping() -> str:
-            """Health check tool"""
-            result = await call_tool("ping", {})
-            return result[0]["text"] if result and len(result) > 0 else "pong"
+        # Re-register tools with explicit schemas for open-webui compatibility
+        tools_list = asyncio.run(list_tools())
         
-        @mcp_app.tool()
-        async def enroll_partner_flight(
-            partner_code: str,
-            flight_number: str,
-            origin: str,
-            destination: str,
-            departure_time: str,
-            seats_allocated: int = 20
-        ) -> str:
-            """Registers a partner airline flight for codeshare agreements"""
-            result = await call_tool("enroll_partner_flight", {
-                "partner_code": partner_code,
-                "flight_number": flight_number,
-                "origin": origin,
-                "destination": destination,
-                "departure_time": departure_time,
-                "seats_allocated": seats_allocated
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def update_partner_schedule(
-            partner_code: str,
-            flight_number: str,
-            new_departure_time: str,
-            reason: str = "Operational adjustment"
-        ) -> str:
-            """Updates schedule for a partner flight and notifies affected systems"""
-            result = await call_tool("update_partner_schedule", {
-                "partner_code": partner_code,
-                "flight_number": flight_number,
-                "new_departure_time": new_departure_time,
-                "reason": reason
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def create_alliance_booking(passenger_id: str, segments: list) -> str:
-            """Creates a multi-airline alliance booking"""
-            result = await call_tool("create_alliance_booking", {
-                "passenger_id": passenger_id,
-                "segments": segments
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
-        
-        @mcp_app.tool()
-        async def reconcile_partner_revenue(partner_code: str, period: str, flight_id: str = None) -> str:
-            """Calculates revenue sharing based on prorate factors"""
-            result = await call_tool("reconcile_partner_revenue", {
-                "partner_code": partner_code,
-                "period": period,
-                "flight_id": flight_id
-            })
-            return result[0]["text"] if result and len(result) > 0 else str(result)
+        for tool_def in tools_list:
+            tool_name = tool_def.name
+            tool_desc = tool_def.description
+            tool_schema = tool_def.inputSchema
+            
+            def make_tool(name_capture, schema_capture):
+                async def tool_func(**kwargs):
+                    result = await call_tool(name_capture, kwargs)
+                    return result[0]["text"] if result and len(result) > 0 and "text" in result[0] else str(result)
+                
+                tool_func.__name__ = name_capture
+                tool_func.__doc__ = tool_desc
+                return tool_func
+            
+            mcp_app.tool(
+                name=tool_name,
+                description=tool_desc,
+                input_schema=tool_schema
+            )(make_tool(tool_name, tool_schema))
         
         logger.info("Starting Partner Assistance MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()
