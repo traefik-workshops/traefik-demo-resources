@@ -38,7 +38,7 @@ spec:
     - Cost allocation
     
     ---
-    </br>
+
     **Built with ❤️ by Traefik Labs**
   trustedUrls:
     - https://portal.{{ .Values.domain }}
