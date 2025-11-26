@@ -290,6 +290,22 @@ def create_rest_api(resource_path: str):
                 return jsonify(rec), 200
             return jsonify({"error": "Not found"}), 404
 
+        @app.route('/baggage/track/<bag_tag>', methods=['PUT'])
+        def update_baggage(bag_tag):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            raw = store.raw_data or {}
+            baggage_map = raw.get('baggage', {})
+            rec = baggage_map.get(bag_tag)
+            if not rec:
+                return jsonify({"error": "Not found"}), 404
+            rec.update(data)
+            baggage_map[bag_tag] = rec
+            raw['baggage'] = baggage_map
+            store.raw_data = raw
+            return jsonify(rec), 200
+
         @app.route('/baggage/booking/<booking_id>', methods=['GET'])
         def get_baggage_for_booking(booking_id):
             if not store:

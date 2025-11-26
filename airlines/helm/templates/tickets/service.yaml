@@ -731,7 +731,32 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/TicketList'
-      /tickets/TK789012:
+        post:
+          summary: Create ticket
+          operationId: createTicket
+          tags:
+            - tickets
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/NewTicket'
+          responses:
+            201:
+              description: Ticket created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Ticket'
+      /tickets/{ticketId}:
+        parameters:
+          - name: ticketId
+            in: path
+            required: true
+            schema:
+              type: string
+              example: "TK789012"
         get:
           summary: Get ticket details
           operationId: getTicket
@@ -740,6 +765,24 @@ data:
           responses:
             200:
               description: Ticket details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Ticket'
+        put:
+          summary: Update ticket
+          operationId: updateTicket
+          tags:
+            - tickets
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Ticket'
+          responses:
+            200:
+              description: Updated ticket details
               content:
                 application/json:
                   schema:

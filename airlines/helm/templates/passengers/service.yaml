@@ -447,14 +447,62 @@ data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Passenger'
-      /passengers/P10001:
+        post:
+          summary: Create passenger
+          operationId: createPassenger
+          tags: [passengers]
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Passenger'
+          responses:
+            201:
+              description: Passenger created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Passenger'
+      /passengers/{passengerId}:
         get:
           summary: Get passenger details
           operationId: getPassenger
           tags: [passengers]
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+                example: P10001
           responses:
             200:
               description: Passenger details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Passenger'
+        put:
+          summary: Update passenger
+          operationId: updatePassenger
+          tags: [passengers]
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+                example: P10001
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Passenger'
+          responses:
+            200:
+              description: Updated passenger details
               content:
                 application/json:
                   schema:

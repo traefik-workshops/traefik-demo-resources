@@ -314,6 +314,27 @@ data:
                       $ref: '#/components/schemas/Flight'
             '400':
               description: Invalid request
+        post:
+          summary: Create flight
+          description: Create a new flight
+          operationId: createFlight
+          tags:
+            - flights
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Flight'
+          responses:
+            201:
+              description: Flight created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Flight'
+            '400':
+              description: Invalid request
     
       /flights/search:
         get:
@@ -377,6 +398,35 @@ data:
           responses:
             200:
               description: Flight details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Flight'
+            '404':
+              description: Flight not found
+        put:
+          summary: Update flight
+          description: Update an existing flight
+          operationId: updateFlight
+          tags:
+            - flights
+          parameters:
+            - name: flightId
+              in: path
+              description: The flight ID
+              required: true
+              schema:
+                type: string
+                example: 'FL123'
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Flight'
+          responses:
+            200:
+              description: Updated flight details
               content:
                 application/json:
                   schema:

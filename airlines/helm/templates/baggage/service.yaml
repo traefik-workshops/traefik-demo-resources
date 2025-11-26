@@ -226,7 +226,7 @@ data:
                     booking_id: {type: string}
                     bags: {type: integer}
           responses:
-            200:
+            201:
               description: Baggage added
               content:
                 application/json:
@@ -245,6 +245,28 @@ data:
           responses:
             200:
               description: Baggage status
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Baggage'
+        put:
+          summary: Update baggage status
+          operationId: updateBaggage
+          parameters:
+            - name: bagTag
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Baggage'
+          responses:
+            200:
+              description: Updated baggage status
               content:
                 application/json:
                   schema:

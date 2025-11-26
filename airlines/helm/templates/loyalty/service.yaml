@@ -390,12 +390,19 @@ data:
     servers:
       - url: {{ include "airlines.loyalty.apiUrl" . }}
     paths:
-      /loyalty/P10001:
+      /loyalty/{passengerId}:
         get:
           summary: Get loyalty status by passenger ID
           operationId: getLoyaltyByPassenger
           tags:
             - loyalty
+          parameters:
+            - name: passengerId
+              in: path
+              required: true
+              schema:
+                type: string
+                example: P10001
           responses:
             200:
               description: Loyalty status
@@ -403,15 +410,67 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/Loyalty'
-      /loyalty/member/LM10001:
+      /loyalty/member/{memberId}:
         get:
           summary: Get loyalty member details
           operationId: getLoyaltyMember
           tags:
             - loyalty
+          parameters:
+            - name: memberId
+              in: path
+              required: true
+              schema:
+                type: string
+                example: LM10001
           responses:
             200:
               description: Loyalty member details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/LoyaltyMember'
+      /loyalty:
+        post:
+          summary: Create loyalty member
+          operationId: createLoyaltyMember
+          tags:
+            - loyalty
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/LoyaltyMember'
+          responses:
+            201:
+              description: Loyalty member created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/LoyaltyMember'
+      /loyalty/{memberId}:
+        put:
+          summary: Update loyalty member
+          operationId: updateLoyaltyMember
+          tags:
+            - loyalty
+          parameters:
+            - name: memberId
+              in: path
+              required: true
+              schema:
+                type: string
+                example: LM10001
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/LoyaltyMember'
+          responses:
+            200:
+              description: Updated loyalty member
               content:
                 application/json:
                   schema:

@@ -393,12 +393,40 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/Checkin'
+        put:
+          summary: Update check‑in
+          operationId: updateCheckin
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+          requestBody:
+            required: false
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Checkin'
+          responses:
+            200:
+              description: Updated check‑in details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/Checkin'
       /checkin:
         post:
           summary: Perform check‑in
           operationId: performCheckin
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Checkin'
           responses:
-            200:
+            201:
               description: Check‑in successful
               content:
                 application/json:
