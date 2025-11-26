@@ -1,0 +1,72 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: booking-bundle
+  namespace: airlines
+spec:
+  title: "Booking APIs"
+  apiSelector:
+    matchLabels:
+      bundle: booking
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: trip-bundle
+  namespace: airlines
+spec:
+  title: "Trip APIs"
+  apiSelector:
+    matchLabels:
+      bundle: trip
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: assistant-user-bundle
+  namespace: airlines
+spec:
+  title: "User Assistance MCP"
+  apis:
+    - name: user-assistance-api
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: assistant-ops-bundle
+  namespace: airlines
+spec:
+  title: "Operations & Partner MCPs"
+  apis:
+    - name: partner-assistance-api
+    - name: ticketing-agent-api
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: admin-bundle
+  namespace: airlines
+spec:
+  title: "Admin & Reference Data"
+  apiSelector:
+    matchLabels:
+      bundle: admin
+  apis:
+    - name: passengers-api
+    - name: ancillaries-api
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIBundle
+metadata:
+  name: openai-bundle
+  namespace: airlines
+spec:
+  title: "OpenAI LLMs"
+  apis:
+    {{- if .Values.chat.llms.openai.enabled }}
+    - name: openai-api
+    {{- end }}
+    {{- if .Values.chat.llms.gpt.enabled }}
+    - name: gpt-api
+    {{- end }}

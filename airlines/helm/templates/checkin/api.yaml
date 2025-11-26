@@ -26,6 +26,10 @@ kind: IngressRoute
 metadata:
   name: checkin-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+    bundle: trip
   annotations:
     hub.traefik.io/api: checkin-api
 spec:

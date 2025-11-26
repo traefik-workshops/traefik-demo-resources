@@ -77,22 +77,11 @@ metadata:
 spec:
   groups:
     - users
-  apis:
-    - name: baggage-api
-    - name: bookings-api
-    - name: checkin-api
-    - name: flights-api
-    - name: loyalty-api
-    - name: notifications-api
-    - name: pricing-api
-    - name: tickets-api
-    - name: user-assistance-api
-    {{- if .Values.chat.llms.openai.enabled }}
-    - name: openai-api
-    {{- end }}
-    {{- if .Values.chat.llms.gpt.enabled }}
-    - name: gpt-api
-    {{- end }}
+  apiBundles:
+    - name: trip-bundle
+    - name: booking-bundle
+    - name: assistant-user-bundle
+    - name: openai-bundle
   apiPlan:
     name: airlines-access
 ---
@@ -106,25 +95,12 @@ metadata:
 spec:
   groups:
     - admins
-  apis:
-    - name: ancillaries-api
-    - name: baggage-api
-    - name: bookings-api
-    - name: checkin-api
-    - name: flights-api
-    - name: loyalty-api
-    - name: notifications-api
-    - name: partner-assistance-api
-    - name: passengers-api
-    - name: pricing-api
-    - name: tickets-api
-    - name: ticketing-agent-api
-    - name: user-assistance-api
-    {{- if .Values.chat.llms.openai.enabled }}
-    - name: openai-api
-    {{- end }}
-    {{- if .Values.chat.llms.gpt.enabled }}
-    - name: gpt-api
-    {{- end }}
+  apiBundles:
+    - name: trip-bundle
+    - name: booking-bundle
+    - name: assistant-user-bundle
+    - name: assistant-ops-bundle
+    - name: admin-bundle
+    - name: openai-bundle
   apiPlan:
     name: airlines-admins-access

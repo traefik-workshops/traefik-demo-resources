@@ -47,6 +47,7 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flights
+    bundle: booking
   annotations:
     hub.traefik.io/api: flights-api
 
@@ -65,10 +66,3 @@ spec:
           passHostHeader: true
       observability:
         traceVerbosity: detailed
-      # Middlewares can be added here for:
-      # - Rate limiting
-      # - API authentication  
-      # - Request/response transformation
-      # middlewares:
-      #   - name: api-auth-flights
-      #   - name: rate-limit-flights

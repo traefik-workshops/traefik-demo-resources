@@ -26,6 +26,10 @@ kind: IngressRoute
 metadata:
   name: ancillaries-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: ancillaries
+    bundle: admin
   annotations:
     hub.traefik.io/api: ancillaries-api
 spec:

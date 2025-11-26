@@ -24,6 +24,9 @@ kind: IngressRoute
 metadata:
   name: tickets-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: booking
   annotations:
     hub.traefik.io/api: tickets-api
 spec:

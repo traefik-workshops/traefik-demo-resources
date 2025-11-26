@@ -44,6 +44,7 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: passengers
+    bundle: admin
   annotations:
     hub.traefik.io/api: passengers-api
 spec:

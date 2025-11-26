@@ -26,6 +26,10 @@ kind: IngressRoute
 metadata:
   name: notifications-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+    bundle: trip
   annotations:
     hub.traefik.io/api: notifications-api
 spec:

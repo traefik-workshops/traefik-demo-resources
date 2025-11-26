@@ -26,6 +26,10 @@ kind: IngressRoute
 metadata:
   name: baggage-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+    bundle: trip
   annotations:
     hub.traefik.io/api: baggage-api
 spec:

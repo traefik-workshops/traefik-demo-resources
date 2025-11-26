@@ -26,6 +26,10 @@ kind: IngressRoute
 metadata:
   name: loyalty-route
   namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: loyalty
+    bundle: trip
   annotations:
     hub.traefik.io/api: loyalty-api
 spec:
