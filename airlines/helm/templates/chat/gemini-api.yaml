@@ -1,0 +1,166 @@
+{{- if .Values.chat.llms.gemini.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gemini
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+spec:
+  type: ExternalName
+  externalName: generativelanguage.googleapis.com
+  ports:
+    - port: 443
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: gemini-cc
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+spec:
+  plugin:
+    chat-completion:
+      model: gpt-4.1-nano
+      allowModelOverride: true
+      allowParamsOverride: false
+      gracefulErrors: true
+      mockStreaming: true
+      customResponseHeaderMetrics:
+        cache_status: "X-Cache-Status"
+      params:
+        temperature: 1
+        topP: 1
+        maxTokens: 2048
+        frequencyPenalty: 0
+        presencePenalty: 0
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cc-authtoken
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: "Bearer {{ .Values.chat.llms.gemini.api_key }}"
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+spec:
+  addPrefix:
+    prefix: "/v1beta/openai"
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: gemini-api
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+    bundle: gemini
+spec:
+  title: "gemini API"
+  description: "gemini API spec"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: https://gemini.{{ .Values.domain }} 
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gemini-route
+  namespace: airlines
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gemini
+  annotations:
+    hub.traefik.io/api: gemini-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: Host(`gemini.{{ .Values.domain }}`)
+      services:
+        - name: gemini
+          namespace: airlines
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        - name: cc-authtoken
+        - name: addprefix
+    - kind: Rule
+      match: Host(`gemini.{{ .Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
+      services:
+        - name: gemini
+          namespace: airlines
+          port: 443
+          scheme: https
+          passHostHeader: false
+      observability:
+        traceVerbosity: detailed
+      middlewares:
+        - name: gemini-cc
+        - name: cc-authtoken
+        - name: addprefix
+        {{- if .Values.chat.semantic_cache.enabled }}
+        - name: cc-semantic-cache
+        {{- end }}
+        {{- if .Values.chat.content_guard.enabled }}
+        - name: cc-content-guard
+        {{- end }}
+        {{- if .Values.chat.guards.enabled }}
+        {{- if .Values.chat.guards.parallel }}
+        - name: cc-llmguard-chain
+        {{- else }}
+        {{- if .Values.chat.guards.topic_control.enabled }}
+        - name: cc-topic-control-guard
+        {{- end }}
+        {{- if .Values.chat.guards.content_safety.enabled }}
+        - name: cc-content-safety-guard
+        {{- end }}
+        {{- if .Values.chat.guards.jailbreak_detection.enabled }}
+        - name: cc-jailbreak-detection-guard
+        {{- end }}
+        {{- if .Values.chat.guards.granite_guardian.enabled }}
+        - name: cc-granite-guard
+        {{- end }}
+        {{- end }}
+        {{- end }}
+{{- end }}
