@@ -47,6 +47,7 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: gpt-oss
+    bundle: openai
 spec:
   title: "GPT OSS API"
   description: "GPT OSS API spec"

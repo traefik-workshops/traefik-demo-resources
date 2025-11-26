@@ -60,6 +60,7 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: openai
+    bundle: openai
 spec:
   title: "OpenAI API"
   description: "OpenAI API spec"

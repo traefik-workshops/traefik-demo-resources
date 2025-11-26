@@ -8,7 +8,7 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flights
-    bundle: trip
+    bundle: booking
 spec:
   title: "Flights API"
   description: "Flight schedules, search, and real-time status information for Traefik Airlines"
