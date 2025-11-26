@@ -9,6 +9,6 @@ if __name__ == '__main__':
         resource_name='Loyalty',
         resource_path='loyalty',
         id_field='member_id',
-        datafile='/api/api.json',
+        data_file='/api/api.json',
         port=3000
     )
