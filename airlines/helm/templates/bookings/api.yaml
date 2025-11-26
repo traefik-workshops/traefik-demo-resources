@@ -14,11 +14,6 @@ spec:
     override:
       servers:
         - url: {{ include "airlines.bookings.apiUrl" . }}
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: {{ include "airlines.bookings.apiUrl" . }}
   cors:
     allowHeadersList: ["Authorization", "Content-Type"]
     allowOriginsList: ["*"]

@@ -953,7 +953,7 @@ data:
             total_price:
               type: number
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "bookings") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "bookings") }}
 
 ---
 apiVersion: v1

@@ -66,8 +66,7 @@ data:
             total:
               type: number
 
----
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "pricing") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "pricing") }}
 
 ---
 apiVersion: v1

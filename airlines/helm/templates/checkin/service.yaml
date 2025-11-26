@@ -438,7 +438,8 @@ data:
               format: date-time
             gate:
               type: string
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "checkin") -}}
+
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "checkin") }}
 
 ---
 apiVersion: v1

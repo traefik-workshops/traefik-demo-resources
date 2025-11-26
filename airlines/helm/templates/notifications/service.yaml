@@ -80,7 +80,7 @@ data:
             bag_tag:
               type: string
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "notifications") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "notifications") }}
 
 ---
 apiVersion: v1

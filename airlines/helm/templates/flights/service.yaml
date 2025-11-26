@@ -489,7 +489,7 @@ data:
               type: string
               description: Additional error details
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "flights") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "flights") }}
 
 ---
 apiVersion: v1

@@ -12,10 +12,10 @@ tools-access:
   dashboard:
     token: ""
     group: "tools"
-  users-assistance:
+  users_assistance:
     token: ""
     group: "agents"
-  partner-assistance:
+  partner_assistance:
     token: ""
     group: "agents"
   ticketing:

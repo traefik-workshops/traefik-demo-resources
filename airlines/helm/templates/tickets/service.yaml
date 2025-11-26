@@ -766,7 +766,7 @@ data:
           items:
             $ref: '#/components/schemas/Ticket'
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "tickets") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "tickets") }}
 
 ---
 apiVersion: v1

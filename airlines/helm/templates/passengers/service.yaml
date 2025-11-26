@@ -492,7 +492,7 @@ data:
               type: string
               example: 'X53397742'
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "passengers") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "passengers") }}
 
 ---
 apiVersion: v1

@@ -284,7 +284,8 @@ data:
               type: string
             location:
               type: string
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "baggage") -}}
+
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "baggage") }}
 
 ---
 apiVersion: v1

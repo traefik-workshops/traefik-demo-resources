@@ -459,7 +459,7 @@ data:
             status:
               type: string
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "loyalty") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "loyalty") }}
 
 ---
 apiVersion: v1

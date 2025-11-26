@@ -124,7 +124,7 @@ data:
             description:
               type: string
 
-{{- include "airlines.serviceDeployment" (dict "root" . "name" "ancillaries") -}}
+{{ include "airlines.serviceDeployment" (dict "root" . "name" "ancillaries") }}
 
 ---
 apiVersion: v1
