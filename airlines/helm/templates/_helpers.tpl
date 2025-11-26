@@ -245,6 +245,9 @@ spec:
               mountPath: /code
             - name: api-data
               mountPath: /api
+            - name: openapi-spec
+              mountPath: /public
+              readOnly: true
             - name: app-dir
               mountPath: /app
           env:
@@ -274,6 +277,9 @@ spec:
         - name: api-data
           configMap:
             name: {{ .name }}-data
+        - name: openapi-spec
+          configMap:
+            name: {{ .name }}-openapi
         - name: app-dir
           emptyDir: {}
 {{- end -}}
