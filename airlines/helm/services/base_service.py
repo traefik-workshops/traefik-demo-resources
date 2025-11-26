@@ -12,6 +12,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import uuid
+import random
 import os
 
 # Configure logging
@@ -24,8 +25,9 @@ CORS(app)
 
 # In-memory storage
 class InMemoryStore:
-    def __init__(self, data_file: str, id_field: str = "id"):
+    def __init__(self, data_file: str, id_field: str = "id", resource_name: Optional[str] = None):
         self.id_field = id_field
+        self.resource_name = resource_name
         self.data: Dict[str, any] = {}
         self.load_initial_data(data_file)
     
@@ -47,6 +49,17 @@ class InMemoryStore:
             logger.error(f"Error loading data: {e}")
             self.data = {}
     
+    def _generate_id(self) -> str:
+        """Generate a new record ID consistent with seeded data."""
+        # Booking IDs use the BK###### pattern in seed data
+        if self.resource_name == "Bookings" and self.id_field == "booking_id":
+            while True:
+                new_id = f"BK{random.randint(100000, 999999)}"
+                if new_id not in self.data:
+                    return new_id
+        # Default: UUID
+        return str(uuid.uuid4())
+    
     def get_all(self) -> Dict:
         """Get all records"""
         return self.data
@@ -57,8 +70,8 @@ class InMemoryStore:
     
     def create(self, record: Dict) -> Dict:
         """Create new record"""
-        if self.id_field not in record:
-            record[self.id_field] = str(uuid.uuid4())
+        if self.id_field not in record or not record.get(self.id_field):
+            record[self.id_field] = self._generate_id()
         
         record_id = record[self.id_field]
         self.data[record_id] = record
@@ -102,7 +115,7 @@ store: Optional[InMemoryStore] = None
 def init_store(data_file: str, id_field: str, resource_name: str):
     """Initialize the data store"""
     global store, RESOURCE_NAME
-    store = InMemoryStore(data_file, id_field)
+    store = InMemoryStore(data_file, id_field, resource_name)
     RESOURCE_NAME = resource_name
     logger.info(f"Initialized {resource_name} service with {len(store.data)} records")
 
