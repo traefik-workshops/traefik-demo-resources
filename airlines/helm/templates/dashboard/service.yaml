@@ -10,7 +10,7 @@ metadata:
 data:
   config.js: |
     window.AIRLINES_CONFIG = {
-      jwtToken: "{{ index .Values "tool-access" "dashboard" "token" }}"
+      jwtToken: "{{ index .Values "tools-access" "dashboard" "token" }}"
     };
   index.html: |
 {{ .Files.Get "files/dashboard/index.html" | indent 4 }}

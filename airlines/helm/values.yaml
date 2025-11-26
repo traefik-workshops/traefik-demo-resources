@@ -8,7 +8,7 @@ oidc:
   clientSecret: ""
   issuerUrl: ""
 
-tool-access:
+tools-access:
   dashboard:
     token: ""
     group: "tools"
@@ -21,7 +21,7 @@ tool-access:
   ticketing:
     token: ""
     group: "agents"
-user-access:
+users-access:
   - name: "admin"
     id: ""
     group: "users"
