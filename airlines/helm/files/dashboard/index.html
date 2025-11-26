@@ -54,6 +54,10 @@
             color: #f87171;
         }
 
+        .main-content-wrapper {
+            overflow-x: auto;
+        }
+
         .main-content {
             display: flex;
             gap: 2rem;
@@ -70,13 +74,13 @@
             flex: 0 0 auto;
         }
 
-        @media (max-width: 899px) {
+        @media (max-width: 999px) {
             body {
-                overflow-x: auto;
+                overflow-x: hidden;
             }
         }
 
-        @media (min-width: 900px) {
+        @media (min-width: 1000px) {
             body {
                 overflow-x: hidden;
             }
