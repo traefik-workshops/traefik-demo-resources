@@ -554,6 +554,25 @@ data:
             except Exception as e:
                 return f"Error: {str(e)}"
         
+        @mcp_app.tool()
+        async def calculate_delay_compensation(
+            flight_id: str,
+            delay_hours: float,
+            passenger_count: int = 1
+        ) -> str:
+            """Calculates potential compensation for flight delays"""
+            try:
+                result = await call_tool("calculate_delay_compensation", {
+                    "flight_id": flight_id,
+                    "delay_hours": delay_hours,
+                    "passenger_count": passenger_count
+                })
+                if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                    return result[0]["text"]
+                return str(result)
+            except Exception as e:
+                return f"Error: {str(e)}"
+        
         logger.info("Starting User Assistance MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()
         uvicorn.run(app, host="0.0.0.0", port=8080)

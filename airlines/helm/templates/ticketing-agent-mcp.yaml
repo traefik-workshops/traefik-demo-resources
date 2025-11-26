@@ -1446,6 +1446,46 @@ data:
             })
             return result[0]["text"] if result and len(result) > 0 else str(result)
         
+        @mcp_app.tool()
+        async def select_seat(booking_id: str, seat_number: str, seat_type: str = "window") -> str:
+            """Allows passengers to select or change their seat"""
+            result = await call_tool("select_seat", {
+                "booking_id": booking_id,
+                "seat_number": seat_number,
+                "seat_type": seat_type
+            })
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def manage_baggage(
+            booking_id: str,
+            action: str,
+            baggage_count: int = 1,
+            baggage_type: str = "standard"
+        ) -> str:
+            """Add, remove, or modify checked baggage"""
+            result = await call_tool("manage_baggage", {
+                "booking_id": booking_id,
+                "action": action,
+                "baggage_count": baggage_count,
+                "baggage_type": baggage_type
+            })
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
+        @mcp_app.tool()
+        async def update_meal_preference(
+            booking_id: str,
+            meal_type: str,
+            special_requests: str = None
+        ) -> str:
+            """Update meal preferences for a passenger"""
+            result = await call_tool("update_meal_preference", {
+                "booking_id": booking_id,
+                "meal_type": meal_type,
+                "special_requests": special_requests
+            })
+            return result[0]["text"] if result and len(result) > 0 else str(result)
+        
         logger.info("Starting Ticketing Agent MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()
         uvicorn.run(app, host="0.0.0.0", port=8080)
