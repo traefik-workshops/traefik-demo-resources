@@ -8,37 +8,9 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
-  title: "Traefik Airlines API Portal"
+  title: "Traefik Airlines APIs"
   description: |
-    ## Traefik Airlines API Portal
-    
-    This portal provides access to all Traefik Airlines APIs, demonstrating the 
-    **Triple Gateway Pattern** with API Gateway, MCP Gateway, and AI Gateway.
-
-    ### Triple Gateway Architecture
-    
-    This platform demonstrates three layers of gateway protection:
-    
-    **API Gateway** (Traefik Hub)
-    - Authentication & Authorization
-    - Rate limiting
-    - API versioning and lifecycle
-    - WAF
-    
-    **MCP Gateway** (Traefik MCP Middleware)
-    - MCP protocol enforcement
-    - Tool/action authorization
-    - Workflow-based access control
-    - Audit logging
-    
-    **AI Gateway** (Traefik AI Middleware)
-    - LLM request routing
-    - Prompt filtering
-    - Request/Response guardrails
-    - Cost allocation
-    
-    ---
-
+    ## Traefik Airlines APIs
     **Built with ❤️ by Traefik Labs**
   trustedUrls:
     - https://portal.{{ .Values.domain }}
