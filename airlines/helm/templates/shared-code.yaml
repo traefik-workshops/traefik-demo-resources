@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: airlines-shared-code
-  namespace: {{ .Values.namespace }}
+  namespace: airlines
   labels:
     app.kubernetes.io/name: airlines-shared-code
 data:
