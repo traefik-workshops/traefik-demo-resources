@@ -1,58 +1,103 @@
-# Stateful In-Memory Services for Airlines
+# Airlines Stateful Services
 
-## Overview
-
-This directory contains Python-based microservices that provide **stateful, in-memory storage** for all airline data. Unlike the previous read-only mock services, these support full CRUD operations.
+In-memory database microservices for the Airlines project.
 
 ## Architecture
 
-- **Base Service** (`base_service.py`): Generic Flask-based REST API with in-memory storage
-- **Service Entry Points**: Specialized services for each resource type
-- **In-Memory Store**: Python dict-based storage (data persists during pod lifetime, resets on restart)
+**ONE Docker image for ALL 10 services**
 
-## Features
-
-✅ **Full CRUD Support**:
-- `GET /{resource}` - List all records
-- `GET /{resource}/<id>` - Get single record
-- `POST /{resource}` - Create new record
-- `PUT/PATCH /{resource}/<id>` - Update record
-- `DELETE /{resource}/<id>` - Delete record
-- `GET /{resource}/search?key=value` - Search/filter records
-
-✅ **Automatic ID Generation**: UUIDs generated for new records without IDs
-
-✅ **Initial Data Loading**: Seeds from ConfigMap at startup
-
-✅ **Query Parameter Filtering**: Support for search parameters
-
-## Services
-
-| Service | Resource Path | ID Field | Entry Point |
-|---------|---------------|----------|-------------|
-| Flights | `/flights` | `flight_id` | `flights_service.py` |
-| Bookings | `/bookings` | `booking_id` | `bookings_service.py` |
-| Check-in | `/checkin` | `booking_id` | `checkin_service.py` |
-| Loyalty | `/loyalty` | `member_id` | `loyalty_service.py` |
-
-## Building the Image
-
-```bash
-cd /Users/zaidalbirawi/dev/traefik-resources/airlines/services
-
-# Build the image
-docker build -t ghcr.io/traefik-workshops/airlines-stateful-api:v0.1.0 .
-
-# Push to registry (if needed)
-docker push ghcr.io/traefik-workshops/airlines-stateful-api:v0.1.0
+```
+airlines-stateful-api:v0.1.0
+├── base_service.py          (Core in-memory CRUD)
+├── flights_service.py       (Flights endpoint)
+├── bookings_service.py      (Bookings endpoint)
+├── checkin_service.py       (Check-in endpoint)
+├── loyalty_service.py       (Loyalty endpoint)
+├── tickets_service.py       (Tickets endpoint)
+├── passengers_service.py    (Passengers endpoint)
+├── pricing_service.py       (Pricing endpoint)
+├── baggage_service.py       (Baggage endpoint)
+├── notifications_service.py (Notifications endpoint)
+└── ancillaries_service.py   (Ancillaries endpoint)
 ```
 
-## Usage in Kubernetes
+## In-Memory Database
 
-### Update Helm Deployment
+The "database" is a Python dictionary:
+```python
+class InMemoryStore:
+    def __init__(self):
+        self.data: Dict[str, any] = {}  # ← The database!
+```
 
-Modify each service's deployment to use the new image and specify the service:
+**Features:**
+- ✅ Full CRUD operations (Create, Read, Update, Delete)
+- ✅ Search and filtering  
+- ✅ Fast (no disk I/O)
+- ✅ Loads from ConfigMap at startup
+- ⚠️  Data lost on pod restart
 
+## Files
+
+| File | Description | Lines |
+|------|-------------|-------|
+| `base_service.py` | Core in-memory DB + Flask REST API | 207 |
+| `*_service.py` (×10) | Service entry points | ~15 each |
+| `Dockerfile` | Multi-service image builder | 21 |
+| `requirements.txt` | Python dependencies | 2 |
+| `validate.sh` | Test validation script | 150 |
+| **TOTAL** | | **~500 lines** |
+
+## Testing
+
+Run the validation script:
+```bash
+./validate.sh
+```
+
+Tests:
+- ✅ In-memory database CRUD operations
+- ✅ All 10 service files exist
+- ✅ Service entry points are valid
+- ✅ Dockerfile is correct
+
+## Usage
+
+### Local Testing
+```bash
+# Install dependencies
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Run a service
+python3 flights_service.py
+# Starts on http://localhost:3000
+
+# Test it
+curl http://localhost:3000/flights
+curl -X POST http://localhost:3000/flights -d '{"flight_id":"FL999",...}'
+```
+
+### Docker
+```bash
+# Build image
+docker build -t airlines-stateful-api:v0.1.0 .
+
+# Run flights service
+docker run -p 3000:3000 \
+  -v /path/to/data:/api:ro \
+  airlines-stateful-api:v0.1.0 \
+  python flights_service.py
+
+# Run bookings service (different container)
+docker run -p 3001:3000 \
+  -v /path/to/data:/api:ro \
+  airlines-stateful-api:v0.1.0 \
+  python bookings_service.py
+```
+
+### Kubernetes
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -63,143 +108,65 @@ spec:
     spec:
       containers:
         - name: api
-          image: ghcr.io/traefik-workshops/airlines-stateful-api:v0.1.0
-          command: ["python", "flights_service.py"]  # Specify which service
+          image: airlines-stateful-api:v0.1.0
+          command: ["python", "flights_service.py"]  # ← Specify service
           volumeMounts:
-            - name: api-data
+            - name: data
               mountPath: /api
-            - name: openapi
-              mountPath: /public
 ```
 
-### Or use environment variables:
-
-```yaml
-containers:
-  - name: api
-    image: ghcr.io/traefik-workshops/airlines-stateful-api:v0.1.0
-    env:
-      - name: SERVICE_NAME
-        value: "Flights"
-      - name: RESOURCE_PATH
-        value: "flights"
-      - name: ID_FIELD
-        value: "flight_id"
-```
-
-## Example Operations
-
-### Search Flights
-```bash
-GET /flights/search?origin=JFK&destination=LAX
-```
-
-### Book Flight (Create Booking)
-```bash
-POST /bookings
-{
-  "flight_id": "FL123",
-  "passenger_id": "P001",
-  "total_price": 450.00,
-  "status": "confirmed"
-}
-```
-
-### Modify Booking
-```bash
-PUT /bookings/BK12345
-{
-  "flight_id": "FL124",
-  "change_fee": 75.00
-}
-```
-
-### Cancel Booking
-```bash
-DELETE /bookings/BK12345
-```
-
-### Check-in
-```bash
-POST /checkin/BK12345
-{
-  "seat": "12A",
-  "checked_in": true,
-  "boarding_pass": "BP12345A"
-}
-```
-
-## MCP Integration
-
-Once deployed, all MCP tools will work with live data:
-
-1. **Search Flights** → Returns current in-memory flight data
-2. **Book Flight** → Creates new booking record in memory
-3. **Modify Booking** → Updates existing booking
-4. **Cancel Booking** → Deletes booking from memory
-5. **Check-in** → Creates check-in record
-6. **Redeem Miles** → Updates loyalty balance
-
-All changes are **immediately visible** in subsequent API calls and in the dashboard!
-
-## Data Persistence
-
-### During Pod Lifetime
-- ✅ Data persists in memory
-- ✅ Multiple requests see the same state
-- ✅ Changes accumulate
-
-### On Pod Restart
-- ❌ All changes are lost
-- ✅ Data reloads from initial ConfigMap
-- ⚠️ This is acceptable for demo purposes
-
-### For Production
-To persist data across restarts, consider:
-- Redis backend
-- PostgreSQL/MySQL
-- Persistent Volume with SQLite
-
-## Next Steps
-
-1. **Build and push the Docker image**
-2. **Update Helm values.yaml** to use new image:
-   ```yaml
-   image:
-     repository: ghcr.io/traefik-workshops/airlines-stateful-api
-     tag: v0.1.0
-   ```
-3. **Update each service deployment** to specify the correct entry point
-4. **Deploy with `terraform apply`** or `helm upgrade`
-5. **Test MCP operations** to see live data changes
-
-## Monitoring
+## API Endpoints
 
 Each service exposes:
-- `GET /health` - Health check with record count
-- Logs show all CREATE/UPDATE/DELETE operations
+- `GET /{resource}` - List all
+- `GET /{resource}/{id}` - Get one
+- `POST /{resource}` - Create
+- `PUT /{resource}/{id}` - Update
+- `DELETE /{resource}/{id}` - Delete
+- `GET /{resource}/search?field=value` - Search
+- `GET /health` - Health check
 
+Example for flights service:
 ```bash
-# View logs
-kubectl logs -n airlines flights-app-xxxxx
-
-# Check health
-curl http://flights.airlines.svc.cluster.local:3000/health
+GET    /flights
+GET    /flights/FL123
+POST   /flights
+PUT    /flights/FL123
+DELETE /flights/FL123
+GET    /flights/search?origin=JFK
+GET    /health
 ```
 
-## Troubleshooting
+## How It Works
 
-### Service won't start
-- Check logs: `kubectl logs -n airlines <pod-name>`
-- Verify ConfigMap is mounted at `/api/api.json`
-- Ensure correct Python dependencies
+1. **Container starts** → Loads `base_service.py`
+2. **Runs entry point** → e.g., `python flights_service.py`
+3. **Entry point calls** → `run_service(resource='flights', id_field='flight_id', ...)`
+4. **Base service**:
+   - Loads data from `/api/api.json` (ConfigMap)
+   - Stores in Python dict (RAM)
+   - Creates Flask REST API
+   - Listens on port 3000
+5. **API requests** → Modify dict directly in memory
+6. **Pod restarts** → Data reloads from ConfigMap
 
-### Data not loading
-- Verify ConfigMap format matches expected structure
-- Check logs for "Loaded X records"
-- Ensure JSON is valid
+## Validation Results
 
-### Changes not persisting
-- Remember: data only persists during pod lifetime
-- Pod restart = data reset to initial state
-- This is by design for demo environment
+```
+✅ In-memory database works (Python dict)
+✅ All 10 service files exist
+✅ CRUD operations validated
+✅ Service entry points are valid
+✅ Dockerfile is correct
+
+Ready to deploy!
+```
+
+## Summary
+
+- **Architecture**: 1 image, 1 base service, 10 entry points
+- **Database**: Python dict in RAM
+- **Persistence**: None (demo/dev only)
+- **Performance**: Fast (memory access)
+- **Deployment**: Change `command:` in K8s to switch services
+- **Status**: ✅ Validated and tested
