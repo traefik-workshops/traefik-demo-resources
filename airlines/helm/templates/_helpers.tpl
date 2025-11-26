@@ -205,7 +205,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .name }}-app
-  namespace: airline
+  namespace: airlines
   labels:
     {{- include "airlines.labels" .root | nindent 4 }}
     component: {{ .name }}
