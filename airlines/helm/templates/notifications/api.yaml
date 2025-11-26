@@ -6,6 +6,7 @@ metadata:
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
+    bundle: trip
 spec:
   title: "Notifications API"
   description: "Email and SMS notification services"
@@ -29,7 +30,6 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: notifications
-    bundle: trip
   annotations:
     hub.traefik.io/api: notifications-api
 spec:
