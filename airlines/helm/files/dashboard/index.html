@@ -53,6 +53,34 @@
             background-color: #450a0a;
             color: #f87171;
         }
+
+        .main-content {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .flight-board {
+            min-width: 600px;
+            flex: 1 1 auto;
+        }
+
+        .recent-bookings {
+            min-width: 200px;
+            width: 200px;
+            flex: 0 0 auto;
+        }
+
+        @media (max-width: 899px) {
+            body {
+                overflow-x: auto;
+            }
+        }
+
+        @media (min-width: 900px) {
+            body {
+                overflow-x: hidden;
+            }
+        }
     </style>
 </head>
 
@@ -100,10 +128,9 @@
         </div>
 
         <!-- Main Content -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
+        <div class="main-content">
             <!-- Flight Board -->
-            <div class="card lg:col-span-2">
+            <div class="card flight-board">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
                     <span>🛫 Live Flight Board</span>
                 </h2>
@@ -137,7 +164,7 @@
             </div>
 
             <!-- Recent Bookings -->
-            <div class="card">
+            <div class="card recent-bookings">
                 <h2 class="text-xl font-bold mb-4">🎟️ Recent Bookings</h2>
                 <div class="space-y-4">
                     <div v-for="booking in recentBookings" :key="booking.booking_id"
