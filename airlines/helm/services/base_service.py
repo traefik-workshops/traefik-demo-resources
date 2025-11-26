@@ -29,6 +29,7 @@ class InMemoryStore:
         self.id_field = id_field
         self.resource_name = resource_name
         self.data: Dict[str, any] = {}
+        self.raw_data: Dict[str, any] = {}
         self.load_initial_data(data_file)
     
     def load_initial_data(self, data_file: str):
@@ -37,6 +38,7 @@ class InMemoryStore:
             if os.path.exists(data_file):
                 with open(data_file, 'r') as f:
                     raw_data = json.load(f)
+                    self.raw_data = raw_data
                     # Extract the main data object (could be flights, bookings, etc.)
                     for key in raw_data:
                         if isinstance(raw_data[key], dict):
@@ -45,9 +47,11 @@ class InMemoryStore:
                             break
             else:
                 logger.warning(f"Data file {data_file} not found, starting empty")
+                self.raw_data = {}
         except Exception as e:
             logger.error(f"Error loading data: {e}")
             self.data = {}
+            self.raw_data = {}
     
     def _generate_id(self) -> str:
         """Generate a new record ID consistent with seeded data."""
@@ -161,7 +165,7 @@ def create_rest_api(resource_path: str):
     @app.route(f'/{resource_path}', methods=['POST'])
     def create():
         """Create new record"""
-        data = request.json
+        data = request.get_json(silent=True) or {}
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
@@ -171,19 +175,29 @@ def create_rest_api(resource_path: str):
     @app.route(f'/{resource_path}/<record_id>', methods=['PUT', 'PATCH'])
     def update(record_id):
         """Update existing record"""
-        data = request.json
+        data = request.get_json(silent=True)
+        if data is None:
+            data = {}
+
+        # If record doesn't exist, still return 404
+        existing = store.get_by_id(record_id)
+        if not existing:
+            return jsonify({"error": "Not found"}), 404
+
+        # If no updates provided, act as a no-op update and return the current record
         if not data:
-            return jsonify({"error": "No data provided"}), 400
-        
+            return jsonify({"status": "updated", "data": existing}), 200
+
         record = store.update(record_id, data)
-        if record:
-            return jsonify({"status": "updated", "data": record}), 200
-        return jsonify({"error": "Not found"}), 404
+        return jsonify({"status": "updated", "data": record}), 200
     
     @app.route(f'/{resource_path}/<record_id>', methods=['DELETE'])
     def delete(record_id):
         """Delete record"""
         if store.delete(record_id):
+            # Bookings API expects 204 No Content on successful cancel
+            if RESOURCE_NAME == "Bookings":
+                return "", 204
             return jsonify({"status": "deleted"}), 200
         return jsonify({"error": "Not found"}), 404
     
@@ -194,6 +208,210 @@ def create_rest_api(resource_path: str):
         filters = request.args.to_dict()
         results = store.search(**filters)
         return jsonify({resource_path: results}), 200
+
+    # Service-specific extra routes
+    # Loyalty API: lookup by passenger_id and member_id
+    if resource_path == 'loyalty':
+        @app.route('/loyalty/<passenger_id>', methods=['GET'])
+        def get_loyalty_status(passenger_id):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            member = None
+            for m in store.data.values():
+                if m.get('passenger_id') == passenger_id:
+                    member = m
+                    break
+            if member:
+                return jsonify(member), 200
+            return jsonify({"error": "Not found"}), 404
+
+        @app.route('/loyalty/member/<member_id>', methods=['GET'])
+        def get_loyalty_member(member_id):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            member = store.get_by_id(member_id)
+            if member:
+                return jsonify(member), 200
+            return jsonify({"error": "Not found"}), 404
+
+    # Checkin API: boarding pass by booking ID
+    if resource_path == 'checkin':
+        @app.route('/checkin/<booking_id>/boarding-pass', methods=['GET'])
+        def get_boarding_pass(booking_id):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            record = store.get_by_id(booking_id)
+            if record:
+                return jsonify(record), 200
+            return jsonify({"error": "Not found"}), 404
+
+    # Baggage API: add, track, and list baggage for a booking
+    if resource_path == 'baggage':
+        @app.route('/baggage/add', methods=['POST'])
+        def add_baggage():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            booking_id = data.get('booking_id')
+            bags = int(data.get('bags', 1)) if data.get('bags') is not None else 1
+            if not booking_id:
+                return jsonify({"error": "booking_id required"}), 400
+
+            raw = store.raw_data or {}
+            booking_map = raw.setdefault('baggage/booking', {})
+            baggage_map = raw.setdefault('baggage', {})
+
+            new_records = []
+            existing_for_booking = booking_map.setdefault(booking_id, [])
+            for _ in range(bags):
+                bag_tag = f"BT{booking_id}-{len(baggage_map) + 1}"
+                rec = {
+                    "bag_tag": bag_tag,
+                    "booking_id": booking_id,
+                    "weight": data.get('weight', 20),
+                    "status": "checked",
+                    "location": data.get('location', "JFK"),
+                }
+                existing_for_booking.append(rec)
+                baggage_map[bag_tag] = rec
+                new_records.append(rec)
+
+            store.raw_data = raw
+            return jsonify({"baggage": new_records}), 201
+
+        @app.route('/baggage/track/<bag_tag>', methods=['GET'])
+        def track_baggage(bag_tag):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            raw = store.raw_data or {}
+            baggage_map = raw.get('baggage', {})
+            rec = baggage_map.get(bag_tag)
+            if rec:
+                return jsonify(rec), 200
+            return jsonify({"error": "Not found"}), 404
+
+        @app.route('/baggage/booking/<booking_id>', methods=['GET'])
+        def get_baggage_for_booking(booking_id):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            raw = store.raw_data or {}
+            booking_map = raw.get('baggage/booking', {})
+            bags = booking_map.get(booking_id, [])
+            return jsonify(bags), 200
+
+    # Pricing API: calculate total price
+    if resource_path == 'pricing':
+        @app.route('/pricing/calculate', methods=['POST'])
+        def calculate_pricing():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            flight_id = data.get('flight_id')
+            travel_class = data.get('class')
+
+            pricing_table = store.data or {}
+            taxes_fees = (store.raw_data or {}).get('taxes_fees', {})
+
+            result = None
+            # Try flight-specific pricing first
+            if flight_id and flight_id in pricing_table:
+                result = pricing_table.get(flight_id)
+
+            # Fallback to a default pricing entry
+            if not result:
+                result = pricing_table.get('FL123', {"base_fare": 400, "taxes": taxes_fees.get('domestic', 50), "total": 450})
+
+            # Ensure numeric fields are present
+            base_fare = float(result.get('base_fare', 0))
+            taxes = float(result.get('taxes', taxes_fees.get('domestic', 0)))
+            total = float(result.get('total', base_fare + taxes))
+
+            payload = {"base_fare": base_fare, "taxes": taxes, "total": total}
+            return jsonify(payload), 201
+
+    # Ancillaries API: meals and seat upgrades
+    if resource_path == 'ancillaries':
+        @app.route('/ancillaries/meals', methods=['GET'])
+        def get_meal_options():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            meals = (store.raw_data or {}).get('meals', {})
+            return jsonify(meals), 200
+
+        @app.route('/ancillaries/meal', methods=['POST'])
+        def record_meal_preference():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            booking_id = data.get('booking_id') or request.args.get('booking_id')
+            preference = data.get('preference') or request.args.get('preference')
+            if not booking_id or not preference:
+                return jsonify({"error": "booking_id and preference required"}), 400
+            result = {
+                "booking_id": booking_id,
+                "preference": preference,
+                "status": "recorded",
+            }
+            return jsonify(result), 201
+
+        @app.route('/ancillaries/seat-upgrade', methods=['POST'])
+        def upgrade_seat():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            booking_id = data.get('booking_id')
+            new_seat = data.get('new_seat')
+            if not booking_id or not new_seat:
+                return jsonify({"error": "booking_id and new_seat required"}), 400
+            result = {
+                "booking_id": booking_id,
+                "new_seat": new_seat,
+                "status": "upgraded",
+            }
+            return jsonify(result), 201
+
+    # Notifications API: send and history
+    if resource_path == 'notifications':
+        @app.route('/notifications/send', methods=['POST'])
+        def send_notification():
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            data = request.get_json(silent=True) or {}
+            notif_type = data.get('type')
+            recipient = data.get('recipient')
+            booking_id = data.get('booking_id')
+            bag_tag = data.get('bag_tag')
+
+            raw = store.raw_data or {}
+            templates = raw.get('templates', {})
+            template = templates.get(notif_type, {})
+            subject = template.get('subject', 'Notification')
+            body_template = template.get('body', '')
+            body = body_template.replace('{booking_id}', booking_id or '').replace('{bag_tag}', bag_tag or '')
+
+            result = {
+                "type": notif_type,
+                "recipient": recipient,
+                "subject": subject,
+                "body": body,
+                "booking_id": booking_id,
+                "bag_tag": bag_tag,
+            }
+
+            history = raw.setdefault('history', {})
+            history.setdefault(recipient or 'unknown', []).append(result)
+            store.raw_data = raw
+
+            return jsonify(result), 201
+
+        @app.route('/notifications/history/<recipient_id>', methods=['GET'])
+        def get_notification_history(recipient_id):
+            if not store:
+                return jsonify({"error": "Service not initialized"}), 500
+            raw = store.raw_data or {}
+            history = raw.get('history', {})
+            items = history.get(recipient_id, [])
+            return jsonify(items), 200
 
 
 def run_service(resource_name: str, resource_path: str, id_field: str, data_file: str = "/api/api.json", port: int = 3000):
