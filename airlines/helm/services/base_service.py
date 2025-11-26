@@ -194,10 +194,14 @@ def create_rest_api(resource_path: str):
     @app.route(f'/{resource_path}/<record_id>', methods=['DELETE'])
     def delete(record_id):
         """Delete record"""
-        if store.delete(record_id):
+        if RESOURCE_NAME == "Bookings":
             # Bookings API expects 204 No Content on successful cancel
-            if RESOURCE_NAME == "Bookings":
-                return "", 204
+            existing = store.get_by_id(record_id)
+            if existing:
+                store.update(record_id, {"status": "cancelled"})
+            return "", 204
+
+        if store.delete(record_id):
             return jsonify({"status": "deleted"}), 200
         return jsonify({"error": "Not found"}), 404
     
