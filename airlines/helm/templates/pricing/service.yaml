@@ -67,33 +67,7 @@ data:
               type: number
 
 ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pricing-app
-  namespace: airlines
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: pricing-app
-  template:
-    metadata:
-      labels:
-        app: pricing-app
-    spec:
-      containers:
-        - name: api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml"]
-          ports:
-            - containerPort: 3000
-          volumeMounts:
-            - {name: api-data, mountPath: /api}
-            - {name: openapi, mountPath: /public}
-      volumes:
-        - {name: api-data, configMap: {name: pricing-data}}
-        - {name: openapi, configMap: {name: pricing-openapi}}
+{{- include "airlines.serviceDeployment" (dict "root" . "name" "pricing") -}}
 
 ---
 apiVersion: v1

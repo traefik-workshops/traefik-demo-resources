@@ -1,16 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: flights-service-code
+  name: airlines-shared-code
   namespace: {{ .Values.namespace }}
   labels:
-    app: flights-app
+    app.kubernetes.io/name: airlines-shared-code
 data:
   base_service.py: |
 {{ .Files.Get "services/base_service.py" | indent 4 }}
-  
-  flights_service.py: |
-{{ .Files.Get "services/flights_service.py" | indent 4 }}
   
   requirements.txt: |
 {{ .Files.Get "services/requirements.txt" | indent 4 }}

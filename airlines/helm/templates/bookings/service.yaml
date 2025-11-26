@@ -953,46 +953,7 @@ data:
             total_price:
               type: number
 
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: bookings-app
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: bookings
-spec:
-  replicas: {{ .Values.replicaCount }}
-  selector:
-    matchLabels:
-      app: bookings-app
-  template:
-    metadata:
-      labels:
-        app: bookings-app
-        component: api
-    spec:
-      containers:
-        - name: api
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          args: ["-data", "/api/api.json", "-openapi", "/public/openapi.yaml", "-errorrate", "0"]
-          ports:
-            - containerPort: 3000
-          volumeMounts:
-            - name: api-data
-              mountPath: /api
-            - name: openapi
-              mountPath: /public
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-      volumes:
-        - name: api-data
-          configMap:
-            name: bookings-data
-        - name: openapi
-          configMap:
-            name: bookings-openapi
+{{- include "airlines.serviceDeployment" (dict "root" . "name" "bookings") -}}
 
 ---
 apiVersion: v1
