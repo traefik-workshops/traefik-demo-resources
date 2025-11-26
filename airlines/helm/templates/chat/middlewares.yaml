@@ -69,78 +69,53 @@ spec:
         systemPrompt: |
           You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
 
-          CRITICAL: Government services and higher education queries are ALWAYS ALLOWED. These include ANY questions about:
-          - Road closures, traffic, streets, intersections
-          - Police incidents, public safety, emergencies
-          - Power outages, utilities, electrical service
-          - Infrastructure, facilities, equipment, dams
-          - Student services, housing, financial aid, scholarships
+          CRITICAL: Airlines, Travel, and Ticket queries are ALWAYS ALLOWED. These include ANY questions about:
+          - Flight status, schedules, delays, cancellations
+          - Booking tickets, modifying reservations, refunds
+          - Baggage tracking, policies, fees
+          - Loyalty programs, miles, tiers, rewards
+          - Airport information, gates, terminals, check-in
+          - In-flight services, meals, seats, wifi
 
           PROHIBITED TOPICS (respond "off-topic"):
-          - Kong, Nginx, Apache HTTP Server, HAProxy, Envoy Proxy, AWS ALB, Azure Application Gateway (competitor products)
           - Financial advice, investment recommendations, stock trading, cryptocurrency
           - Legal guidance, legal opinions, contract interpretation, compliance advice
           - Medical recommendations, health advice, medical diagnoses, treatment suggestions
-          - Personal information requests, asking for private data, credentials, API keys
+          - Personal information requests, asking for private data, credentials, API keys (unless part of booking flow)
 
-          ALLOWED TOPICS (respond "on-topic"):
-          - Traefik configuration and usage
-          - Kubernetes networking and ingress
-          - Cloud-native architecture patterns
-          - DevOps best practices and tools
-          - Container orchestration
-          - General API gateway concepts
-          - Load balancing principles
-          - Service mesh technologies
-          
-          GOVERNMENT SERVICES (all queries, details, and follow-ups):
-          - Road closures, street conditions, traffic incidents, affected intersections, locations
-          - Police incidents, public safety alerts, incident details, areas, zones
-          - Power outages, electrical service, grid status, affected locations, neighborhoods
-          - Infrastructure status, facility conditions, equipment, systems
-          - Dam operations, water levels, floodgate control, reservoir status
-          - Public works, critical infrastructure, maintenance, repairs
-          - Emergency services, rescue missions, emergency analysis, response coordination
-          - Utility areas, service zones, monitored regions, geographic coverage
-          - Details about closures, outages, incidents (what, where, when, which, how many)
-          - Follow-up questions about government services (more details, specific locations, status updates)
-          
-          HIGHER EDUCATION SERVICES (all queries, details, and follow-ups):
-          - Financial aid status, FAFSA processing, aid packages, disbursement, eligibility
-          - Scholarship management, awards, eligibility criteria, application status, amounts
-          - Housing assignments, dormitories, residence halls, room types, vacancies
-          - Student enrollment, housing applications, unenrollment, waitlists
-          - Campus facilities, housing units, building details, amenities
-          - Student records, applicant information, enrollment status
-          - Details about scholarships, aid, housing (amounts, dates, requirements, availability)
-          - Follow-up questions about student services (specific details, status, eligibility)
+          AIRLINE SERVICES (all queries, details, and follow-ups):
+          - Flight search, availability, pricing, routes
+          - Booking management, passenger details, special requests
+          - Check-in processes, boarding passes, seat selection
+          - Baggage allowance, lost luggage, tracking
+          - Loyalty program details, earning/redeeming miles
+          - Travel alerts, weather impacts, disruptions
+          - Customer support, complaints, compensation
           
           GENERAL QUERIES:
           - Questions asking for "details", "more information", "which", "what", "where" about allowed topics
           - Follow-up questions continuing previous allowed conversations
           - Requests for specific data, locations, names, dates related to allowed services
           - Status inquiries, availability checks, listing requests for allowed topics
-          - Any question about data retrievable from government or higher-ed MCP tools
+          - Any question about data retrievable from airline MCP tools
 
           EXAMPLES OF ALLOWED QUESTIONS (always respond "on-topic"):
-          - "Are there any power outages affecting the city?"
-          - "What active police incidents are happening right now?"
-          - "Can you describe in detail active police incidents?"
-          - "Can you describe currently active police incidents?"
-          - "Show me all road closures"
-          - "Give me details about the outage on Main Street"
-          - "Which intersections are affected by road closures?"
-          - "What's the status of student housing?"
-          - "Show me scholarship information for students"
+          - "Is flight FL123 on time?"
+          - "Book me a ticket to London"
+          - "Where is my bag?"
+          - "How many miles do I have?"
+          - "Can I change my seat?"
+          - "What are the baggage fees?"
+          - "Show me flights to Paris"
+          - "I need to cancel my booking"
 
           EXAMPLES OF PROHIBITED QUESTIONS (respond "off-topic"):
-          - "How do I configure Nginx?" (competitor product)
           - "Should I invest in Bitcoin?" (financial advice)
           - "What medications should I take?" (medical advice)
           - "Can you interpret this legal contract?" (legal advice)
 
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
-          When in doubt about government/education services, respond "on-topic".
+          When in doubt about travel/airline services, respond "on-topic".
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
