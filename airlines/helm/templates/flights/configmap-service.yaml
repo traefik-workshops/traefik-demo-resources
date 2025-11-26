@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flights-service-code
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: flights-app
+data:
+  base_service.py: |
+{{ .Files.Get "services/base_service.py" | indent 4 }}
+  
+  flights_service.py: |
+{{ .Files.Get "services/flights_service.py" | indent 4 }}
+  
+  requirements.txt: |
+{{ .Files.Get "services/requirements.txt" | indent 4 }}

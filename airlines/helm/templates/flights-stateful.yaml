@@ -1,0 +1,101 @@
+{{ -/* Quick deployment using standard Python image - no custom Docker image needed! */}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flights-stateful-code
+  namespace: airlines
+  labels:
+    app: flights-stateful
+data:
+  base_service.py: |
+{{ .Files.Get "services/base_service.py" | indent 4 }}
+  
+  flights_service.py: |
+{{ .Files.Get "services/flights_service.py" | indent 4 }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flights-app-stateful
+  namespace: airlines
+  labels:
+    app: flights-stateful
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flights-stateful
+  template:
+    metadata:
+      labels:
+        app: flights-stateful
+    spec:
+      containers:
+        - name: api
+          image: python:3.11-slim
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "📦 Installing dependencies..."
+              pip install --quiet flask==3.0.0 flask-cors==4.0.0
+              echo "✅ Dependencies installed"
+              echo "🚀 Starting Flights service..."
+              cd /app
+              python flights_service.py
+          ports:
+            - containerPort: 3000
+              name: http
+          volumeMounts:
+            - name: service-code
+              mountPath: /app
+            - name: api-data
+              mountPath: /api
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+      volumes:
+        - name: service-code
+          configMap:
+            name: flights-stateful-code
+        - name: api-data
+          configMap:
+            name: flights-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flights-app-stateful
+  namespace: airlines
+  labels:
+    app: flights-stateful
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: flights-stateful
