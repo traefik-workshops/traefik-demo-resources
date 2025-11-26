@@ -109,7 +109,7 @@ data:
           security:
             - bearerAuth: []
           responses:
-            '200':
+            200:
               description: A map of applicant IDs to their financial aid status
               content:
                 application/json:
@@ -136,7 +136,7 @@ data:
                 type: string
               example: "78901"
           responses:
-            '200':
+            200:
               description: A single financial aid status record
               content:
                 application/json:

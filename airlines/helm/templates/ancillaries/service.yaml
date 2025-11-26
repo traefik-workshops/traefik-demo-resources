@@ -48,7 +48,7 @@ data:
           summary: Get available meal options
           operationId: getMealOptions
           responses:
-            '200':
+            200:
               description: Available meal options
               content:
                 application/json:
@@ -61,7 +61,7 @@ data:
           summary: Record meal preference
           operationId: recordMealPreference
           responses:
-            '200':
+            200:
               description: Meal preference recorded
               content:
                 application/json:
@@ -80,7 +80,7 @@ data:
                     booking_id: {type: string}
                     new_seat: {type: string}
           responses:
-            '200':
+            200:
               description: Seat upgraded
               content:
                 application/json:
@@ -100,7 +100,7 @@ data:
                     type: {type: string}
                     preference: {type: string}
           responses:
-            '200':
+            200:
               description: Ancillary service recorded
               content:
                 application/json:

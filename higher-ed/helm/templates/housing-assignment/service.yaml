@@ -356,7 +356,7 @@ data:
           summary: List all housing units
           operationId: listAllHousing
           responses:
-            '200':
+            200:
               description: A map of unit IDs to their housing information
               content:
                 application/json:
@@ -377,7 +377,7 @@ data:
                 type: string
               example: "building-a-101"
           responses:
-            '200':
+            200:
               description: Details of the housing unit
               content:
                 application/json:
@@ -398,7 +398,7 @@ data:
                 type: string
               example: "78901"
           responses:
-            '200':
+            200:
               description: Housing assignment information for the applicant
               content:
                 application/json:
@@ -411,7 +411,7 @@ data:
           summary: List all vacant housing units
           operationId: listVacantHousing
           responses:
-            '200':
+            200:
               description: A map of vacant unit IDs to their housing information
               content:
                 application/json:
@@ -438,7 +438,7 @@ data:
                 schema:
                   $ref: '#/components/schemas/assignmentRequest'
           responses:
-            '200':
+            200:
               description: Assignment successful
               content:
                 application/json:
@@ -467,7 +467,7 @@ data:
                 schema:
                   $ref: '#/components/schemas/assignmentRequest'
           responses:
-            '200':
+            200:
               description: Unassignment successful
               content:
                 application/json:

@@ -847,7 +847,7 @@ data:
           summary: List all bookings
           operationId: listBookings
           responses:
-            '200':
+            200:
               description: List of bookings
               content:
                 application/json:
@@ -887,7 +887,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Booking details
               content:
                 application/json:
@@ -903,7 +903,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Booking updated
               content:
                 application/json:
@@ -919,7 +919,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Booking cancelled
               content:
                 application/json:

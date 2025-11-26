@@ -725,7 +725,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: List of tickets
               content:
                 application/json:
@@ -738,7 +738,7 @@ data:
           tags:
             - tickets
           responses:
-            '200':
+            200:
               description: Ticket details
               content:
                 application/json:

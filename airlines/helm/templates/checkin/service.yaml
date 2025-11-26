@@ -387,7 +387,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Check‑in details
               content:
                 application/json:
@@ -398,7 +398,7 @@ data:
           summary: Perform check‑in
           operationId: performCheckin
           responses:
-            '200':
+            200:
               description: Check‑in successful
               content:
                 application/json:
@@ -415,7 +415,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Boarding pass details
               content:
                 application/json:

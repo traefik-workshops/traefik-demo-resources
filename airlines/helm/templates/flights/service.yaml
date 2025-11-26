@@ -304,7 +304,7 @@ data:
                 type: string
                 pattern: '^[A-Z]{3}$'
           responses:
-            '200':
+            200:
               description: List of flights
               content:
                 application/json:
@@ -348,7 +348,7 @@ data:
                 format: date
                 example: '2024-03-15'
           responses:
-            '200':
+            200:
               description: Search results
               content:
                 application/json:
@@ -375,7 +375,7 @@ data:
                 type: string
                 example: 'FL123'
           responses:
-            '200':
+            200:
               description: Flight details
               content:
                 application/json:

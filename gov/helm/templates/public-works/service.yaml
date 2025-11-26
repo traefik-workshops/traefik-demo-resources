@@ -216,7 +216,7 @@ data:
           summary: List all dams and their status
           operationId: listDams
           responses:
-            '200':
+            200:
               description: A map of dam IDs to their status information
               content:
                 application/json:
@@ -236,7 +236,7 @@ data:
                 type: string
               example: "dam-001"
           responses:
-            '200':
+            200:
               description: The current status of the dam
               content:
                 application/json:
@@ -262,7 +262,7 @@ data:
                 schema:
                   $ref: '#/components/schemas/controlAction'
           responses:
-            '200':
+            200:
               description: Confirmation of the action
               content:
                 application/json:

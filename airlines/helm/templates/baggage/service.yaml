@@ -226,7 +226,7 @@ data:
                     booking_id: {type: string}
                     bags: {type: integer}
           responses:
-            '200':
+            200:
               description: Baggage added
               content:
                 application/json:
@@ -243,7 +243,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Baggage status
               content:
                 application/json:
@@ -261,7 +261,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Baggage list for booking
               content:
                 application/json:

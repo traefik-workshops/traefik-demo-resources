@@ -110,7 +110,7 @@ data:
           security:
             - bearerAuth: ["scholarship:read"]
           responses:
-            '200':
+            200:
               description: A map of applicant IDs to their scholarship records
               content:
                 application/json:
@@ -137,7 +137,7 @@ data:
                 type: string
               example: "78901"
           responses:
-            '200':
+            200:
               description: All scholarship records for the specified applicant
               content:
                 application/json:

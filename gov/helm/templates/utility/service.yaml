@@ -109,7 +109,7 @@ data:
                 type: string
                 enum: ["downtown", "north_side", "waterfront", "central"]
           responses:
-            '200':
+            200:
               description: A map of locations to their power status
               content:
                 application/json:
@@ -134,7 +134,7 @@ data:
                 type: string
               example: "Elm St & 2nd Ave"
           responses:
-            '200':
+            200:
               description: The power status for the specified location
               content:
                 application/json:
@@ -159,7 +159,7 @@ data:
                 type: string
                 enum: ["downtown", "north_side", "waterfront", "central"]
           responses:
-            '200':
+            200:
               description: A map of infrastructure IDs to their status
               content:
                 application/json:
@@ -176,7 +176,7 @@ data:
           security:
             - bearerAuth: ["eoc:read"]
           responses:
-            '200':
+            200:
               description: A map of area names to their utility information
               content:
                 application/json:

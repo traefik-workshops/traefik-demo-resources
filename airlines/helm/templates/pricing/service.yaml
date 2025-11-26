@@ -37,7 +37,7 @@ data:
       /pricing/FL123:
         get:
           responses:
-            '200':
+            200:
               description: Calculated pricing
               content:
                 application/json:
@@ -48,7 +48,7 @@ data:
           summary: Calculate flight pricing
           operationId: calculatePricing
           responses:
-            '200':
+            200:
               description: Calculated pricing
               content:
                 application/json:

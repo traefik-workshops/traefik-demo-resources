@@ -46,7 +46,7 @@ data:
           summary: Send notification
           operationId: sendNotification
           responses:
-            '200':
+            200:
               description: Notification sent
       /notifications/history/{recipientId}:
         get:
@@ -59,7 +59,7 @@ data:
               schema:
                 type: string
           responses:
-            '200':
+            200:
               description: Notification history
 
     components:

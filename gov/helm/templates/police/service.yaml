@@ -206,7 +206,7 @@ data:
                 type: string
                 enum: ["downtown", "north_side", "waterfront", "central"]
           responses:
-            '200':
+            200:
               description: A map of street names to their status information
               content:
                 application/json:
@@ -231,7 +231,7 @@ data:
                 type: string
               example: "Elm St"
           responses:
-            '200':
+            200:
               description: The status of the specified road
               content:
                 application/json:
@@ -263,7 +263,7 @@ data:
                 type: string
                 enum: ["flood", "fire", "accident", "infrastructure_failure"]
           responses:
-            '200':
+            200:
               description: A map of incident IDs to their information
               content:
                 application/json:
@@ -280,7 +280,7 @@ data:
           security:
             - bearerAuth: ["eoc:read"]
           responses:
-            '200':
+            200:
               description: A map of area names to their information
               content:
                 application/json:
