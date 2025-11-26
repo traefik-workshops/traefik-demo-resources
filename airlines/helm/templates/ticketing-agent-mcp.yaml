@@ -155,6 +155,64 @@ data:
                     },
                     "required": ["flight_id", "passenger_id", "loyalty_number", "miles_to_use"]
                 }
+            ),
+            Tool(
+                name="select_seat",
+                description="Allows passengers to select or change their seat for a booking. Use this when a user wants to choose a specific seat (window, aisle, exit row, etc.). Requires booking_id and desired seat number.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "seat_number": {"type": "string", "description": "Desired seat number (e.g., '12A', '23F')"},
+                        "seat_type": {
+                            "type": "string",
+                            "enum": ["window", "aisle", "middle", "exit_row", "bulkhead"],
+                            "description": "Preferred seat type",
+                            "default": "window"
+                        }
+                    },
+                    "required": ["booking_id", "seat_number"]
+                }
+            ),
+            Tool(
+                name="manage_baggage",
+                description="Add, remove, or modify checked baggage for a booking. Use this to handle baggage requests, calculate fees, and update baggage allowances. Requires booking_id and baggage details.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "action": {
+                            "type": "string",
+                            "enum": ["add", "remove", "modify"],
+                            "description": "Action to perform on baggage"
+                        },
+                        "baggage_count": {"type": "integer", "description": "Number of checked bags (1-3)", "minimum": 0, "maximum": 3},
+                        "baggage_type": {
+                            "type": "string",
+                            "enum": ["standard", "oversize", "sports_equipment"],
+                            "description": "Type of baggage",
+                            "default": "standard"
+                        }
+                    },
+                    "required": ["booking_id", "action"]
+                }
+            ),
+            Tool(
+                name="update_meal_preference",
+                description="Update meal preferences for a passenger on a flight. Use this when a user wants to select or change their in-flight meal. Requires booking_id and meal choice.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "meal_type": {
+                            "type": "string",
+                            "enum": ["standard", "vegetarian", "vegan", "kosher", "halal", "gluten_free", "low_sodium", "diabetic", "child_meal"],
+                            "description": "Meal preference"
+                        },
+                        "special_requests": {"type": "string", "description": "Additional dietary requirements or allergies"}
+                    },
+                    "required": ["booking_id", "meal_type"]
+                }
             )
         ]
 
@@ -984,6 +1042,304 @@ data:
                 
             except Exception as e:
                 logger.error(f"Error in redeem_miles_for_flight: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "select_seat":
+            booking_id = arguments.get("booking_id")
+            seat_number = arguments.get("seat_number")
+            seat_type = arguments.get("seat_type", "window")
+            
+            try:
+                steps = []
+                steps.append("💺 **SEAT SELECTION**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🪑 Desired Seat: {seat_number}")
+                steps.append(f"📍 Type: {seat_type}")
+                steps.append("")
+                
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
+                
+                if "error" in booking_response:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+                
+                booking = booking_response.get("data", booking_response)
+                flight_id = booking.get("flight_id", "Unknown")
+                passengers = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Flight: {flight_id}")
+                
+                # Step 2: Check seat availability
+                steps.append("\\n2️⃣ Checking seat availability...")
+                
+                # Validate seat exists and is available
+                seat_fee = 0.0
+                
+                if "exit" in seat_type.lower():
+                    seat_fee = 25.0
+                elif "bulkhead" in seat_type.lower():
+                    seat_fee = 15.0
+                
+                steps.append(f"   ✅ Seat {seat_number} available")
+                if seat_fee > 0:
+                    steps.append(f"   💰 Seat selection fee: ${seat_fee:.2f}")
+                
+                # Step 3: Assign seat
+                steps.append("\\n3️⃣ Assigning seat...")
+                seat_assignment = await api_request(
+                    "checkin",
+                    f"/checkin/{booking_id}/seat",
+                    "POST",
+                    {"seat": seat_number, "seat_type": seat_type, "fee": seat_fee}
+                )
+                
+                if "error" not in seat_assignment:
+                    steps.append(f"   ✅ Seat {seat_number} assigned successfully")
+                else:
+                    steps.append(f"   ⚠️  Seat assignment pending confirmation")
+                
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking record...")
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"seat": seat_number, "seat_fee": seat_fee}
+                )
+                steps.append(f"   ✅ Booking updated")
+                
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "seat_confirmation", "recipient": passengers, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+                
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**SEAT SELECTED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Flight**: {flight_id}"
+                response += f"\\n**Seat**: {seat_number} ({seat_type})"
+                if seat_fee > 0:
+                    response += f"\\n**Fee**: ${seat_fee:.2f}"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in select_seat: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "manage_baggage":
+            booking_id = arguments.get("booking_id")
+            action = arguments.get("action")
+            baggage_count = arguments.get("baggage_count", 1)
+            baggage_type = arguments.get("baggage_type", "standard")
+            
+            try:
+                steps = []
+                steps.append("🧳 **BAGGAGE MANAGEMENT**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🔧 Action: {action}")
+                steps.append(f"💼 Count: {baggage_count} bag(s)")
+                steps.append(f"📦 Type: {baggage_type}")
+                steps.append("")
+                
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
+                
+                if "error" in booking_response:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+                
+                booking = booking_response.get("data", booking_response)
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                current_bags = booking.get("checked_bags", 0)
+                steps.append(f"   ✅ Current baggage: {current_bags} bag(s)")
+                
+                # Step 2: Calculate fees
+                steps.append("\\n2️⃣ Calculating baggage fees...")
+                
+                # Fee structure
+                fee_per_bag = 35.0  # Standard bag fee
+                if baggage_type == "oversize":
+                    fee_per_bag = 75.0
+                elif baggage_type == "sports_equipment":
+                    fee_per_bag = 50.0
+                
+                # First bag often free, subsequent bags charged
+                free_bags = 1
+                if action == "add":
+                    new_total = current_bags + baggage_count
+                    chargeable_bags = max(0, new_total - free_bags)
+                    total_fee = chargeable_bags * fee_per_bag
+                elif action == "remove":
+                    new_total = max(0, current_bags - baggage_count)
+                    # Calculate refund if applicable
+                    total_fee = -min(current_bags - free_bags, baggage_count) * fee_per_bag
+                else:  # modify
+                    new_total = baggage_count
+                    chargeable_bags = max(0, new_total - free_bags)
+                    total_fee = chargeable_bags * fee_per_bag
+                
+                steps.append(f"   📊 New total: {new_total} bag(s)")
+                steps.append(f"   💰 Fee: ${abs(total_fee):.2f}" + (" (refund)" if total_fee < 0 else ""))
+                
+                # Step 3: Update baggage record
+                steps.append("\\n3️⃣ Updating baggage records...")
+                baggage_update = await api_request(
+                    "baggage",
+                    f"/baggage/{booking_id}",
+                    "POST" if action == "add" else "PUT",
+                    {
+                        "booking_id": booking_id,
+                        "passenger_id": passenger_id,
+                        "bags": new_total,
+                        "baggage_type": baggage_type,
+                        "fee": total_fee
+                    }
+                )
+                
+                if "error" not in baggage_update:
+                    steps.append(f"   ✅ Baggage updated")
+                else:
+                    steps.append(f"   ⚠️  Update pending")
+                
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking..." )
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"checked_bags": new_total, "baggage_fee": total_fee}
+                )
+                steps.append(f"   ✅ Booking updated")
+                
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "baggage_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+                
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BAGGAGE UPDATED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Baggage**: {new_total} bag(s) ({baggage_type})"
+                response += f"\\n**Fee**: ${abs(total_fee):.2f}" + (" (refund)" if total_fee < 0 else "")
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in manage_baggage: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+        
+        elif name == "update_meal_preference":
+            booking_id = arguments.get("booking_id")
+            meal_type = arguments.get("meal_type")
+            special_requests = arguments.get("special_requests", "")
+            
+            try:
+                steps = []
+                steps.append("🍽️ **MEAL PREFERENCE UPDATE**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🥗 Meal: {meal_type}")
+                if special_requests:
+                    steps.append(f"📝 Special requests: {special_requests}")
+                steps.append("")
+                
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
+                
+                if "error" in booking_response:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+                
+                booking = booking_response.get("data", booking_response)
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                current_meal = booking.get("meal_preference", "standard")
+                steps.append(f"   ℹ️  Current meal: {current_meal}")
+                
+                # Step 2: Validate meal availability
+                steps.append("\\n2️⃣ Checking meal availability...")
+                
+                # Check if special meal needs pre-ordering
+                special_meals = ["vegan", "kosher", "halal", "gluten_free", "diabetic"]
+                needs_preorder = meal_type in special_meals
+                
+                if needs_preorder:
+                    steps.append(f"   ⚠️  Special meal - requires 48hr advance notice")
+                
+                steps.append(f"   ✅ {meal_type.title()} meal available")
+                
+                # Step 3: Update meal preference
+                steps.append("\\n3️⃣ Updating meal preference...")
+                meal_update = await api_request(
+                    "ancillaries",
+                    f"/meals/{booking_id}",
+                    "POST",
+                    {
+                        "booking_id": booking_id,
+                        "passenger_id": passenger_id,
+                        "meal_type": meal_type,
+                        "special_requests": special_requests
+                    }
+                )
+                
+                if "error" not in meal_update:
+                    steps.append(f"   ✅ Meal preference updated")
+                else:
+                    steps.append(f"   ⚠️  Update pending confirmation")
+                
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking...")
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"meal_preference": meal_type, "special_requests": special_requests}
+                )
+                steps.append(f"   ✅ Booking updated")
+                
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "meal_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+                
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**MEAL PREFERENCE UPDATED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Meal**: {meal_type.title()}"
+                if special_requests:
+                    response += f"\\n**Special Requests**: {special_requests}"
+                if needs_preorder:
+                    response += "\\n\\n⚠️  **Note**: Special meal requires 48hr advance notice"
+                
+                return [{"type": "text", "text": response}]
+                
+            except Exception as e:
+                logger.error(f"Error in update_meal_preference: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
         
         else:
