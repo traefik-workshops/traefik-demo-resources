@@ -62,61 +62,22 @@ spec:
       sendReasonAsError: true
       request:
         blockConditions:
-          - reason: "off-topic request"
+          - reason: "Sorry, I am a ticketing agent and can only answer questions related to Traefik Airlines"
             condition: Contains("off-topic")
         traceConditions:
           - reason: "off-topic detected"
             condition: Contains("off-topic")
         systemPrompt: |
-          You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
+          You are to act as a topic control agent. Your role is to determine if the user question is about PROHIBITED or ALLOWED topics and adhere to the following guidelines
 
-          CRITICAL: Airlines, Travel, and Ticket queries are ALWAYS ALLOWED. These include ANY questions about:
-          - Flight status, schedules, delays, cancellations
-          - Booking tickets, modifying reservations, refunds
-          - Baggage tracking, policies, fees
-          - Loyalty programs, miles, tiers, rewards
-          - Airport information, gates, terminals, check-in
-          - In-flight services, meals, seats, wifi
-
-          PROHIBITED TOPICS (respond "off-topic"):
-          - Financial advice, investment recommendations, stock trading, cryptocurrency
-          - Legal guidance, legal opinions, contract interpretation, compliance advice
-          - Medical recommendations, health advice, medical diagnoses, treatment suggestions
-          - Personal information requests, asking for private data, credentials, API keys (unless part of booking flow)
-
-          AIRLINE SERVICES (all queries, details, and follow-ups):
-          - Flight search, availability, pricing, routes
-          - Booking management, passenger details, special requests
-          - Check-in processes, boarding passes, seat selection
-          - Baggage allowance, lost luggage, tracking
-          - Loyalty program details, earning/redeeming miles
-          - Travel alerts, weather impacts, disruptions
-          - Customer support, complaints, compensation
-          
-          GENERAL QUERIES:
-          - Questions asking for "details", "more information", "which", "what", "where" about allowed topics
-          - Follow-up questions continuing previous allowed conversations
-          - Requests for specific data, locations, names, dates related to allowed services
-          - Status inquiries, availability checks, listing requests for allowed topics
-          - Any question about data retrievable from airline MCP tools
-
-          EXAMPLES OF ALLOWED QUESTIONS (always respond "on-topic"):
-          - "Is flight FL123 on time?"
-          - "Book me a ticket to London"
-          - "Where is my bag?"
-          - "How many miles do I have?"
-          - "Can I change my seat?"
-          - "What are the baggage fees?"
-          - "Show me flights to Paris"
-          - "I need to cancel my booking"
-
-          EXAMPLES OF PROHIBITED QUESTIONS (respond "off-topic"):
-          - "Should I invest in Bitcoin?" (financial advice)
-          - "What medications should I take?" (medical advice)
-          - "Can you interpret this legal contract?" (legal advice)
-
-          Analyze the user question and respond ONLY with "on-topic" or "off-topic".
-          When in doubt about travel/airline services, respond "on-topic".
+          Guidelines for the user messages:
+          - Do not allow questions related to financial advice, investment recommendations, stock trading, or cryptocurrency.
+          - Do not allow questions related to legal guidance, legal opinions, contract interpretation, or compliance advice.
+          - Do not allow questions related to medical recommendations, health advice, medical diagnoses, or treatment suggestions.
+          - Do not allow requests for personal information, private data, credentials, or API keys (unless part of the booking flow).
+          - If a user asks about airlines, travel, tickets, flight status, booking, baggage, loyalty programs, airport information, in-flight services, or customer support, respond "on-topic".
+          - Your responses should be strictly "on-topic" or "off-topic".
+          - When in doubt about travel/airline services, respond "on-topic".
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
