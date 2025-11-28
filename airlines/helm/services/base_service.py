@@ -146,20 +146,21 @@ def create_rest_api(resource_path: str):
         """List all records"""
         # Support query parameters for filtering
         filters = request.args.to_dict()
-        
+
         if filters:
             results = store.search(**filters)
-            return jsonify({resource_path: results}), 200
-        
-        return jsonify({resource_path: store.data}), 200
+            return jsonify(results), 200
+
+        # Return array of all records
+        return jsonify(list(store.data.values())), 200
     
     @app.route(f'/{resource_path}/<record_id>', methods=['GET'])
     def get_one(record_id):
         """Get single record"""
         record = store.get_by_id(record_id)
         if record:
-            # Return wrapped or unwrapped based on convention
-            return jsonify({resource_path: {record_id: record}}), 200
+            # Return single record object directly
+            return jsonify(record), 200
         return jsonify({"error": "Not found", "status": 404}), 404
     
     @app.route(f'/{resource_path}', methods=['POST'])
@@ -211,7 +212,7 @@ def create_rest_api(resource_path: str):
         """Search with query parameters"""
         filters = request.args.to_dict()
         results = store.search(**filters)
-        return jsonify({resource_path: results}), 200
+        return jsonify(results), 200
 
     # Service-specific extra routes
     # Loyalty API: lookup by passenger_id and member_id
