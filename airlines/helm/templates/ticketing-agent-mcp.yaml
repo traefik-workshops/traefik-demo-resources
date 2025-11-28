@@ -55,13 +55,13 @@ data:
             ),
             Tool(
                 name="search_flights",
-                description="Searches for available flights based on origin, destination, and date. Use this tool when a user wants to find flight options. It returns a list of flights with pricing and availability. Requires origin, destination, and date.",
+                description="Intelligently searches for available flights with OPTIONAL parameters. ALL parameters are optional - can work with ANY combination or NO parameters at all. If parameters are missing, queries all flights and shows what's available, filtering by whatever criteria IS provided. Use when user provides complete or incomplete search criteria. Examples: 'flights to JFK' (destination only), 'flights from LAX' (origin only), 'show me flights' (no params - shows all), 'JFK to LAX on 2024-12-25' (all params).",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "origin": {"type": "string", "description": "Origin airport code (e.g., 'JFK')"},
-                        "destination": {"type": "string", "description": "Destination airport code (e.g., 'LAX')"},
-                        "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format"},
+                        "origin": {"type": "string", "description": "Origin airport code (e.g., 'JFK') - OPTIONAL"},
+                        "destination": {"type": "string", "description": "Destination airport code (e.g., 'LAX') - OPTIONAL"},
+                        "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format - OPTIONAL"},
                         "passengers": {"type": "integer", "description": "Number of passengers (default: 1)", "default": 1},
                         "cabin_class": {
                             "type": "string",
@@ -69,8 +69,7 @@ data:
                             "description": "Preferred cabin class",
                             "default": "economy"
                         }
-                    },
-                    "required": ["origin", "destination", "date"]
+                    }
                 }
             ),
             Tool(
@@ -261,33 +260,77 @@ data:
             date = arguments.get("date")
             passengers = arguments.get("passengers", 1)
             cabin_class = arguments.get("cabin_class", "economy")
-            
+
             try:
                 steps = []
-                steps.append("✈️ **FLIGHT SEARCH INITIATED**")
-                steps.append(f"📍 Route: {origin} → {destination}")
-                steps.append(f"📅 Date: {date}")
-                steps.append(f"👥 Passengers: {passengers}")
-                steps.append(f"💺 Class: {cabin_class}")
+                steps.append("✈️ **INTELLIGENT FLIGHT SEARCH**")
+
+                # Build search criteria display
+                criteria = []
+                if origin:
+                    criteria.append(f"Origin: {origin}")
+                if destination:
+                    criteria.append(f"Destination: {destination}")
+                if date:
+                    criteria.append(f"Date: {date}")
+                criteria.append(f"Passengers: {passengers}")
+                criteria.append(f"Class: {cabin_class}")
+
+                if origin or destination or date:
+                    steps.append("Search criteria: " + ", ".join(criteria))
+                else:
+                    steps.append("No specific criteria - showing all available flights")
                 steps.append("")
-                
-                # Step 1: Search flights
-                steps.append("1️⃣ Searching available flights...")
-                search_result = await api_request(
-                    "flights",
-                    f"/flights/search?origin={origin}&dest={destination}&date={date}"
-                )
-                
+
+                # Step 1: Query flights (with or without filters)
+                steps.append("1️⃣ Querying flight inventory...")
+
+                # Build query based on available parameters
+                if origin and destination and date:
+                    # Traditional search with all params
+                    search_result = await api_request(
+                        "flights",
+                        f"/flights/search?origin={origin}&dest={destination}&date={date}"
+                    )
+                else:
+                    # Autonomous mode: get all flights and filter
+                    steps.append("   ℹ️  Missing some parameters - querying all flights autonomously...")
+                    search_result = await api_request("flights", "/flights")
+
                 if "error" in search_result:
                     steps.append(f"   ❌ Error: {search_result['error']}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
+
+                # Extract flights from response
                 flights_data = search_result.get("flights", [])
                 if isinstance(flights_data, dict):
                     flights = list(flights_data.values())
                 else:
                     flights = flights_data
-                steps.append(f"   ✅ Found {len(flights)} flights")
+
+                steps.append(f"   ✅ Retrieved {len(flights)} flights from inventory")
+
+                # Step 1.5: Apply filters if partial criteria provided
+                if not (origin and destination and date):
+                    steps.append("\\n1.5️⃣ Applying available filters...")
+                    original_count = len(flights)
+
+                    if origin:
+                        flights = [f for f in flights if f.get("origin", "").upper() == origin.upper()]
+                        steps.append(f"   ✅ Filtered by origin={origin}: {len(flights)} flights")
+
+                    if destination:
+                        flights = [f for f in flights if f.get("destination", "").upper() == destination.upper()]
+                        steps.append(f"   ✅ Filtered by destination={destination}: {len(flights)} flights")
+
+                    if date:
+                        flights = [f for f in flights if date in f.get("departure_time", "")]
+                        steps.append(f"   ✅ Filtered by date={date}: {len(flights)} flights")
+
+                    if not origin and not destination and not date:
+                        steps.append(f"   ℹ️  No filters applied - showing all {len(flights)} flights")
+
+                steps.append(f"\\n   ✅ Final result: {len(flights)} matching flights")
                 
                 # Step 2: Get pricing for each flight
                 steps.append("\\n2️⃣ Fetching pricing information...")
@@ -1360,20 +1403,24 @@ data:
         
         @mcp_app.tool()
         async def search_flights(
-            origin: str,
-            destination: str,
-            date: str,
+            origin: str = None,
+            destination: str = None,
+            date: str = None,
             passengers: int = 1,
             cabin_class: str = "economy"
         ) -> str:
-            """Searches for available flights"""
-            result = await call_tool("search_flights", {
-                "origin": origin,
-                "destination": destination,
-                "date": date,
-                "passengers": passengers,
-                "cabin_class": cabin_class
-            })
+            """Intelligently searches for flights with optional parameters"""
+            args = {}
+            if origin:
+                args["origin"] = origin
+            if destination:
+                args["destination"] = destination
+            if date:
+                args["date"] = date
+            args["passengers"] = passengers
+            args["cabin_class"] = cabin_class
+
+            result = await call_tool("search_flights", args)
             return result[0]["text"] if result and len(result) > 0 else str(result)
         
         @mcp_app.tool()

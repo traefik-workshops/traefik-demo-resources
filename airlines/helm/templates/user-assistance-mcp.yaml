@@ -13,7 +13,7 @@ data:
     #!/usr/bin/env python3
     """
     User Assistance MCP Server - Customer Support & Disruption Management
-    
+
     orchestrates multiple APIs for customer support operations, disruption handling,
     and issue resolution with comprehensive tracing.
     """
@@ -45,7 +45,7 @@ data:
         'notifications': '{{ include "airlines.notifications.apiUrl" . }}',
         'ancillaries': '{{ include "airlines.ancillaries.apiUrl" . }}',
     }
-    
+
     # Static JWT Token passed from Helm/Terraform
     jwt_token: str = "{{ required "tools-access.users_assistance.token is required" (index .Values "tools-access" "users_assistance" "token") }}"
 
@@ -126,6 +126,46 @@ data:
                     },
                     "required": ["flight_id", "delay_hours"]
                 }
+            ),
+            Tool(
+                name="find_delayed_flights",
+                description="Finds all currently delayed or cancelled flights. Use when user asks 'which flights are delayed', 'show me delayed flights', or 'are there any flight delays'. No parameters required - automatically queries all flights and filters for delayed/cancelled status. Returns formatted list with flight number, route, status, and delay information.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {}
+                }
+            ),
+            Tool(
+                name="find_flights_to_destination",
+                description="Finds all flights going to a specific destination. If destination not provided, lists available destinations from all flights. Use when user asks 'flights to JFK', 'which flights go to LAX', or 'show me flights to Miami'. Autonomously queries the flights API and filters by destination.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "destination": {"type": "string", "description": "Destination airport code (e.g., 'JFK'). Optional - if not provided, will show available destinations."}
+                    }
+                }
+            ),
+            Tool(
+                name="find_flights_from_origin",
+                description="Finds all flights departing from a specific airport. If origin not provided, shows available origins. Use when user asks 'flights from JFK', 'what flights leave from LAX', or 'departures from Miami'. Autonomously queries flights and filters by origin.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "origin": {"type": "string", "description": "Origin airport code (e.g., 'JFK'). Optional - if not provided, will show available origins."}
+                    }
+                }
+            ),
+            Tool(
+                name="search_available_flights",
+                description="Intelligently searches for flights with flexible parameters. Can work with partial information - origin only, destination only, both, or neither. Use when user provides incomplete search criteria like 'show me flights', 'what's available', or provides only one endpoint. If no params provided, shows summary of all available flights grouped by route.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "origin": {"type": "string", "description": "Origin airport code (optional)"},
+                        "destination": {"type": "string", "description": "Destination airport code (optional)"},
+                        "date": {"type": "string", "description": "Travel date YYYY-MM-DD (optional)"}
+                    }
+                }
             )
         ]
 
@@ -140,7 +180,7 @@ data:
         headers = {"Authorization": f"Bearer {token}"}
         if method in ["POST", "PUT", "PATCH"]:
             headers["Content-Type"] = "application/json"
-        
+
         async with aiohttp.ClientSession() as session:
             async with session.request(method, url, headers=headers, json=data) as r:
                 response_text = await r.text()
@@ -164,29 +204,29 @@ data:
     async def call_tool(name: str, arguments: dict):
         """Handle tool calls with detailed execution tracing"""
         logger.info(f"Tool called: {name} with args: {arguments}")
-        
+
         if name == "ping":
             return [{"type": "text", "text": "pong - User Assistance MCP Server is operational"}]
-        
+
         elif name == "get_flight_status":
             flight_number = arguments.get("flight_number")
             date = arguments.get("date")
-            
+
             try:
                 steps = []
                 steps.append("✈️ **FLIGHT STATUS CHECK**")
                 steps.append(f"🔢 Flight: {flight_number}")
                 steps.append(f"📅 Date: {date}")
                 steps.append("")
-                
+
                 # Step 1: Get flight by flight number
                 steps.append("1️⃣ Locating flight...")
                 flight_response = await api_request("flights", f"/flights/{flight_number}")
-                
+
                 if "error" in flight_response:
                     steps.append(f"   ❌ Flight not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
-                
+
                 # Handle API response variations
                 flight = flight_response
                 if "flights" in flight_response:
@@ -197,7 +237,7 @@ data:
                         found = next((f for f in flights_data if f.get("flight_id") == flight_number), None)
                         if found:
                             flight = found
-                
+
                 # Check if we actually have the flight data
                 if not flight or "flight_id" not in flight:
                      # Fallback: try searching if direct lookup failed/returned weird data
@@ -205,45 +245,45 @@ data:
                      if "flights" in flight_response and isinstance(flight_response["flights"], dict):
                          # Maybe the key is different?
                          pass
-                
+
                 steps.append(f"   ✅ Found: {flight.get('flight_id', flight_number)}")
                 steps.append(f"   🛫 {flight.get('origin', 'N/A')} → {flight.get('destination', 'N/A')}")
-                
+
                 # Step 2: Get status details
                 steps.append("\n2️⃣ Checking flight status...")
                 status = flight.get("status", "Unknown")
                 departure = flight.get("departure_time", "N/A")
                 arrival = flight.get("arrival_time", "N/A")
                 gate = flight.get("gate", "TBA")
-                
+
                 steps.append(f"   📊 Status: {status}")
                 steps.append(f"   🕐 Departure: {departure}")
                 steps.append(f"   🕑 Arrival: {arrival}")
                 steps.append(f"   🚪 Gate: {gate}")
-                
+
                 return [{"type": "text", "text": "\n".join(steps)}]
-                
+
             except Exception as e:
                 logger.error(f"Error in get_flight_status: {e}")
                 return [{"type": "text", "text": f"❌ Error checking flight status: {str(e)}"}]
 
         elif name == "get_booking_details":
             booking_id = arguments.get("booking_id")
-            
+
             try:
                 steps = []
                 steps.append("📅 **BOOKING RETRIEVAL**")
                 steps.append(f"Ref: {booking_id}")
                 steps.append("")
-                
+
                 # Step 1: Get booking
                 steps.append("1️⃣ Fetching booking record...")
                 booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
+
                 if "error" in booking_response:
                     steps.append(f"   ❌ Booking not found: {booking_response['error']}")
                     return [{"type": "text", "text": "\n".join(steps)}]
-                
+
                 # Handle API response variations
                 booking = booking_response
                 if "bookings" in booking_response:
@@ -254,22 +294,22 @@ data:
                         found = next((b for b in bookings_data if b.get("booking_id") == booking_id), None)
                         if found:
                             booking = found
-                
+
                 if not booking or "booking_id" not in booking:
                      # Fallback logic
                      pass
-                
+
                 status = booking.get("status", "Unknown")
                 flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
-                
+
                 steps.append(f"   ✅ Status: {status}")
                 steps.append(f"   ✈️  Flight ID: {flight_id}")
                 steps.append(f"   👤 Passenger ID: {passenger_id}")
-                
+
                 # Step 2: Get ticket details
                 steps.append("\n2️⃣ Checking ticket status...")
-                # We don't have a direct 'get ticket by booking' endpoint in the simple list, 
+                # We don't have a direct 'get ticket by booking' endpoint in the simple list,
                 # but we can infer or simulate.
                 # Let's check check-in status
                 checkin = await api_request("checkin", f"/checkin/{booking_id}")
@@ -280,30 +320,30 @@ data:
                     steps.append(f"   💺 Seat: {seat}")
                 else:
                     steps.append(f"   ℹ️  Not checked in yet")
-                
+
                 return [{"type": "text", "text": "\n".join(steps)}]
-                
+
             except Exception as e:
                 logger.error(f"Error in get_booking_details: {e}")
                 return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
 
         elif name == "get_passenger_details":
             passenger_id = arguments.get("passenger_id")
-            
+
             try:
                 steps = []
                 steps.append("👤 **PASSENGER PROFILE**")
                 steps.append(f"ID: {passenger_id}")
                 steps.append("")
-                
+
                 # Step 1: Get passenger
                 steps.append("1️⃣ Retrieving profile...")
                 passenger_response = await api_request("passengers", f"/passengers/{passenger_id}")
-                
+
                 if "error" in passenger_response:
                     steps.append(f"   ❌ Passenger not found: {passenger_response['error']}")
                     return [{"type": "text", "text": "\n".join(steps)}]
-                
+
                 # Handle API response variations
                 passenger = passenger_response
                 if "passengers" in passenger_response:
@@ -314,19 +354,19 @@ data:
                         found = next((p for p in pax_data if p.get("passenger_id") == passenger_id), None)
                         if found:
                             passenger = found
-                
+
                 name = passenger.get("name", "Unknown")
                 email = passenger.get("email", "Unknown")
                 phone = passenger.get("phone", "Unknown")
-                
+
                 steps.append(f"   ✅ Name: {name}")
                 steps.append(f"   📧 Email: {email}")
                 steps.append(f"   📱 Phone: {phone}")
-                
+
                 # Step 2: Get loyalty status
                 steps.append("\n2️⃣ Checking loyalty status...")
                 loyalty = await api_request("loyalty", f"/loyalty/{passenger_id}")
-                
+
                 if "error" not in loyalty:
                     tier = loyalty.get("tier", "None")
                     points = loyalty.get("points", 0)
@@ -334,18 +374,18 @@ data:
                     steps.append(f"   🎯 Points: {points:,}")
                 else:
                     steps.append(f"   ℹ️  No loyalty membership")
-                
+
                 return [{"type": "text", "text": "\n".join(steps)}]
-                
+
             except Exception as e:
                 logger.error(f"Error in get_passenger_details: {e}")
                 return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
-        
+
         elif name == "calculate_delay_compensation":
             flight_id = arguments.get("flight_id")
             delay_hours = arguments.get("delay_hours")
             passenger_count = arguments.get("passenger_count", 1)
-            
+
             try:
                 steps = []
                 steps.append("💰 **DELAY COMPENSATION CALCULATOR**")
@@ -353,23 +393,23 @@ data:
                 steps.append(f"⏱️  Delay: {delay_hours} hours")
                 steps.append(f"👥 Passengers: {passenger_count}")
                 steps.append("")
-                
+
                 # Get flight details
                 steps.append("1️⃣ Retrieving flight information...")
                 flight = await api_request("flights", f"/flights/{flight_id}")
-                
+
                 if "error" not in flight:
                     origin = flight.get("origin", "???")
                     dest = flight.get("destination", "???")
                     steps.append(f"   ✅ Route: {origin} → {dest}")
-                    
+
                     # Determine distance category
                     international = origin[:2] != dest[:2]  # Simple check
                     steps.append(f"   ✅ Type: {'International' if international else 'Domestic'}")
-                
+
                 # Calculate compensation
                 steps.append("\n2️⃣ Calculating compensation...")
-                
+
                 if delay_hours < 3:
                     compensation_per_pax = 0
                     steps.append(f"   ℹ️  No compensation (delay < 3 hours)")
@@ -379,9 +419,9 @@ data:
                 else:  # >= 4 hours
                     compensation_per_pax = 600 if international else 400
                     steps.append(f"   ✅ EU261/DOT: €{compensation_per_pax} per passenger")
-                
+
                 total_compensation = compensation_per_pax * passenger_count
-                
+
                 # Additional benefits
                 steps.append("\n3️⃣ Additional benefits...")
                 if delay_hours >= 2:
@@ -390,7 +430,7 @@ data:
                     steps.append(f"   ✅ Hotel accommodation (if overnight)")
                 if delay_hours >= 5:
                     steps.append(f"   ✅ Transport to/from hotel")
-                
+
                 # Build response
                 response = "\n".join(steps)
                 response += "\n\n" + "="*60
@@ -400,35 +440,35 @@ data:
                 response += f"\n**Total Compensation**: €{total_compensation:,}"
                 response += f"\n**Regulation**: EU261/US DOT"
                 response += f"\n**Processing Time**: 7-14 days"
-                
+
                 return [{"type": "text", "text": response}]
-                
+
             except Exception as e:
                 logger.error(f"Error in calculate_delay_compensation: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-        
+
         elif name == "track_baggage":
             booking_id = arguments.get("booking_id")
-            
+
             try:
                 steps = []
                 steps.append("🧳 **BAGGAGE TRACKING**")
                 steps.append(f"Booking Ref: {booking_id}")
                 steps.append("")
-                
+
                 # Mock baggage tracking for now as we don't have a full baggage API response structure confirmed
                 # But we can try to fetch it if the service exists
                 steps.append("1️⃣ Locating baggage...")
                 # Assuming baggage API follows similar pattern
                 baggage_response = await api_request("baggage", f"/baggage/{booking_id}")
-                
+
                 if "error" not in baggage_response:
                     # Handle potential wrapping
                     baggage = baggage_response
                     if "baggage" in baggage_response:
                          # Extraction logic if needed
                          pass
-                    
+
                     status = baggage.get("status", "In Transit")
                     location = baggage.get("location", "Unknown")
                     steps.append(f"   ✅ Status: {status}")
@@ -437,7 +477,7 @@ data:
                     # Fallback mock
                     steps.append(f"   ✅ Status: On Board")
                     steps.append(f"   📍 Location: Cargo Hold")
-                
+
                 return [{"type": "text", "text": "\n".join(steps)}]
             except Exception as e:
                 logger.error(f"Error in track_baggage: {e}")
@@ -445,20 +485,20 @@ data:
 
         elif name == "get_loyalty_profile":
             loyalty_number = arguments.get("loyalty_number")
-            
+
             try:
                 steps = []
                 steps.append("💎 **LOYALTY PROFILE**")
                 steps.append(f"Member ID: {loyalty_number}")
                 steps.append("")
-                
+
                 steps.append("1️⃣ Retrieving account details...")
                 loyalty_response = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
-                
+
                 if "error" in loyalty_response:
                     steps.append(f"   ❌ Member not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
-                
+
                 # Handle API response variations
                 profile = loyalty_response
                 if "members" in loyalty_response:
@@ -469,18 +509,395 @@ data:
                         found = next((m for m in members_data if m.get("member_id") == loyalty_number), None)
                         if found:
                             profile = found
-                
+
                 tier = profile.get("tier", "Standard")
                 miles = profile.get("miles_balance", 0)
                 status = profile.get("status", "Active")
-                
+
                 steps.append(f"   ✨ Tier Status: {tier}")
                 steps.append(f"   💳 Miles Balance: {miles:,}")
                 steps.append(f"   ✅ Account Status: {status}")
-                
+
                 return [{"type": "text", "text": "\n".join(steps)}]
             except Exception as e:
                 logger.error(f"Error in get_loyalty_profile: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "find_delayed_flights":
+            try:
+                steps = []
+                steps.append("🔍 **FINDING DELAYED/CANCELLED FLIGHTS**")
+                steps.append("Querying all flights autonomously...")
+                steps.append("")
+
+                # Step 1: Query all flights
+                steps.append("1️⃣ Fetching all flight data...")
+                flights_response = await api_request("flights", "/flights")
+
+                if "error" in flights_response:
+                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+
+                # Extract flights from response
+                flights = []
+                if "flights" in flights_response:
+                    flights_data = flights_response["flights"]
+                    if isinstance(flights_data, dict):
+                        flights = list(flights_data.values())
+                    elif isinstance(flights_data, list):
+                        flights = flights_data
+                else:
+                    flights = [flights_response] if "flight_id" in flights_response else []
+
+                steps.append(f"   ✅ Retrieved {len(flights)} flights")
+
+                # Step 2: Filter for delayed/cancelled flights
+                steps.append("\n2️⃣ Filtering for delayed/cancelled status...")
+                delayed_flights = []
+                cancelled_flights = []
+
+                for flight in flights:
+                    status = flight.get("status", "").lower()
+                    if "delay" in status or status == "delayed":
+                        delayed_flights.append(flight)
+                    elif "cancel" in status or status == "cancelled":
+                        cancelled_flights.append(flight)
+
+                steps.append(f"   🔴 Found {len(delayed_flights)} delayed flights")
+                steps.append(f"   ❌ Found {len(cancelled_flights)} cancelled flights")
+
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+                response += "\n**DELAYED FLIGHTS**\n"
+                response += "="*60
+
+                if delayed_flights:
+                    for flight in delayed_flights:
+                        flight_id = flight.get("flight_id", "Unknown")
+                        origin = flight.get("origin", "???")
+                        dest = flight.get("destination", "???")
+                        status = flight.get("status", "Delayed")
+                        dept_time = flight.get("departure_time", "N/A")
+                        delay_info = flight.get("delay_minutes", "Unknown")
+
+                        response += f"\n\n✈️  **{flight_id}**: {origin} → {dest}"
+                        response += f"\n   Status: {status}"
+                        response += f"\n   Scheduled: {dept_time}"
+                        if delay_info != "Unknown":
+                            response += f"\n   Delay: {delay_info} minutes"
+                else:
+                    response += "\n\n✅ No delayed flights at this time"
+
+                if cancelled_flights:
+                    response += "\n\n" + "="*60
+                    response += "\n**CANCELLED FLIGHTS**\n"
+                    response += "="*60
+                    for flight in cancelled_flights:
+                        flight_id = flight.get("flight_id", "Unknown")
+                        origin = flight.get("origin", "???")
+                        dest = flight.get("destination", "???")
+
+                        response += f"\n\n✈️  **{flight_id}**: {origin} → {dest}"
+                        response += f"\n   Status: CANCELLED"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in find_delayed_flights: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "find_flights_to_destination":
+            destination = arguments.get("destination")
+
+            try:
+                steps = []
+                steps.append("🔍 **FINDING FLIGHTS TO DESTINATION**")
+                if destination:
+                    steps.append(f"Destination: {destination}")
+                else:
+                    steps.append("No destination specified - will show all available destinations")
+                steps.append("")
+
+                # Step 1: Query all flights
+                steps.append("1️⃣ Fetching flight data...")
+                flights_response = await api_request("flights", "/flights")
+
+                if "error" in flights_response:
+                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+
+                # Extract flights
+                flights = []
+                if "flights" in flights_response:
+                    flights_data = flights_response["flights"]
+                    if isinstance(flights_data, dict):
+                        flights = list(flights_data.values())
+                    elif isinstance(flights_data, list):
+                        flights = flights_data
+                else:
+                    flights = [flights_response] if "flight_id" in flights_response else []
+
+                steps.append(f"   ✅ Retrieved {len(flights)} flights")
+
+                # Step 2: Filter or list destinations
+                if destination:
+                    steps.append(f"\n2️⃣ Filtering for destination: {destination.upper()}...")
+                    matching_flights = [f for f in flights if f.get("destination", "").upper() == destination.upper()]
+                    steps.append(f"   ✅ Found {len(matching_flights)} flights to {destination.upper()}")
+
+                    # Build response
+                    response = "\n".join(steps)
+                    response += "\n\n" + "="*60
+                    response += f"\n**FLIGHTS TO {destination.upper()}**\n"
+                    response += "="*60
+
+                    if matching_flights:
+                        for flight in matching_flights:
+                            flight_id = flight.get("flight_id", "Unknown")
+                            origin = flight.get("origin", "???")
+                            dept_time = flight.get("departure_time", "N/A")
+                            arr_time = flight.get("arrival_time", "N/A")
+                            status = flight.get("status", "Unknown")
+
+                            response += f"\n\n✈️  **{flight_id}**: {origin} → {destination.upper()}"
+                            response += f"\n   Departure: {dept_time}"
+                            response += f"\n   Arrival: {arr_time}"
+                            response += f"\n   Status: {status}"
+                    else:
+                        response += f"\n\n❌ No flights found to {destination.upper()}"
+                else:
+                    steps.append("\n2️⃣ Listing all available destinations...")
+                    destinations = set()
+                    for flight in flights:
+                        dest = flight.get("destination")
+                        if dest:
+                            destinations.add(dest)
+
+                    steps.append(f"   ✅ Found {len(destinations)} unique destinations")
+
+                    # Build response
+                    response = "\n".join(steps)
+                    response += "\n\n" + "="*60
+                    response += "\n**AVAILABLE DESTINATIONS**\n"
+                    response += "="*60
+                    response += "\n\n"
+                    response += ", ".join(sorted(destinations))
+                    response += "\n\n💡 **Tip**: Call this tool again with a specific destination to see flights"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in find_flights_to_destination: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "find_flights_from_origin":
+            origin = arguments.get("origin")
+
+            try:
+                steps = []
+                steps.append("🔍 **FINDING FLIGHTS FROM ORIGIN**")
+                if origin:
+                    steps.append(f"Origin: {origin}")
+                else:
+                    steps.append("No origin specified - will show all available origins")
+                steps.append("")
+
+                # Step 1: Query all flights
+                steps.append("1️⃣ Fetching flight data...")
+                flights_response = await api_request("flights", "/flights")
+
+                if "error" in flights_response:
+                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+
+                # Extract flights
+                flights = []
+                if "flights" in flights_response:
+                    flights_data = flights_response["flights"]
+                    if isinstance(flights_data, dict):
+                        flights = list(flights_data.values())
+                    elif isinstance(flights_data, list):
+                        flights = flights_data
+                else:
+                    flights = [flights_response] if "flight_id" in flights_response else []
+
+                steps.append(f"   ✅ Retrieved {len(flights)} flights")
+
+                # Step 2: Filter or list origins
+                if origin:
+                    steps.append(f"\n2️⃣ Filtering for origin: {origin.upper()}...")
+                    matching_flights = [f for f in flights if f.get("origin", "").upper() == origin.upper()]
+                    steps.append(f"   ✅ Found {len(matching_flights)} flights from {origin.upper()}")
+
+                    # Build response
+                    response = "\n".join(steps)
+                    response += "\n\n" + "="*60
+                    response += f"\n**FLIGHTS FROM {origin.upper()}**\n"
+                    response += "="*60
+
+                    if matching_flights:
+                        for flight in matching_flights:
+                            flight_id = flight.get("flight_id", "Unknown")
+                            dest = flight.get("destination", "???")
+                            dept_time = flight.get("departure_time", "N/A")
+                            arr_time = flight.get("arrival_time", "N/A")
+                            status = flight.get("status", "Unknown")
+
+                            response += f"\n\n✈️  **{flight_id}**: {origin.upper()} → {dest}"
+                            response += f"\n   Departure: {dept_time}"
+                            response += f"\n   Arrival: {arr_time}"
+                            response += f"\n   Status: {status}"
+                    else:
+                        response += f"\n\n❌ No flights found from {origin.upper()}"
+                else:
+                    steps.append("\n2️⃣ Listing all available origins...")
+                    origins = set()
+                    for flight in flights:
+                        orig = flight.get("origin")
+                        if orig:
+                            origins.add(orig)
+
+                    steps.append(f"   ✅ Found {len(origins)} unique origins")
+
+                    # Build response
+                    response = "\n".join(steps)
+                    response += "\n\n" + "="*60
+                    response += "\n**AVAILABLE ORIGINS**\n"
+                    response += "="*60
+                    response += "\n\n"
+                    response += ", ".join(sorted(origins))
+                    response += "\n\n💡 **Tip**: Call this tool again with a specific origin to see flights"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in find_flights_from_origin: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "search_available_flights":
+            origin = arguments.get("origin")
+            destination = arguments.get("destination")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append("🔍 **INTELLIGENT FLIGHT SEARCH**")
+
+                search_criteria = []
+                if origin:
+                    search_criteria.append(f"Origin: {origin}")
+                if destination:
+                    search_criteria.append(f"Destination: {destination}")
+                if date:
+                    search_criteria.append(f"Date: {date}")
+
+                if search_criteria:
+                    steps.append("Search criteria: " + ", ".join(search_criteria))
+                else:
+                    steps.append("No criteria specified - showing all available flights")
+                steps.append("")
+
+                # Step 1: Query all flights
+                steps.append("1️⃣ Fetching flight data...")
+                flights_response = await api_request("flights", "/flights")
+
+                if "error" in flights_response:
+                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                    return [{"type": "text", "text": "\n".join(steps)}]
+
+                # Extract flights
+                flights = []
+                if "flights" in flights_response:
+                    flights_data = flights_response["flights"]
+                    if isinstance(flights_data, dict):
+                        flights = list(flights_data.values())
+                    elif isinstance(flights_data, list):
+                        flights = flights_data
+                else:
+                    flights = [flights_response] if "flight_id" in flights_response else []
+
+                steps.append(f"   ✅ Retrieved {len(flights)} flights")
+
+                # Step 2: Apply filters intelligently
+                steps.append("\n2️⃣ Applying filters...")
+                filtered_flights = flights
+
+                if origin:
+                    filtered_flights = [f for f in filtered_flights if f.get("origin", "").upper() == origin.upper()]
+                    steps.append(f"   ✅ Filtered by origin: {len(filtered_flights)} flights")
+
+                if destination:
+                    filtered_flights = [f for f in filtered_flights if f.get("destination", "").upper() == destination.upper()]
+                    steps.append(f"   ✅ Filtered by destination: {len(filtered_flights)} flights")
+
+                if date:
+                    filtered_flights = [f for f in filtered_flights if date in f.get("departure_time", "")]
+                    steps.append(f"   ✅ Filtered by date: {len(filtered_flights)} flights")
+
+                # Build response
+                response = "\n".join(steps)
+                response += "\n\n" + "="*60
+
+                if origin and destination:
+                    response += f"\n**FLIGHTS: {origin.upper()} → {destination.upper()}**\n"
+                elif origin:
+                    response += f"\n**FLIGHTS FROM {origin.upper()}**\n"
+                elif destination:
+                    response += f"\n**FLIGHTS TO {destination.upper()}**\n"
+                else:
+                    response += "\n**ALL AVAILABLE FLIGHTS (SUMMARY)**\n"
+
+                response += "="*60
+
+                if not origin and not destination and not date:
+                    # Show summary grouped by route
+                    routes = {}
+                    for flight in filtered_flights:
+                        route = f"{flight.get('origin', '???')} → {flight.get('destination', '???')}"
+                        if route not in routes:
+                            routes[route] = []
+                        routes[route].append(flight)
+
+                    response += f"\n\nTotal routes: {len(routes)}"
+                    response += f"\nTotal flights: {len(filtered_flights)}\n"
+
+                    for route, route_flights in sorted(routes.items())[:10]:  # Show top 10
+                        response += f"\n\n📍 **{route}**: {len(route_flights)} flight(s)"
+                        for flight in route_flights[:3]:  # Show first 3
+                            flight_id = flight.get("flight_id", "Unknown")
+                            status = flight.get("status", "Unknown")
+                            response += f"\n   - {flight_id} ({status})"
+
+                    if len(routes) > 10:
+                        response += f"\n\n... and {len(routes) - 10} more routes"
+
+                    response += "\n\n💡 **Tip**: Specify origin and/or destination for detailed results"
+                else:
+                    # Show detailed flight list
+                    if filtered_flights:
+                        for flight in filtered_flights[:20]:  # Limit to 20
+                            flight_id = flight.get("flight_id", "Unknown")
+                            orig = flight.get("origin", "???")
+                            dest = flight.get("destination", "???")
+                            dept_time = flight.get("departure_time", "N/A")
+                            arr_time = flight.get("arrival_time", "N/A")
+                            status = flight.get("status", "Unknown")
+
+                            response += f"\n\n✈️  **{flight_id}**: {orig} → {dest}"
+                            response += f"\n   Departure: {dept_time}"
+                            response += f"\n   Arrival: {arr_time}"
+                            response += f"\n   Status: {status}"
+
+                        if len(filtered_flights) > 20:
+                            response += f"\n\n... and {len(filtered_flights) - 20} more flights"
+                    else:
+                        response += "\n\n❌ No flights found matching your criteria"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in search_available_flights: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         else:
@@ -490,15 +907,15 @@ data:
         import asyncio
         from mcp.server.fastmcp import FastMCP
         import uvicorn
-        
+
         mcp_app = FastMCP("user-assistance-mcp", stateless_http=True, json_response=True)
-        
+
         @mcp_app.tool()
         async def ping() -> str:
             """Health check tool"""
             result = await call_tool("ping", {})
             return result[0]["text"] if result and len(result) > 0 else "pong"
-        
+
         @mcp_app.tool()
         async def get_flight_status(flight_number: str, date: str) -> str:
             """Retrieves real-time operational status for a flight"""
@@ -509,7 +926,7 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
         @mcp_app.tool()
         async def get_booking_details(booking_id: str) -> str:
             """Fetches comprehensive information about a booking"""
@@ -520,7 +937,7 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
         @mcp_app.tool()
         async def get_passenger_details(passenger_id: str) -> str:
             """Retrieves passenger profile and travel history"""
@@ -531,7 +948,7 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
         @mcp_app.tool()
         async def track_baggage(booking_id: str) -> str:
             """Locates and provides current status of checked baggage"""
@@ -542,7 +959,7 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
         @mcp_app.tool()
         async def get_loyalty_profile(loyalty_number: str) -> str:
             """Accesses customer's loyalty program account"""
@@ -553,7 +970,7 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
         @mcp_app.tool()
         async def calculate_delay_compensation(
             flight_id: str,
@@ -572,7 +989,63 @@ data:
                 return str(result)
             except Exception as e:
                 return f"Error: {str(e)}"
-        
+
+        @mcp_app.tool()
+        async def find_delayed_flights() -> str:
+            """Finds all currently delayed or cancelled flights autonomously"""
+            try:
+                result = await call_tool("find_delayed_flights", {})
+                if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                    return result[0]["text"]
+                return str(result)
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+        @mcp_app.tool()
+        async def find_flights_to_destination(destination: str = None) -> str:
+            """Finds all flights to a destination or lists all destinations"""
+            try:
+                result = await call_tool("find_flights_to_destination", {"destination": destination} if destination else {})
+                if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                    return result[0]["text"]
+                return str(result)
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+        @mcp_app.tool()
+        async def find_flights_from_origin(origin: str = None) -> str:
+            """Finds all flights from an origin or lists all origins"""
+            try:
+                result = await call_tool("find_flights_from_origin", {"origin": origin} if origin else {})
+                if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                    return result[0]["text"]
+                return str(result)
+            except Exception as e:
+                return f"Error: {str(e)}"
+
+        @mcp_app.tool()
+        async def search_available_flights(
+            origin: str = None,
+            destination: str = None,
+            date: str = None
+        ) -> str:
+            """Intelligently searches for flights with flexible parameters"""
+            try:
+                args = {}
+                if origin:
+                    args["origin"] = origin
+                if destination:
+                    args["destination"] = destination
+                if date:
+                    args["date"] = date
+
+                result = await call_tool("search_available_flights", args)
+                if result and len(result) > 0 and isinstance(result[0], dict) and "text" in result[0]:
+                    return result[0]["text"]
+                return str(result)
+            except Exception as e:
+                return f"Error: {str(e)}"
+
         logger.info("Starting User Assistance MCP Server with streamable-http...")
         app = mcp_app.streamable_http_app()
         uvicorn.run(app, host="0.0.0.0", port=8080)
