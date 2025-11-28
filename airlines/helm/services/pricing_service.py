@@ -2,19 +2,20 @@
 """Pricing Service - In-memory stateful API with flight pricing lookup"""
 import sys
 sys.path.append('/app')
-from base_service import app, init_store, create_rest_api, store
+from base_service import app, init_store, create_rest_api
 from flask import jsonify, request
+import base_service
 
 def setup_pricing_routes():
     """Add pricing-specific routes"""
     @app.route('/pricing/<flight_id>', methods=['GET'])
     def get_flight_pricing(flight_id):
         """Get pricing for a specific flight"""
-        if not store:
+        if not base_service.store:
             return jsonify({"error": "Service not initialized"}), 500
 
         # Look up pricing by flight_id
-        pricing = store.get_by_id(flight_id)
+        pricing = base_service.store.get_by_id(flight_id)
         if pricing:
             return jsonify(pricing), 200
 
@@ -23,7 +24,7 @@ def setup_pricing_routes():
     @app.route('/pricing/calculate', methods=['POST'])
     def calculate_pricing():
         """Calculate total price for a flight"""
-        if not store:
+        if not base_service.store:
             return jsonify({"error": "Service not initialized"}), 500
 
         data = request.get_json(silent=True) or {}
@@ -31,8 +32,8 @@ def setup_pricing_routes():
         travel_class = data.get('class', 'economy')
 
         # Get pricing table and taxes
-        pricing_table = store.data or {}
-        taxes_fees = (store.raw_data or {}).get('taxes_fees', {})
+        pricing_table = base_service.store.data or {}
+        taxes_fees = (base_service.store.raw_data or {}).get('taxes_fees', {})
 
         result = None
         # Try flight-specific pricing first
@@ -65,6 +66,6 @@ if __name__ == '__main__':
     logger = logging.getLogger(__name__)
     logger.info(f"Starting Pricing service on port 3000")
     logger.info(f"Endpoints: /pricing, /pricing/<flight_id>, /pricing/calculate")
-    logger.info(f"Loaded {len(store.data)} initial pricing records")
+    logger.info(f"Loaded {len(base_service.store.data)} initial pricing records")
 
     app.run(host='0.0.0.0', port=3000, debug=False)
