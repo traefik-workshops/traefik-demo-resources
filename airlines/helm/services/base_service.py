@@ -320,36 +320,6 @@ def create_rest_api(resource_path: str):
             bags = booking_map.get(booking_id, [])
             return jsonify(bags), 200
 
-    # Pricing API: calculate total price
-    if resource_path == 'pricing':
-        @app.route('/pricing/calculate', methods=['POST'])
-        def calculate_pricing():
-            if not store:
-                return jsonify({"error": "Service not initialized"}), 500
-            data = request.get_json(silent=True) or {}
-            flight_id = data.get('flight_id')
-            travel_class = data.get('class')
-
-            pricing_table = store.data or {}
-            taxes_fees = (store.raw_data or {}).get('taxes_fees', {})
-
-            result = None
-            # Try flight-specific pricing first
-            if flight_id and flight_id in pricing_table:
-                result = pricing_table.get(flight_id)
-
-            # Fallback to a default pricing entry
-            if not result:
-                result = pricing_table.get('FL123', {"base_fare": 400, "taxes": taxes_fees.get('domestic', 50), "total": 450})
-
-            # Ensure numeric fields are present
-            base_fare = float(result.get('base_fare', 0))
-            taxes = float(result.get('taxes', taxes_fees.get('domestic', 0)))
-            total = float(result.get('total', base_fare + taxes))
-
-            payload = {"base_fare": base_fare, "taxes": taxes, "total": total}
-            return jsonify(payload), 201
-
     # Ancillaries API: meals and seat upgrades
     if resource_path == 'ancillaries':
         @app.route('/ancillaries/meals', methods=['GET'])
