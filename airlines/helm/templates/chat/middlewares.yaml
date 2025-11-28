@@ -217,6 +217,7 @@ spec:
         blockConditions:
           - condition: JSONStringContains(".choices[0].message.content", "yes")
             reason: request blocked
+{{- if .Values.chat.guards.parallel }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -226,7 +227,7 @@ metadata:
 spec:
   plugin:
     hub-chain:
-      parallel: {{ .Values.chat.guards.parallel }}
+      parallel: true
       middlewares:
         {{- if .Values.chat.guards.topic_control.enabled }}
         - name: cc-topic-control-guard
@@ -273,3 +274,4 @@ spec:
             retry:
               attempts: 0
         {{- end }}
+{{- end }}
