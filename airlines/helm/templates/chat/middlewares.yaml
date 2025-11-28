@@ -40,7 +40,7 @@ spec:
         weaviate:
           host: {{ .Values.chat.semantic_cache.vectorDB.weaviate.host }}
           scheme: http
-          collectionName: airlines-chat
+          collectionName: airlines
           maxDistance: 0.05
       ignoreAssistant: true
       messageHistory: 4
