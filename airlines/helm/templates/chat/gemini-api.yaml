@@ -25,7 +25,7 @@ metadata:
 spec:
   plugin:
     chat-completion:
-      model: gpt-4.1-nano
+      model: models/gemini-3-pro-preview
       allowModelOverride: true
       allowParamsOverride: false
       gracefulErrors: true
