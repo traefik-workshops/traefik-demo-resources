@@ -64,7 +64,9 @@ def setup_pricing_routes():
 
 if __name__ == '__main__':
     # Initialize the store
-    init_store('/api/api.json', 'pricing_id', 'Pricing')
+    # Note: Pricing data uses flight_id/route as dict keys (FL123, JFK-LAX, etc.)
+    # The id_field is used for CREATE operations when adding new pricing records
+    init_store('/api/api.json', 'flight_id', 'Pricing')
 
     # Set up pricing-specific routes FIRST
     setup_pricing_routes()
