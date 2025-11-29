@@ -66,6 +66,7 @@
                 opacity: 0;
                 transform: translateX(-10px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
@@ -80,13 +81,11 @@
             <div>
                 <h1 class="text-3xl font-bold text-white flex items-center gap-4">
                     <img src="https://docs.traefik.io/assets/img/traefik.logo.png" alt="Traefik" class="h-12">
-                    <span class="border-l border-slate-600 pl-4">Airlines <span class="text-slate-400 font-light">Ops Center</span></span>
+                    <span class="border-l border-slate-600 pl-4">Airlines <span class="text-slate-400 font-light">Ops
+                            Center</span></span>
                 </h1>
             </div>
             <div class="flex gap-4">
-                <button @click="refreshData" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm">
-                    🔄 Refresh
-                </button>
                 <div class="text-right">
                     <div class="text-sm text-slate-400">System Status</div>
                     <div class="text-green-400 font-bold">● Operational</div>
@@ -99,7 +98,8 @@
             <div class="card">
                 <div class="text-slate-400 text-sm uppercase tracking-wider">Active Flights</div>
                 <div class="stat-value">{{ stats.flights }}</div>
-                <div class="text-sm text-slate-500 mt-2">{{ stats.scheduled }} scheduled, {{ stats.disruptions }} delayed</div>
+                <div class="text-sm text-slate-500 mt-2">{{ stats.scheduled }} scheduled, {{ stats.disruptions }}
+                    delayed</div>
             </div>
             <div class="card">
                 <div class="text-slate-400 text-sm uppercase tracking-wider">Total Bookings</div>
@@ -181,7 +181,7 @@
                     No delayed or cancelled flights
                 </div>
                 <div v-for="flight in delayedFlights" :key="flight.flight_id"
-                     class="bg-slate-800 p-3 rounded border border-slate-700">
+                    class="bg-slate-800 p-3 rounded border border-slate-700">
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="font-bold text-white font-mono">{{ flight.flight_id }}</div>
