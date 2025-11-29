@@ -421,22 +421,32 @@ data:
                 steps.append(f"Booking Ref: {booking_id}")
                 steps.append("")
 
-                # Mock baggage tracking for now as we don't have a full baggage API response structure confirmed
-                # But we can try to fetch it if the service exists
+                # Fetch baggage items for this booking
                 steps.append("1️⃣ Locating baggage...")
-                # Assuming baggage API follows similar pattern
-                baggage = await api_request("baggage", f"/baggage/{booking_id}")
+                baggage_items = await api_request("baggage", f"/baggage/{booking_id}")
 
-                if "error" not in baggage:
-                    # Baggage is now the object directly
-                    status = baggage.get("status", "In Transit")
-                    location = baggage.get("location", "Unknown")
-                    steps.append(f"   ✅ Status: {status}")
-                    steps.append(f"   📍 Location: {location}")
+                # Baggage API returns an array of baggage items
+                if isinstance(baggage_items, list) and len(baggage_items) > 0:
+                    steps.append(f"   ✅ Found {len(baggage_items)} bag(s)")
+                    steps.append("")
+                    steps.append("2️⃣ Baggage details:")
+                    for i, bag in enumerate(baggage_items[:3], 1):  # Show up to 3 bags
+                        tag = bag.get("bag_tag", "Unknown")
+                        status = bag.get("status", "In Transit")
+                        location = bag.get("location", "Unknown")
+                        steps.append(f"   {i}. Tag: {tag}")
+                        steps.append(f"      Status: {status}")
+                        steps.append(f"      Location: {location}")
+                        if i < min(len(baggage_items), 3):
+                            steps.append("")
+                    if len(baggage_items) > 3:
+                        steps.append(f"   ... and {len(baggage_items) - 3} more bag(s)")
+                elif "error" in baggage_items:
+                    # Fallback if error
+                    steps.append(f"   ⚠️  No baggage found for this booking")
                 else:
-                    # Fallback mock
-                    steps.append(f"   ✅ Status: On Board")
-                    steps.append(f"   📍 Location: Cargo Hold")
+                    # Empty list or no baggage
+                    steps.append(f"   ℹ️  No checked baggage for this booking")
 
                 return [{"type": "text", "text": "\n".join(steps)}]
             except Exception as e:
