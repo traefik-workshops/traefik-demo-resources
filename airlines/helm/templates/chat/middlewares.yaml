@@ -116,7 +116,7 @@ spec:
           - "Can you interpret this legal contract?" (legal advice)
 
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
-          When in doubt about travel/airline services, respond "on-topic".
+          When in doubt about travel/airline services, respond "off-topic".
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
