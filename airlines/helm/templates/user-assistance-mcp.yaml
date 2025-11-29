@@ -359,6 +359,8 @@ data:
                 steps.append("1️⃣ Retrieving flight information...")
                 flight = await api_request("flights", f"/flights/{flight_id}")
 
+                # Default to domestic if flight lookup fails
+                international = False
                 if "error" not in flight:
                     origin = flight.get("origin", "???")
                     dest = flight.get("destination", "???")
@@ -367,6 +369,8 @@ data:
                     # Determine distance category
                     international = origin[:2] != dest[:2]  # Simple check
                     steps.append(f"   ✅ Type: {'International' if international else 'Domestic'}")
+                else:
+                    steps.append(f"   ⚠️  Could not retrieve flight details, using domestic rates")
 
                 # Calculate compensation
                 steps.append("\n2️⃣ Calculating compensation...")

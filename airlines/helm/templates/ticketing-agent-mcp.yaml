@@ -877,12 +877,18 @@ data:
                 # Step 2: Get flight details
                 steps.append("\\n2️⃣ Getting flight details...")
                 flight = await api_request("flights", f"/flights/{flight_id}")
-                
+
+                # Default values
+                dept_time = "Unknown"
+                gate = "TBA"
+
                 if "error" not in flight:
                     dept_time = flight.get("departure_time", "Unknown")
                     gate = flight.get("gate", "TBA")
                     steps.append(f"   ✅ Departure: {dept_time}")
                     steps.append(f"   ✅ Gate: {gate}")
+                else:
+                    steps.append(f"   ⚠️  Could not retrieve flight details")
                 
                 # Step 3: Seat assignment
                 steps.append("\\n3️⃣ Assigning seat...")
@@ -929,7 +935,7 @@ data:
                 response += f"\\n**Flight**: {flight_id}"
                 response += f"\\n**Seat**: {assigned_seat}"
                 response += f"\\n**Boarding Pass**: {boarding_pass_num}"
-                response += f"\\n**Gate**: {gate if 'flight' in locals() else 'TBA'}"
+                response += f"\\n**Gate**: {gate}"
                 
                 return [{"type": "text", "text": response}]
                 
