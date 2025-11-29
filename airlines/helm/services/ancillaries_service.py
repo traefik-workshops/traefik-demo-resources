@@ -8,6 +8,17 @@ import base_service
 
 def setup_ancillaries_routes():
     """Add ancillaries-specific routes"""
+    @app.route('/ancillaries/search', methods=['GET'])
+    def search_ancillaries():
+        """Search ancillaries by any field"""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        filters = request.args.to_dict()
+        results = base_service.store.search(**filters) if filters else list(base_service.store.data.values())
+
+        return jsonify(results), 200
+
     @app.route('/ancillaries/meals', methods=['GET'])
     def get_meal_options():
         """Get available meal options"""

@@ -256,23 +256,15 @@ data:
                 virtual_flight_num = f"CS{flight_num}"
 
                 # Try to get the actual flight from API
-                flight_response = await api_request("flights", f"/flights/{virtual_flight_num}")
+                flight = await api_request("flights", f"/flights/{virtual_flight_num}")
 
                 old_departure = "Unknown"
                 old_arrival = "Unknown"
                 origin = "???"
                 destination = "???"
 
-                if "error" not in flight_response:
-                    # Successfully retrieved flight
-                    flight = flight_response
-                    if "flights" in flight_response:
-                        flights_data = flight_response["flights"]
-                        if isinstance(flights_data, dict) and virtual_flight_num in flights_data:
-                            flight = flights_data[virtual_flight_num]
-                        elif isinstance(flights_data, list) and len(flights_data) > 0:
-                            flight = flights_data[0]
-
+                if "error" not in flight:
+                    # Flight is now the object directly, no unwrapping needed
                     old_departure = flight.get("departure_time", "Unknown")
                     old_arrival = flight.get("arrival_time", "Unknown")
                     origin = flight.get("origin", "???")

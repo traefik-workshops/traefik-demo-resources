@@ -221,30 +221,13 @@ data:
 
                 # Step 1: Get flight by flight number
                 steps.append("1️⃣ Locating flight...")
-                flight_response = await api_request("flights", f"/flights/{flight_number}")
+                flight = await api_request("flights", f"/flights/{flight_number}")
 
-                if "error" in flight_response:
+                if "error" in flight:
                     steps.append(f"   ❌ Flight not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Handle API response variations
-                flight = flight_response
-                if "flights" in flight_response:
-                    flights_data = flight_response["flights"]
-                    if isinstance(flights_data, dict) and flight_number in flights_data:
-                        flight = flights_data[flight_number]
-                    elif isinstance(flights_data, list):
-                        found = next((f for f in flights_data if f.get("flight_id") == flight_number), None)
-                        if found:
-                            flight = found
-
-                # Check if we actually have the flight data
-                if not flight or "flight_id" not in flight:
-                     # Fallback: try searching if direct lookup failed/returned weird data
-                     # (This handles the case where GET /ID returns a list but the ID isn't a key)
-                     if "flights" in flight_response and isinstance(flight_response["flights"], dict):
-                         # Maybe the key is different?
-                         pass
+                # Flight is now the object directly, no unwrapping needed
 
                 steps.append(f"   ✅ Found: {flight.get('flight_id', flight_number)}")
                 steps.append(f"   🛫 {flight.get('origin', 'N/A')} → {flight.get('destination', 'N/A')}")
@@ -278,26 +261,13 @@ data:
 
                 # Step 1: Get booking
                 steps.append("1️⃣ Fetching booking record...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
 
-                if "error" in booking_response:
-                    steps.append(f"   ❌ Booking not found: {booking_response['error']}")
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found: {booking['error']}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Handle API response variations
-                booking = booking_response
-                if "bookings" in booking_response:
-                    bookings_data = booking_response["bookings"]
-                    if isinstance(bookings_data, dict) and booking_id in bookings_data:
-                        booking = bookings_data[booking_id]
-                    elif isinstance(bookings_data, list):
-                        found = next((b for b in bookings_data if b.get("booking_id") == booking_id), None)
-                        if found:
-                            booking = found
-
-                if not booking or "booking_id" not in booking:
-                     # Fallback logic
-                     pass
+                # Booking is now the object directly, no unwrapping needed
 
                 status = booking.get("status", "Unknown")
                 flight_id = booking.get("flight_id", "Unknown")
@@ -338,22 +308,13 @@ data:
 
                 # Step 1: Get passenger
                 steps.append("1️⃣ Retrieving profile...")
-                passenger_response = await api_request("passengers", f"/passengers/{passenger_id}")
+                passenger = await api_request("passengers", f"/passengers/{passenger_id}")
 
-                if "error" in passenger_response:
-                    steps.append(f"   ❌ Passenger not found: {passenger_response['error']}")
+                if "error" in passenger:
+                    steps.append(f"   ❌ Passenger not found: {passenger['error']}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Handle API response variations
-                passenger = passenger_response
-                if "passengers" in passenger_response:
-                    pax_data = passenger_response["passengers"]
-                    if isinstance(pax_data, dict) and passenger_id in pax_data:
-                        passenger = pax_data[passenger_id]
-                    elif isinstance(pax_data, list):
-                        found = next((p for p in pax_data if p.get("passenger_id") == passenger_id), None)
-                        if found:
-                            passenger = found
+                # Passenger is now the object directly, no unwrapping needed
 
                 name = passenger.get("name", "Unknown")
                 email = passenger.get("email", "Unknown")
@@ -460,15 +421,10 @@ data:
                 # But we can try to fetch it if the service exists
                 steps.append("1️⃣ Locating baggage...")
                 # Assuming baggage API follows similar pattern
-                baggage_response = await api_request("baggage", f"/baggage/{booking_id}")
+                baggage = await api_request("baggage", f"/baggage/{booking_id}")
 
-                if "error" not in baggage_response:
-                    # Handle potential wrapping
-                    baggage = baggage_response
-                    if "baggage" in baggage_response:
-                         # Extraction logic if needed
-                         pass
-
+                if "error" not in baggage:
+                    # Baggage is now the object directly
                     status = baggage.get("status", "In Transit")
                     location = baggage.get("location", "Unknown")
                     steps.append(f"   ✅ Status: {status}")
@@ -493,22 +449,13 @@ data:
                 steps.append("")
 
                 steps.append("1️⃣ Retrieving account details...")
-                loyalty_response = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+                profile = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
 
-                if "error" in loyalty_response:
+                if "error" in profile:
                     steps.append(f"   ❌ Member not found")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Handle API response variations
-                profile = loyalty_response
-                if "members" in loyalty_response:
-                    members_data = loyalty_response["members"]
-                    if isinstance(members_data, dict) and loyalty_number in members_data:
-                        profile = members_data[loyalty_number]
-                    elif isinstance(members_data, list):
-                        found = next((m for m in members_data if m.get("member_id") == loyalty_number), None)
-                        if found:
-                            profile = found
+                # Profile is now the object directly, no unwrapping needed
 
                 tier = profile.get("tier", "Standard")
                 miles = profile.get("miles_balance", 0)
@@ -532,22 +479,15 @@ data:
 
                 # Step 1: Query all flights
                 steps.append("1️⃣ Fetching all flight data...")
-                flights_response = await api_request("flights", "/flights")
+                flights = await api_request("flights", "/flights")
 
-                if "error" in flights_response:
-                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                if "error" in flights:
+                    steps.append(f"   ❌ Error fetching flights: {flights.get('error', 'Unknown error')}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Extract flights from response
-                flights = []
-                if "flights" in flights_response:
-                    flights_data = flights_response["flights"]
-                    if isinstance(flights_data, dict):
-                        flights = list(flights_data.values())
-                    elif isinstance(flights_data, list):
-                        flights = flights_data
-                else:
-                    flights = [flights_response] if "flight_id" in flights_response else []
+                # Flights is now an array directly
+                if not isinstance(flights, list):
+                    flights = []
 
                 steps.append(f"   ✅ Retrieved {len(flights)} flights")
 
@@ -621,22 +561,15 @@ data:
 
                 # Step 1: Query all flights
                 steps.append("1️⃣ Fetching flight data...")
-                flights_response = await api_request("flights", "/flights")
+                flights = await api_request("flights", "/flights")
 
-                if "error" in flights_response:
-                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                if "error" in flights:
+                    steps.append(f"   ❌ Error fetching flights: {flights.get('error', 'Unknown error')}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Extract flights
-                flights = []
-                if "flights" in flights_response:
-                    flights_data = flights_response["flights"]
-                    if isinstance(flights_data, dict):
-                        flights = list(flights_data.values())
-                    elif isinstance(flights_data, list):
-                        flights = flights_data
-                else:
-                    flights = [flights_response] if "flight_id" in flights_response else []
+                # Flights is now an array directly
+                if not isinstance(flights, list):
+                    flights = []
 
                 steps.append(f"   ✅ Retrieved {len(flights)} flights")
 
@@ -705,22 +638,15 @@ data:
 
                 # Step 1: Query all flights
                 steps.append("1️⃣ Fetching flight data...")
-                flights_response = await api_request("flights", "/flights")
+                flights = await api_request("flights", "/flights")
 
-                if "error" in flights_response:
-                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                if "error" in flights:
+                    steps.append(f"   ❌ Error fetching flights: {flights.get('error', 'Unknown error')}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Extract flights
-                flights = []
-                if "flights" in flights_response:
-                    flights_data = flights_response["flights"]
-                    if isinstance(flights_data, dict):
-                        flights = list(flights_data.values())
-                    elif isinstance(flights_data, list):
-                        flights = flights_data
-                else:
-                    flights = [flights_response] if "flight_id" in flights_response else []
+                # Flights is now an array directly
+                if not isinstance(flights, list):
+                    flights = []
 
                 steps.append(f"   ✅ Retrieved {len(flights)} flights")
 
@@ -800,22 +726,15 @@ data:
 
                 # Step 1: Query all flights
                 steps.append("1️⃣ Fetching flight data...")
-                flights_response = await api_request("flights", "/flights")
+                flights = await api_request("flights", "/flights")
 
-                if "error" in flights_response:
-                    steps.append(f"   ❌ Error fetching flights: {flights_response['error']}")
+                if "error" in flights:
+                    steps.append(f"   ❌ Error fetching flights: {flights.get('error', 'Unknown error')}")
                     return [{"type": "text", "text": "\n".join(steps)}]
 
-                # Extract flights
-                flights = []
-                if "flights" in flights_response:
-                    flights_data = flights_response["flights"]
-                    if isinstance(flights_data, dict):
-                        flights = list(flights_data.values())
-                    elif isinstance(flights_data, list):
-                        flights = flights_data
-                else:
-                    flights = [flights_response] if "flight_id" in flights_response else []
+                # Flights is now an array directly
+                if not isinstance(flights, list):
+                    flights = []
 
                 steps.append(f"   ✅ Retrieved {len(flights)} flights")
 

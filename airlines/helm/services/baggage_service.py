@@ -8,6 +8,25 @@ import base_service
 
 def setup_baggage_routes():
     """Add baggage-specific routes"""
+    @app.route('/baggage/search', methods=['GET'])
+    def search_baggage():
+        """Search baggage by any field"""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        filters = request.args.to_dict()
+        # Search in the baggage map
+        raw = base_service.store.raw_data or {}
+        baggage_map = raw.get('baggage', {})
+
+        if filters:
+            results = [bag for bag in baggage_map.values()
+                      if all(bag.get(k) == v for k, v in filters.items())]
+        else:
+            results = list(baggage_map.values())
+
+        return jsonify(results), 200
+
     @app.route('/baggage/add', methods=['POST'])
     def add_baggage():
         """Add checked baggage for a booking"""

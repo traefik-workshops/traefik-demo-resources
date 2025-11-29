@@ -3,11 +3,22 @@
 import sys
 sys.path.append('/app')
 from base_service import app, init_store, create_rest_api
-from flask import jsonify
+from flask import jsonify, request
 import base_service
 
 def setup_checkin_routes():
     """Add check-in specific routes"""
+    @app.route('/checkin/search', methods=['GET'])
+    def search_checkin():
+        """Search check-ins by any field"""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        filters = request.args.to_dict()
+        results = base_service.store.search(**filters) if filters else list(base_service.store.data.values())
+
+        return jsonify(results), 200
+
     @app.route('/checkin/<booking_id>/boarding-pass', methods=['GET'])
     def get_boarding_pass(booking_id):
         """Get boarding pass for a booking"""

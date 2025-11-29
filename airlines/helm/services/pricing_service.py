@@ -8,6 +8,17 @@ import base_service
 
 def setup_pricing_routes():
     """Add pricing-specific routes"""
+    @app.route('/pricing/search', methods=['GET'])
+    def search_pricing():
+        """Search pricing by any field"""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        filters = request.args.to_dict()
+        results = base_service.store.search(**filters) if filters else list(base_service.store.data.values())
+
+        return jsonify(results), 200
+
     @app.route('/pricing/<flight_id>', methods=['GET'])
     def get_flight_pricing(flight_id):
         """Get pricing for a specific flight"""

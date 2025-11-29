@@ -301,12 +301,10 @@ data:
                     steps.append(f"   ❌ Error: {search_result['error']}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
 
-                # Extract flights from response
-                flights_data = search_result.get("flights", [])
-                if isinstance(flights_data, dict):
-                    flights = list(flights_data.values())
-                else:
-                    flights = flights_data
+                # Flights is now an array directly
+                flights = search_result
+                if not isinstance(flights, list):
+                    flights = []
 
                 steps.append(f"   ✅ Retrieved {len(flights)} flights from inventory")
 
@@ -356,21 +354,11 @@ data:
                 steps.append("\\n3️⃣ Checking seat availability...")
                 for flight in priced_flights:
                     flight_id = flight.get("flight_id")
-                    inventory_response = await api_request("flights", f"/flights/{flight_id}/inventory")
-                    
+                    inventory = await api_request("flights", f"/flights/{flight_id}/inventory")
+
                     available_seats = 0
-                    if "error" not in inventory_response:
-                        # Handle wrapped inventory
-                        inventory = inventory_response
-                        if "flights" in inventory_response:
-                            inv_data = inventory_response["flights"]
-                            if isinstance(inv_data, dict) and flight_id in inv_data:
-                                inventory = inv_data[flight_id]
-                            elif isinstance(inv_data, list):
-                                found = next((f for f in inv_data if f.get("flight_id") == flight_id), None)
-                                if found:
-                                    inventory = found
-                        
+                    if "error" not in inventory:
+                        # Inventory is now the object directly, no unwrapping needed
                         available_seats = inventory.get("seats_available", 0)
                     
                     flight["available_seats"] = available_seats
@@ -418,27 +406,13 @@ data:
                 
                 # Step 1: Get flight details
                 steps.append("1️⃣ Retrieving flight information...")
-                flight_response = await api_request("flights", f"/flights/{flight_id}")
-                if "error" in flight_response:
-                    errors.append(f"Flight not found: {flight_response['error']}")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+                if "error" in flight:
+                    errors.append(f"Flight not found: {flight['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                # Handle API response variations
-                flight = flight_response
-                if "flights" in flight_response:
-                    flights_data = flight_response["flights"]
-                    if isinstance(flights_data, dict) and flight_id in flights_data:
-                        flight = flights_data[flight_id]
-                    elif isinstance(flights_data, list):
-                        found = next((f for f in flights_data if f.get("flight_id") == flight_id), None)
-                        if found:
-                            flight = found
-                
-                # Check if we actually have the flight data
-                if not flight or "flight_id" not in flight:
-                     # Fallback logic if needed
-                     pass
+
+                # Flight is now the object directly, no unwrapping needed
                 
                 flight_num = flight.get("flight_id", "Unknown")
                 origin = flight.get("origin", "???")
@@ -448,22 +422,13 @@ data:
                 
                 # Step 2: Get passenger details
                 steps.append("\\n2️⃣ Verifying passenger information...")
-                passenger_response = await api_request("passengers", f"/passengers/{passenger_id}")
-                if "error" in passenger_response:
-                    errors.append(f"Passenger not found: {passenger_response['error']}")
+                passenger = await api_request("passengers", f"/passengers/{passenger_id}")
+                if "error" in passenger:
+                    errors.append(f"Passenger not found: {passenger['error']}")
                     steps.append(f"   ❌ {errors[-1]}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                # Handle wrapped passenger response
-                passenger = passenger_response
-                if "passengers" in passenger_response:
-                    pax_data = passenger_response["passengers"]
-                    if isinstance(pax_data, dict) and passenger_id in pax_data:
-                        passenger = pax_data[passenger_id]
-                    elif isinstance(pax_data, list):
-                        found = next((p for p in pax_data if p.get("passenger_id") == passenger_id), None)
-                        if found:
-                            passenger = found
+
+                # Passenger is now the object directly, no unwrapping needed
                 
                 passenger_name = passenger.get("first_name", "") + " " + passenger.get("last_name", "")
                 if passenger_name.strip() == "": passenger_name = "Unknown"
@@ -474,18 +439,9 @@ data:
                 loyalty_tier = "None"
                 if loyalty_number:
                     steps.append("\\n3️⃣ Checking loyalty program benefits...")
-                    loyalty_response = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
-                    if "error" not in loyalty_response:
-                        # Handle wrapped loyalty response
-                        loyalty = loyalty_response
-                        if "members" in loyalty_response:
-                            members_data = loyalty_response["members"]
-                            if isinstance(members_data, dict) and loyalty_number in members_data:
-                                loyalty = members_data[loyalty_number]
-                            elif isinstance(members_data, list):
-                                found = next((m for m in members_data if m.get("member_id") == loyalty_number), None)
-                                if found:
-                                    loyalty = found
+                    loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+                    if "error" not in loyalty:
+                        # Loyalty is now the object directly, no unwrapping needed
                         
                         loyalty_tier = loyalty.get("tier", "Standard")
                         miles_available = loyalty.get("miles_balance", 0)
@@ -502,7 +458,7 @@ data:
                         if loyalty_discount > 0:
                             steps.append(f"   🎁 {int(loyalty_discount * 100)}% loyalty discount applied")
                     else:
-                        warnings.append(f"Loyalty lookup failed: {loyalty_response['error']}")
+                        warnings.append(f"Loyalty lookup failed: {loyalty['error']}")
                         steps.append(f"   ⚠️  {warnings[-1]}")
                 
                 # Step 4: Calculate pricing
@@ -681,11 +637,12 @@ data:
                 # Step 1: Get member details
                 steps.append("1️⃣ Retrieving membership information...")
                 loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
-                
+
                 if "error" in loyalty:
                     steps.append(f"   ❌ Member not found: {loyalty['error']}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
+
+                # Loyalty is now the object directly, no unwrapping needed
                 name = loyalty.get("name", "Unknown")
                 tier = loyalty.get("tier", "Standard")
                 miles = loyalty.get("miles", 0)
@@ -753,13 +710,13 @@ data:
                 
                 # Step 1: Get current booking
                 steps.append("1️⃣ Retrieving current booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
-                    steps.append(f"   ❌ Booking not found: {booking_response['error']}")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found: {booking['error']}")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 old_flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
                 steps.append(f"   ✅ Current flight: {old_flight_id}")
@@ -831,13 +788,13 @@ data:
                 
                 # Step 1: Get booking details
                 steps.append("1️⃣ Retrieving booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
                     steps.append(f"   ❌ Booking not found")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
                 total_price = booking.get("total_price", 0)
@@ -906,13 +863,13 @@ data:
                 
                 # Step 1: Get booking
                 steps.append("1️⃣ Retrieving booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
                     steps.append(f"   ❌ Booking not found")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
                 steps.append(f"   ✅ Flight: {flight_id}")
@@ -1102,13 +1059,13 @@ data:
                 
                 # Step 1: Get booking details
                 steps.append("1️⃣ Retrieving booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
                     steps.append(f"   ❌ Booking not found")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 flight_id = booking.get("flight_id", "Unknown")
                 passengers = booking.get("passenger_id", "Unknown")
                 steps.append(f"   ✅ Flight: {flight_id}")
@@ -1195,13 +1152,13 @@ data:
                 
                 # Step 1: Get booking details
                 steps.append("1️⃣ Retrieving booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
                     steps.append(f"   ❌ Booking not found")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
                 current_bags = booking.get("checked_bags", 0)
@@ -1305,13 +1262,13 @@ data:
                 
                 # Step 1: Get booking details
                 steps.append("1️⃣ Retrieving booking...")
-                booking_response = await api_request("bookings", f"/bookings/{booking_id}")
-                
-                if "error" in booking_response:
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
                     steps.append(f"   ❌ Booking not found")
                     return [{"type": "text", "text": "\\n".join(steps)}]
-                
-                booking = booking_response.get("data", booking_response)
+
+                # Booking is now the object directly, no unwrapping needed
                 flight_id = booking.get("flight_id", "Unknown")
                 passenger_id = booking.get("passenger_id", "Unknown")
                 current_meal = booking.get("meal_preference", "standard")

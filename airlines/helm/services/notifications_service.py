@@ -8,6 +8,17 @@ import base_service
 
 def setup_notifications_routes():
     """Add notifications-specific routes"""
+    @app.route('/notifications/search', methods=['GET'])
+    def search_notifications():
+        """Search notifications by any field"""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        filters = request.args.to_dict()
+        results = base_service.store.search(**filters) if filters else list(base_service.store.data.values())
+
+        return jsonify(results), 200
+
     @app.route('/notifications/send', methods=['POST'])
     def send_notification():
         """Send a notification"""
