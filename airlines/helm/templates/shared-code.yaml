@@ -9,5 +9,8 @@ data:
   base_service.py: |
 {{ .Files.Get "services/base_service.py" | indent 4 }}
   
+  seed_data.py: |
+{{ .Files.Get "services/seed_data.py" | indent 4 }}
+
   requirements.txt: |
 {{ .Files.Get "services/requirements.txt" | indent 4 }}

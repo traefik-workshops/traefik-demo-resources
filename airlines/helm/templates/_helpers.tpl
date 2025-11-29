@@ -229,11 +229,16 @@ spec:
               echo "📦 Installing dependencies..."
               pip install --quiet -r /shared/requirements.txt
               echo "✅ Dependencies installed"
+              
+              echo "🌱 Seeding data..."
+              python /shared/seed_data.py /api/api.json /app/api.json
+              
               echo "🚀 Starting {{ .name | title }} service..."
               # Copy files to a writable location
               cp /shared/base_service.py /app/
               cp /code/{{ .name }}_service.py /app/
               cd /app
+              export DATA_FILE=/app/api.json
               python {{ .name }}_service.py
           ports:
             - containerPort: 3000
