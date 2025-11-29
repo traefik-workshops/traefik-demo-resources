@@ -112,9 +112,9 @@
                 <div class="text-sm text-slate-500 mt-2">{{ stats.loyalty }} Loyalty Members</div>
             </div>
             <div class="card">
-                <div class="text-slate-400 text-sm uppercase tracking-wider">MCP Activity</div>
-                <div class="stat-value text-cyan-400">{{ mcpActivities.length }}</div>
-                <div class="text-sm text-slate-500 mt-2">AI Agent Actions</div>
+                <div class="text-slate-400 text-sm uppercase tracking-wider">Check-ins</div>
+                <div class="stat-value text-cyan-400">{{ stats.checkedIn }}</div>
+                <div class="text-sm text-slate-500 mt-2">Completed Today</div>
             </div>
         </div>
 
@@ -173,27 +173,25 @@
             </div>
         </div>
 
-        <!-- MCP Activity Log -->
+        <!-- Flight Delays & Issues -->
         <div class="card">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
-                <span>🤖 MCP Activity Log</span>
-                <span class="text-sm font-normal text-slate-400">(Real-time AI Agent Actions)</span>
-            </h2>
-            <div class="activity-log space-y-2">
-                <div v-if="mcpActivities.length === 0" class="text-center py-8 text-slate-500">
-                    No MCP activity yet. Try using the AI chat to interact with the system.
+            <h2 class="text-xl font-bold mb-4">⚠️ Flight Delays & Issues</h2>
+            <div class="space-y-2 max-h-96 overflow-y-auto">
+                <div v-if="delayedFlights.length === 0" class="text-center py-8 text-slate-500">
+                    No delayed or cancelled flights
                 </div>
-                <div v-for="activity in mcpActivities" :key="activity.id"
-                     class="activity-item bg-slate-800 p-3 rounded border border-slate-700 flex items-start gap-3">
-                    <div class="text-2xl">{{ activity.icon }}</div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start mb-1">
-                            <span class="font-bold text-cyan-400">{{ activity.tool }}</span>
-                            <span class="text-xs text-slate-500">{{ activity.timestamp }}</span>
+                <div v-for="flight in delayedFlights" :key="flight.flight_id"
+                     class="bg-slate-800 p-3 rounded border border-slate-700">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-white font-mono">{{ flight.flight_id }}</div>
+                            <div class="text-sm text-slate-400">{{ flight.origin }} → {{ flight.destination }}</div>
                         </div>
-                        <div class="text-sm text-slate-300">{{ activity.description }}</div>
-                        <div v-if="activity.result" class="text-xs text-slate-500 mt-1 font-mono">
-                            {{ activity.result }}
+                        <div class="text-right">
+                            <span :class="['status-badge', 'status-' + flight.status]">
+                                {{ flight.status }}
+                            </span>
+                            <div class="text-xs text-slate-400 mt-1">{{ formatDate(flight.departure_time) }}</div>
                         </div>
                     </div>
                 </div>
@@ -215,7 +213,6 @@
                 const passengers = ref([]);
                 const loyalty = ref([]);
                 const checkins = ref([]);
-                const mcpActivities = ref([]);
 
                 const stats = computed(() => {
                     const disruptions = flights.value.filter(f => f.status === 'delayed' || f.status === 'cancelled').length;
@@ -235,6 +232,10 @@
 
                 const recentBookings = computed(() => {
                     return bookings.value.slice(0, 5);
+                });
+
+                const delayedFlights = computed(() => {
+                    return flights.value.filter(f => f.status === 'delayed' || f.status === 'cancelled');
                 });
 
                 const formatDate = (iso) => {
@@ -282,47 +283,17 @@
                     }
                 };
 
-                // Simulate MCP activity (in production, this would come from a WebSocket or polling endpoint)
-                const simulateMCPActivity = () => {
-                    const tools = [
-                        { name: 'get_flight_status', icon: '✈️', desc: 'Checked flight FL231 status' },
-                        { name: 'search_flights', icon: '🔍', desc: 'Searched for JFK → LAX flights' },
-                        { name: 'create_booking', icon: '🎫', desc: 'Created booking BK789123 for P10005' },
-                        { name: 'check_in', icon: '✅', desc: 'Completed check-in for BK456789' },
-                        { name: 'track_baggage', icon: '🧳', desc: 'Tracked bag BT123456, location: JFK' }
-                    ];
-
-                    const randomTool = tools[Math.floor(Math.random() * tools.length)];
-                    const now = new Date().toLocaleTimeString();
-
-                    mcpActivities.value.unshift({
-                        id: Date.now(),
-                        tool: randomTool.name,
-                        icon: randomTool.icon,
-                        description: randomTool.desc,
-                        timestamp: now,
-                        result: 'Success'
-                    });
-
-                    // Keep only last 20 activities
-                    if (mcpActivities.value.length > 20) {
-                        mcpActivities.value = mcpActivities.value.slice(0, 20);
-                    }
-                };
-
                 onMounted(() => {
                     fetchData();
                     // Auto refresh every 30s
                     setInterval(fetchData, 30000);
-                    // Simulate MCP activity every 10s (for demo)
-                    setInterval(simulateMCPActivity, 10000);
                 });
 
                 return {
                     flights,
                     stats,
                     recentBookings,
-                    mcpActivities,
+                    delayedFlights,
                     formatDate,
                     refreshData: fetchData
                 };
