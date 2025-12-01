@@ -12,15 +12,6 @@ tools-access:
   dashboard:
     token: ""
     group: "tools"
-  users_assistance:
-    token: ""
-    group: "agents"
-  partner_assistance:
-    token: ""
-    group: "agents"
-  ticketing:
-    token: ""
-    group: "agents"
 users-access:
   - name: "admin"
     id: ""

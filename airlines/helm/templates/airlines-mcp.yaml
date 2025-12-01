@@ -33,6 +33,7 @@ data:
     from typing import Any, Dict, List, Optional
     import logging, aiohttp, anyio, json, random
     from datetime import datetime, timedelta
+    from contextvars import ContextVar
     from mcp.server import Server
     from mcp.server.stdio import stdio_server
     from mcp.types import Tool
@@ -58,8 +59,8 @@ data:
         'ancillaries': '{{ include "airlines.ancillaries.apiUrl" . }}',
     }
 
-    # Static JWT Token passed from Helm/Terraform
-    jwt_token: str = "{{ required "tools-access.airlines.token is required" (index .Values "tools-access" "airlines" "token") }}"
+    # Context variable to store JWT token from request Authorization header
+    jwt_token_context: ContextVar[Optional[str]] = ContextVar('jwt_token', default=None)
 
     @server.list_tools()
     async def list_tools():
@@ -1228,8 +1229,11 @@ data:
         ]
 
     async def get_jwt_token() -> str:
-        """Get JWT token (static)"""
-        return jwt_token
+        """Get JWT token from request context"""
+        token = jwt_token_context.get()
+        if not token:
+            raise ValueError("No authorization token provided in request")
+        return token
 
     async def api_request(service: str, endpoint: str, method: str = "GET", data: Dict | None = None) -> Dict:
         """Make authenticated API request and return response"""
@@ -2271,8 +2275,29 @@ data:
         import asyncio
         from mcp.server.fastmcp import FastMCP
         import uvicorn
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from starlette.requests import Request
 
         mcp_app = FastMCP("airlines-mcp", stateless_http=True, json_response=True)
+
+        # Middleware to extract and store Authorization token in context
+        class AuthTokenMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                # Extract token from Authorization header
+                auth_header = request.headers.get("authorization", "")
+                token = None
+                if auth_header.startswith("Bearer "):
+                    token = auth_header[7:]  # Remove "Bearer " prefix
+                elif auth_header:
+                    token = auth_header  # Use as-is if no Bearer prefix
+
+                # Store token in context variable for this request
+                jwt_token_context.set(token)
+                logger.info(f"Token extracted from Authorization header: {'present' if token else 'missing'}")
+
+                # Process the request
+                response = await call_next(request)
+                return response
 
         # Health check
         @mcp_app.tool()
@@ -2407,6 +2432,10 @@ data:
 
         logger.info("Starting Comprehensive Airlines MCP Server (80+ tools)...")
         app = mcp_app.streamable_http_app()
+
+        # Add middleware to extract Authorization header
+        app.add_middleware(AuthTokenMiddleware)
+
         uvicorn.run(app, host="0.0.0.0", port=8080)
 
 
