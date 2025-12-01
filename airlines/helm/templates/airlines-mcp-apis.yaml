@@ -12,9 +12,6 @@ metadata:
 spec:
   title: "User Assistance MCP"
   description: "Customer Support & Disruption Management - MCP tools for handling customer issues, flight disruptions, and support requests"
-  openApiSpec:
-    path: /openapi.yaml
-
 ---
 # Ticketing Agent MCP API - Sales & Operations Profile
 apiVersion: hub.traefik.io/v1alpha1
@@ -29,9 +26,6 @@ metadata:
 spec:
   title: "Ticketing Agent MCP"
   description: "Sales & Ticketing Operations - MCP tools for booking, ticketing, check-in, and passenger services"
-  openApiSpec:
-    path: /openapi.yaml
-
 ---
 # Partner Assistance MCP API - B2B Operations Profile
 apiVersion: hub.traefik.io/v1alpha1
@@ -47,8 +41,6 @@ spec:
   title: "Partner Assistance MCP"
   description: "B2B & Alliance Operations - MCP tools for managing partner airlines, codeshares, and alliance operations"
   openApiSpec:
-    path: /openapi.yaml
-
 ---
 # MCP Middleware for User Assistance Profile
 apiVersion: traefik.io/v1alpha1
@@ -64,33 +56,25 @@ spec:
   plugin:
     mcp:
       profile: user-assistance
-      allowedTools:
-        # Core tools
-        - ping
-        # Customer Support & Disruption Management
-        - get_flight_status
-        - get_booking_details
-        - get_passenger_details
-        - track_baggage
-        - get_loyalty_profile
-        - calculate_delay_compensation
-        - find_delayed_flights
-        - find_flights_to_destination
-        - find_flights_from_origin
-        - search_available_flights
-        - find_alternative_flights
-        - search_bookings_by_passenger
-        - update_passenger_contact_info
-        - report_baggage_issue
-        - update_baggage_status
-        - search_loyalty_by_passenger
-        - add_missing_miles
-        - process_refund_request
-        - issue_travel_voucher
-        - send_notification
-        - get_notification_history
+      listPolicies:
+        - match: Equals(`mcp.params.name`, `ping`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `flight_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `booking_get_`) || Prefix(`mcp.params.name`, `booking_search_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `passenger_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `baggage_track`) || Prefix(`mcp.params.name`, `baggage_report_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `loyalty_get_profile`) || Prefix(`mcp.params.name`, `loyalty_add_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `compensation_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `notification_`)
+          action: show
+      listDefaultAction: hide
       description: "Customer support tools for handling disruptions and passenger assistance"
-
 ---
 # MCP Middleware for Ticketing Agent Profile
 apiVersion: traefik.io/v1alpha1
@@ -106,55 +90,25 @@ spec:
   plugin:
     mcp:
       profile: ticketing-agent
-      allowedTools:
-        # Core tools
-        - ping
-        # Flight Search & Availability
-        - search_flights
-        - search_multi_city_flights
-        - check_seat_availability
-        - check_flight_load_factor
-        # Pricing
-        - get_flight_pricing
-        - calculate_total_trip_price
-        # Booking Operations
-        - book_flight_itinerary
-        - create_group_booking
-        - book_round_trip
-        - modify_booking
-        - cancel_booking_with_refund
-        - split_booking
-        - rebook_disrupted_passenger
-        # Check-in & Boarding
-        - check_in_and_generate_boarding_pass
-        - check_in_group
-        - get_boarding_pass
-        # Seat Selection
-        - select_seat
-        - auto_assign_seats
-        # Ancillaries
-        - purchase_ancillary_services
-        - list_available_ancillaries
-        - manage_baggage
-        - update_meal_preference
-        # Special Requests
-        - request_special_assistance
-        - add_infant_to_booking
-        # Upgrades
-        - request_cabin_upgrade
-        - process_complimentary_upgrade
-        - add_to_upgrade_waitlist
-        # Standby
-        - add_to_standby_list
-        - check_standby_status
-        - clear_standby_passenger
-        # Loyalty
-        - get_loyalty_status
-        - redeem_miles_for_flight
-        - transfer_miles
-        - purchase_miles
+      listPolicies:
+        - match: Equals(`mcp.params.name`, `ping`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `flight_search`) || Prefix(`mcp.params.name`, `flight_get_pricing`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `booking_create`) || Prefix(`mcp.params.name`, `booking_modify`) || Prefix(`mcp.params.name`, `booking_cancel`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `checkin_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `seat_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `ancillary_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `baggage_manage`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `loyalty_get_status`) || Prefix(`mcp.params.name`, `loyalty_redeem_`) || Prefix(`mcp.params.name`, `loyalty_transfer_`)
+          action: show
+      listDefaultAction: hide
       description: "Ticketing and sales tools for booking, modifications, and passenger services"
-
 ---
 # MCP Middleware for Partner Assistance Profile
 apiVersion: traefik.io/v1alpha1
@@ -170,23 +124,15 @@ spec:
   plugin:
     mcp:
       profile: partner-assistance
-      allowedTools:
-        # Core tools
-        - ping
-        # Partner Operations
-        - enroll_partner_flight
-        - update_partner_schedule
-        - create_alliance_booking
-        - reconcile_partner_revenue
-        - manage_codeshare_inventory
-        - create_interline_ticket
-        - coordinate_baggage_transfer
-        - generate_prorate_report
-        - manage_partner_loyalty_benefits
-        - send_partner_notification
-        - query_partner_availability
+      listPolicies:
+        - match: Equals(`mcp.params.name`, `ping`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `partner_`)
+          action: show
+        - match: Prefix(`mcp.params.name`, `booking_create_alliance`)
+          action: show
+      listDefaultAction: hide
       description: "B2B tools for managing partner airlines, alliances, and codeshare operations"
-
 ---
 # IngressRoute for User Assistance MCP
 apiVersion: traefik.io/v1alpha1
@@ -208,13 +154,11 @@ spec:
   routes:
     - kind: Rule
       match: Host(`user-assistance.{{ .Values.domain }}`)
-      middlewares:
-        - name: user-assistance-mcp-profile
-        - name: airlines-mcp-gateway
       services:
         - name: airlines-mcp
           port: 8080
-
+      middlewares:
+        - name: user-assistance-mcp
 ---
 # IngressRoute for Ticketing Agent MCP
 apiVersion: traefik.io/v1alpha1
@@ -236,13 +180,11 @@ spec:
   routes:
     - kind: Rule
       match: Host(`ticketing-agent.{{ .Values.domain }}`)
-      middlewares:
-        - name: ticketing-agent-mcp-profile
-        - name: airlines-mcp-gateway
       services:
         - name: airlines-mcp
           port: 8080
-
+      middlewares:
+        - name: ticketing-agent-mcp
 ---
 # IngressRoute for Partner Assistance MCP
 apiVersion: traefik.io/v1alpha1
@@ -264,57 +206,8 @@ spec:
   routes:
     - kind: Rule
       match: Host(`partner-assistance.{{ .Values.domain }}`)
-      middlewares:
-        - name: partner-assistance-mcp-profile
-        - name: airlines-mcp-gateway
       services:
         - name: airlines-mcp
           port: 8080
-
----
-# Shared MCP Gateway Middleware (Authentication, Rate Limiting, etc.)
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: airlines-mcp-gateway
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: mcp
-spec:
-  chain:
-    middlewares:
-      - name: mcp-auth
-      - name: mcp-rate-limit
-
----
-# MCP Authentication Middleware
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: mcp-auth
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: mcp
-spec:
-  forwardAuth:
-    address: {{ include "airlines.authUrl" . }}
-    authResponseHeaders:
-      - X-Forwarded-User
-
----
-# MCP Rate Limiting Middleware
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: mcp-rate-limit
-  namespace: airlines
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: mcp
-spec:
-  rateLimit:
-    average: 100
-    burst: 200
-    period: 1m
+      middlewares:
+        - name: partner-assistance-mcp

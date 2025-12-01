@@ -2308,34 +2308,34 @@ data:
 
         # User Assistance Tools
         @mcp_app.tool()
-        async def get_flight_status(flight_number: str, date: str) -> str:
+        async def flight_get_status(flight_number: str, date: str) -> str:
             """Get real-time flight status"""
-            result = await call_tool("get_flight_status", {"flight_number": flight_number, "date": date})
+            result = await call_tool("flight_get_status", {"flight_number": flight_number, "date": date})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def find_delayed_flights() -> str:
+        async def flight_find_delayed() -> str:
             """Find all delayed/cancelled flights"""
-            result = await call_tool("find_delayed_flights", {})
+            result = await call_tool("flight_find_delayed", {})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def find_alternative_flights(original_flight_id: str, date_range_hours: int = 24) -> str:
+        async def flight_find_alternatives(original_flight_id: str, date_range_hours: int = 24) -> str:
             """Find alternative flights for disrupted passengers"""
-            result = await call_tool("find_alternative_flights", {
+            result = await call_tool("flight_find_alternatives", {
                 "original_flight_id": original_flight_id,
                 "date_range_hours": date_range_hours
             })
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def get_booking_details(booking_id: str) -> str:
+        async def booking_get_details(booking_id: str) -> str:
             """Get comprehensive booking details"""
-            result = await call_tool("get_booking_details", {"booking_id": booking_id})
+            result = await call_tool("booking_get_details", {"booking_id": booking_id})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def search_bookings_by_passenger(
+        async def booking_search_by_passenger(
             passenger_id: str = None,
             email: str = None,
             phone: str = None,
@@ -2347,26 +2347,26 @@ data:
             if email: args["email"] = email
             if phone: args["phone"] = phone
             if last_name: args["last_name"] = last_name
-            result = await call_tool("search_bookings_by_passenger", args)
+            result = await call_tool("booking_search_by_passenger", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def track_baggage(booking_id: str, bag_tag: str = None) -> str:
+        async def baggage_track(booking_id: str, bag_tag: str = None) -> str:
             """Track checked baggage"""
             args = {"booking_id": booking_id}
             if bag_tag: args["bag_tag"] = bag_tag
-            result = await call_tool("track_baggage", args)
+            result = await call_tool("baggage_track", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def report_baggage_issue(
+        async def baggage_report_issue(
             booking_id: str,
             issue_type: str,
             description: str,
             bag_details: str = ""
         ) -> str:
             """File baggage claim (PIR)"""
-            result = await call_tool("report_baggage_issue", {
+            result = await call_tool("baggage_report_issue", {
                 "booking_id": booking_id,
                 "issue_type": issue_type,
                 "description": description,
@@ -2375,13 +2375,13 @@ data:
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def calculate_delay_compensation(
+        async def compensation_calculate_delay(
             flight_id: str,
             delay_hours: float,
             passenger_count: int = 1
         ) -> str:
             """Calculate EU261/DOT delay compensation"""
-            result = await call_tool("calculate_delay_compensation", {
+            result = await call_tool("compensation_calculate_delay", {
                 "flight_id": flight_id,
                 "delay_hours": delay_hours,
                 "passenger_count": passenger_count
@@ -2390,7 +2390,7 @@ data:
 
         # Ticketing Agent Tools
         @mcp_app.tool()
-        async def search_flights(
+        async def flight_search(
             origin: str = None,
             destination: str = None,
             date: str = None,
@@ -2403,11 +2403,11 @@ data:
             if origin: args["origin"] = origin
             if destination: args["destination"] = destination
             if date: args["date"] = date
-            result = await call_tool("search_flights", args)
+            result = await call_tool("flight_search", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def book_flight_itinerary(
+        async def booking_create(
             flight_id: str,
             passenger_id: str,
             loyalty_number: str = None,
@@ -2424,7 +2424,7 @@ data:
             }
             if loyalty_number: args["loyalty_number"] = loyalty_number
             if seat_preference: args["seat_preference"] = seat_preference
-            result = await call_tool("book_flight_itinerary", args)
+            result = await call_tool("booking_create", args)
             return result[0]["text"] if result else str(result)
 
         # Additional FastMCP endpoints would continue here...
