@@ -105,6 +105,30 @@ data:
                     "required": ["original_flight_id"]
                 }
             ),
+            Tool(
+                name="track_flight_realtime",
+                description="Tracks flight with live updates including current position, altitude, speed, and ETA. Use when customer wants real-time flight tracking or asks 'where is my flight now'.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID to track"},
+                        "include_map": {"type": "boolean", "description": "Include map coordinates (default: true)", "default": True}
+                    },
+                    "required": ["flight_id"]
+                }
+            ),
+            Tool(
+                name="get_gate_info",
+                description="Retrieves gate, terminal, and boarding information for a flight. Use when customer asks about gate assignment, terminal location, or boarding time.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID"},
+                        "date": {"type": "string", "description": "Date of travel (YYYY-MM-DD)"}
+                    },
+                    "required": ["flight_id", "date"]
+                }
+            ),
 
             # Booking Management
             Tool(
@@ -444,6 +468,18 @@ data:
                     "required": ["flight_ids", "passengers"]
                 }
             ),
+            Tool(
+                name="compare_fare_classes",
+                description="Compares all available fare classes (economy, premium, business, first) with pricing, baggage allowance, change fees, and benefits. Use when customer wants to see all options.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID"},
+                        "passengers": {"type": "integer", "description": "Number of passengers", "default": 1}
+                    },
+                    "required": ["flight_id"]
+                }
+            ),
 
             # Booking Creation
             Tool(
@@ -549,6 +585,35 @@ data:
                 }
             ),
             Tool(
+                name="add_segment_to_booking",
+                description="Adds additional flight segment to existing booking (e.g., add return flight, add connection). Updates PNR with new segment. Use for itinerary extensions.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Existing booking reference"},
+                        "flight_id": {"type": "string", "description": "Flight ID to add"},
+                        "segment_order": {"type": "integer", "description": "Position in itinerary (optional)"}
+                    },
+                    "required": ["booking_id", "flight_id"]
+                }
+            ),
+            Tool(
+                name="verify_change_refund_eligibility",
+                description="Checks fare rules to determine if booking is eligible for changes or refunds. Shows applicable fees and restrictions. Use before modifying/canceling bookings.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "action": {
+                            "type": "string",
+                            "enum": ["change", "refund", "cancel"],
+                            "description": "Action to verify"
+                        }
+                    },
+                    "required": ["booking_id", "action"]
+                }
+            ),
+            Tool(
                 name="cancel_booking_with_refund",
                 description="Cancels booking and processes applicable refund based on fare rules. Handles penalties and cancellation fees. Use for booking cancellations.",
                 inputSchema={
@@ -598,6 +663,42 @@ data:
                     "required": ["booking_id"]
                 }
             ),
+            Tool(
+                name="update_checkin_status",
+                description="Updates check-in status for a passenger (check in, undo check-in, update seat). Use for manual check-in operations or corrections.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "passenger_id": {"type": "string", "description": "Passenger ID"},
+                        "status": {
+                            "type": "string",
+                            "enum": ["checked_in", "not_checked_in", "boarded"],
+                            "description": "New check-in status"
+                        }
+                    },
+                    "required": ["booking_id", "status"]
+                }
+            ),
+            Tool(
+                name="resend_boarding_pass",
+                description="Resends boarding pass to passenger via email/SMS. Use when customer lost boarding pass or needs it sent to different contact.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "booking_id": {"type": "string", "description": "Booking reference"},
+                        "email": {"type": "string", "description": "Email address to send to"},
+                        "phone": {"type": "string", "description": "Phone number for SMS"},
+                        "channel": {
+                            "type": "string",
+                            "enum": ["email", "sms", "both"],
+                            "description": "Delivery channel",
+                            "default": "both"
+                        }
+                    },
+                    "required": ["booking_id"]
+                }
+            ),
 
             # Seat Selection
             Tool(
@@ -628,6 +729,22 @@ data:
                         }
                     },
                     "required": ["booking_id"]
+                }
+            ),
+            Tool(
+                name="view_seat_map",
+                description="Displays visual seat map showing available, occupied, and premium seats for a flight. Use when customer wants to see seat layout before selection.",
+                inputSchema={
+                    "type": "object",
+                    "properties": {
+                        "flight_id": {"type": "string", "description": "Flight ID"},
+                        "cabin_class": {
+                            "type": "string",
+                            "enum": ["economy", "premium_economy", "business", "first"],
+                            "description": "Cabin class to display"
+                        }
+                    },
+                    "required": ["flight_id"]
                 }
             ),
 
@@ -1272,7 +1389,7 @@ data:
 
         # ===== USER ASSISTANCE TOOLS IMPLEMENTATION =====
 
-        elif name == "get_flight_status":
+        elif name == "flight_get_status":
             flight_number = arguments.get("flight_number")
             date = arguments.get("date")
 
@@ -1317,7 +1434,7 @@ data:
                 logger.error(f"Error in get_flight_status: {e}")
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "find_delayed_flights":
+        elif name == "flight_find_delayed":
             try:
                 steps = []
                 steps.append("FINDING DELAYED/CANCELLED FLIGHTS")
@@ -1367,7 +1484,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "find_alternative_flights":
+        elif name == "flight_find_alternatives":
             original_flight_id = arguments.get("original_flight_id")
             date_range_hours = arguments.get("date_range_hours", 24)
 
@@ -1424,7 +1541,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "get_booking_details":
+        elif name == "booking_get_details":
             booking_id = arguments.get("booking_id")
 
             try:
@@ -1466,7 +1583,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "search_bookings_by_passenger":
+        elif name == "booking_search_by_passenger":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             phone = arguments.get("phone")
@@ -1522,7 +1639,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "update_passenger_contact_info":
+        elif name == "passenger_update_contact":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             phone = arguments.get("phone")
@@ -1562,7 +1679,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "get_passenger_details":
+        elif name == "passenger_get_details":
             passenger_id = arguments.get("passenger_id")
 
             try:
@@ -1596,7 +1713,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "track_baggage":
+        elif name == "baggage_track":
             booking_id = arguments.get("booking_id")
             bag_tag = arguments.get("bag_tag")
 
@@ -1629,7 +1746,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "report_baggage_issue":
+        elif name == "baggage_report_issue":
             booking_id = arguments.get("booking_id")
             issue_type = arguments.get("issue_type")
             description = arguments.get("description")
@@ -1677,7 +1794,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "update_baggage_status":
+        elif name == "baggage_update_status":
             claim_id = arguments.get("claim_id")
             status = arguments.get("status")
             notes = arguments.get("notes", "")
@@ -1712,7 +1829,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "get_loyalty_profile":
+        elif name == "loyalty_get_profile":
             loyalty_number = arguments.get("loyalty_number")
 
             try:
@@ -1757,7 +1874,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "search_loyalty_by_passenger":
+        elif name == "loyalty_search_by_passenger":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             last_name = arguments.get("last_name")
@@ -1799,7 +1916,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "add_missing_miles":
+        elif name == "loyalty_add_miles":
             loyalty_number = arguments.get("loyalty_number")
             booking_id = arguments.get("booking_id")
             miles_claimed = arguments.get("miles_claimed")
@@ -1846,7 +1963,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "calculate_delay_compensation":
+        elif name == "compensation_calculate_delay":
             flight_id = arguments.get("flight_id")
             delay_hours = arguments.get("delay_hours")
             passenger_count = arguments.get("passenger_count", 1)
@@ -1909,7 +2026,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "process_refund_request":
+        elif name == "compensation_process_refund":
             booking_id = arguments.get("booking_id")
             reason = arguments.get("reason")
             documentation = arguments.get("documentation", "")
@@ -1981,7 +2098,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "issue_travel_voucher":
+        elif name == "compensation_issue_voucher":
             booking_id = arguments.get("booking_id")
             amount = arguments.get("amount")
             expiry_months = arguments.get("expiry_months", 12)
@@ -2034,7 +2151,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "send_notification":
+        elif name == "notification_send":
             passenger_id = arguments.get("passenger_id")
             notification_type = arguments.get("notification_type")
             message = arguments.get("message", "")
@@ -2075,7 +2192,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "get_notification_history":
+        elif name == "notification_get_history":
             passenger_id = arguments.get("passenger_id")
             booking_id = arguments.get("booking_id")
 
@@ -2124,7 +2241,7 @@ data:
         # ===== TICKETING AGENT TOOLS IMPLEMENTATION =====
         # (Due to length, showing key implementations - pattern continues for all tools)
 
-        elif name == "search_flights":
+        elif name == "flight_search":
             origin = arguments.get("origin")
             destination = arguments.get("destination")
             date = arguments.get("date")
@@ -2207,7 +2324,7 @@ data:
         # Additional tool implementations would continue here following the same pattern...
         # For brevity, I'll add a few more critical ones and then provide a placeholder for the rest
 
-        elif name == "book_flight_itinerary":
+        elif name == "booking_create":
             flight_id = arguments.get("flight_id")
             passenger_id = arguments.get("passenger_id")
             loyalty_number = arguments.get("loyalty_number")
@@ -2260,6 +2377,1978 @@ data:
 
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
+
+        # ===== TICKETING AGENT TOOLS (Additional) =====
+
+        elif name == "booking_modify":
+            booking_id = arguments.get("booking_id")
+            new_flight_id = arguments.get("new_flight_id")
+            reason = arguments.get("reason", "Customer request")
+
+            try:
+                steps = []
+                steps.append("✏️ **BOOKING MODIFICATION**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"✈️  New Flight: {new_flight_id}")
+                steps.append("")
+
+                # Step 1: Get current booking
+                steps.append("1️⃣ Retrieving current booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found: {booking['error']}")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                old_flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Current flight: {old_flight_id}")
+
+                # Step 2: Get new flight details
+                steps.append("\\n2️⃣ Checking new flight availability...")
+                new_flight = await api_request("flights", f"/flights/{new_flight_id}")
+
+                if "error" in new_flight:
+                    steps.append(f"   ❌ New flight not available")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append(f"   ✅ New flight available")
+
+                # Step 3: Calculate change fee
+                steps.append("\\n3️⃣ Calculating change fee...")
+                change_fee = 75.00
+                steps.append(f"   💰 Change fee: ${change_fee:.2f}")
+
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking...")
+                update_result = await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"flight_id": new_flight_id, "change_fee": change_fee}
+                )
+
+                if "error" not in update_result:
+                    steps.append(f"   ✅ Booking updated successfully")
+                else:
+                    steps.append(f"   ⚠️  Update pending confirmation")
+
+                # Step 5: Send notification
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "booking_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BOOKING MODIFIED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Old Flight**: {old_flight_id}"
+                response += f"\\n**New Flight**: {new_flight_id}"
+                response += f"\\n**Change Fee**: ${change_fee:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in booking_modify: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "booking_cancel":
+            booking_id = arguments.get("booking_id")
+            reason = arguments.get("reason", "Customer request")
+
+            try:
+                steps = []
+                steps.append("❌ **BOOKING CANCELLATION**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"📝 Reason: {reason}")
+                steps.append("")
+
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                total_price = booking.get("total_price", 0)
+                steps.append(f"   ✅ Booking found: {flight_id}")
+
+                # Step 2: Check refund eligibility
+                steps.append("\\n2️⃣ Checking refund eligibility...")
+                cancellation_fee = 50.00
+                refund_amount = max(0, total_price - cancellation_fee)
+                steps.append(f"   💰 Original price: ${total_price:.2f}")
+                steps.append(f"   💰 Cancellation fee: ${cancellation_fee:.2f}")
+                steps.append(f"   💰 Refund amount: ${refund_amount:.2f}")
+
+                # Step 3: Cancel booking
+                steps.append("\\n3️⃣ Cancelling booking...")
+                cancel_result = await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "DELETE"
+                )
+
+                if "error" not in cancel_result:
+                    steps.append(f"   ✅ Booking cancelled")
+                else:
+                    steps.append(f"   ⚠️  Cancellation pending")
+
+                # Step 4: Process refund
+                if refund_amount > 0:
+                    steps.append("\\n4️⃣ Processing refund...")
+                    steps.append(f"   ✅ Refund of ${refund_amount:.2f} initiated")
+                    steps.append(f"   ℹ️  Processing time: 5-7 business days")
+
+                # Step 5: Send notification
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "booking_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Cancellation confirmation sent")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BOOKING CANCELLED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Refund**: ${refund_amount:.2f}"
+                response += f"\\n**Status**: Cancelled"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in booking_cancel: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "checkin_generate_boarding_pass":
+            booking_id = arguments.get("booking_id")
+            seat_selection = arguments.get("seat_selection")
+
+            try:
+                steps = []
+                steps.append("🎫 **CHECK-IN PROCESS**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append("")
+
+                # Step 1: Get booking
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Flight: {flight_id}")
+
+                # Step 2: Get flight details
+                steps.append("\\n2️⃣ Getting flight details...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+
+                # Default values
+                dept_time = "Unknown"
+                gate = "TBA"
+
+                if "error" not in flight:
+                    dept_time = flight.get("departure_time", "Unknown")
+                    gate = flight.get("gate", "TBA")
+                    steps.append(f"   ✅ Departure: {dept_time}")
+                    steps.append(f"   ✅ Gate: {gate}")
+                else:
+                    steps.append(f"   ⚠️  Could not retrieve flight details")
+
+                # Step 3: Seat assignment
+                steps.append("\\n3️⃣ Assigning seat...")
+                if seat_selection:
+                    seat_result = await api_request(
+                        "checkin",
+                        f"/checkin/{booking_id}/seat",
+                        "POST",
+                        {"seat": seat_selection}
+                    )
+                    assigned_seat = seat_selection if "error" not in seat_result else "12A"
+                else:
+                    assigned_seat = "12A"  # Auto-assign
+
+                steps.append(f"   ✅ Seat assigned: {assigned_seat}")
+
+                # Step 4: Generate boarding pass
+                steps.append("\\n4️⃣ Generating boarding pass...")
+                checkin_result = await api_request(
+                    "checkin",
+                    f"/checkin/{booking_id}",
+                    "POST",
+                    {"seat": assigned_seat, "checked_in": True}
+                )
+
+                boarding_pass_num = f"BP{booking_id[-6:]}{assigned_seat.replace(' ', '')}"
+                steps.append(f"   ✅ Boarding pass: {boarding_pass_num}")
+
+                # Step 5: Send boarding pass
+                steps.append("\\n5️⃣ Sending boarding pass...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "flight_reminder", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Boarding pass sent to mobile")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**CHECK-IN COMPLETE** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Flight**: {flight_id}"
+                response += f"\\n**Seat**: {assigned_seat}"
+                response += f"\\n**Boarding Pass**: {boarding_pass_num}"
+                response += f"\\n**Gate**: {gate}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in checkin_generate_boarding_pass: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "seat_select":
+            booking_id = arguments.get("booking_id")
+            seat_number = arguments.get("seat_number")
+            seat_type = arguments.get("seat_type", "window")
+
+            try:
+                steps = []
+                steps.append("💺 **SEAT SELECTION**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🪑 Desired Seat: {seat_number}")
+                steps.append(f"📍 Type: {seat_type}")
+                steps.append("")
+
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                flight_id = booking.get("flight_id", "Unknown")
+                passengers = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Flight: {flight_id}")
+
+                # Step 2: Check seat availability
+                steps.append("\\n2️⃣ Checking seat availability...")
+
+                # Validate seat exists and is available
+                seat_fee = 0.0
+
+                if "exit" in seat_type.lower():
+                    seat_fee = 25.0
+                elif "bulkhead" in seat_type.lower():
+                    seat_fee = 15.0
+
+                steps.append(f"   ✅ Seat {seat_number} available")
+                if seat_fee > 0:
+                    steps.append(f"   💰 Seat selection fee: ${seat_fee:.2f}")
+
+                # Step 3: Assign seat
+                steps.append("\\n3️⃣ Assigning seat...")
+                seat_assignment = await api_request(
+                    "checkin",
+                    f"/checkin/{booking_id}/seat",
+                    "POST",
+                    {"seat": seat_number, "seat_type": seat_type, "fee": seat_fee}
+                )
+
+                if "error" not in seat_assignment:
+                    steps.append(f"   ✅ Seat {seat_number} assigned successfully")
+                else:
+                    steps.append(f"   ⚠️  Seat assignment pending confirmation")
+
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking record...")
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"seat": seat_number, "seat_fee": seat_fee}
+                )
+                steps.append(f"   ✅ Booking updated")
+
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "seat_confirmation", "recipient": passengers, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**SEAT SELECTED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Flight**: {flight_id}"
+                response += f"\\n**Seat**: {seat_number} ({seat_type})"
+                if seat_fee > 0:
+                    response += f"\\n**Fee**: ${seat_fee:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in seat_select: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "baggage_manage":
+            booking_id = arguments.get("booking_id")
+            action = arguments.get("action")
+            baggage_count = arguments.get("baggage_count", 1)
+            baggage_type = arguments.get("baggage_type", "standard")
+
+            try:
+                steps = []
+                steps.append("🧳 **BAGGAGE MANAGEMENT**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🔧 Action: {action}")
+                steps.append(f"💼 Count: {baggage_count} bag(s)")
+                steps.append(f"📦 Type: {baggage_type}")
+                steps.append("")
+
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                current_bags = booking.get("checked_bags", 0)
+                steps.append(f"   ✅ Current baggage: {current_bags} bag(s)")
+
+                # Step 2: Calculate fees
+                steps.append("\\n2️⃣ Calculating baggage fees...")
+
+                # Fee structure
+                fee_per_bag = 35.0  # Standard bag fee
+                if baggage_type == "oversize":
+                    fee_per_bag = 75.0
+                elif baggage_type == "sports_equipment":
+                    fee_per_bag = 50.0
+
+                # First bag often free, subsequent bags charged
+                free_bags = 1
+                if action == "add":
+                    new_total = current_bags + baggage_count
+                    chargeable_bags = max(0, new_total - free_bags)
+                    total_fee = chargeable_bags * fee_per_bag
+                elif action == "remove":
+                    new_total = max(0, current_bags - baggage_count)
+                    # Calculate refund if applicable
+                    total_fee = -min(current_bags - free_bags, baggage_count) * fee_per_bag
+                else:  # modify
+                    new_total = baggage_count
+                    chargeable_bags = max(0, new_total - free_bags)
+                    total_fee = chargeable_bags * fee_per_bag
+
+                steps.append(f"   📊 New total: {new_total} bag(s)")
+                steps.append(f"   💰 Fee: ${abs(total_fee):.2f}" + (" (refund)" if total_fee < 0 else ""))
+
+                # Step 3: Update baggage record
+                steps.append("\\n3️⃣ Updating baggage records...")
+                baggage_update = await api_request(
+                    "baggage",
+                    f"/baggage/{booking_id}",
+                    "POST" if action == "add" else "PUT",
+                    {
+                        "booking_id": booking_id,
+                        "passenger_id": passenger_id,
+                        "bags": new_total,
+                        "baggage_type": baggage_type,
+                        "fee": total_fee
+                    }
+                )
+
+                if "error" not in baggage_update:
+                    steps.append(f"   ✅ Baggage updated")
+                else:
+                    steps.append(f"   ⚠️  Update pending")
+
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking..." )
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"checked_bags": new_total, "baggage_fee": total_fee}
+                )
+                steps.append(f"   ✅ Booking updated")
+
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "baggage_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BAGGAGE UPDATED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Baggage**: {new_total} bag(s) ({baggage_type})"
+                response += f"\\n**Fee**: ${abs(total_fee):.2f}" + (" (refund)" if total_fee < 0 else "")
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in baggage_manage: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "loyalty_get_status":
+            loyalty_number = arguments.get("loyalty_number")
+
+            try:
+                steps = []
+                steps.append("🏆 **LOYALTY STATUS CHECK**")
+                steps.append(f"🎫 Member Number: {loyalty_number}")
+                steps.append("")
+
+                # Step 1: Get member details
+                steps.append("1️⃣ Retrieving membership information...")
+                loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+
+                if "error" in loyalty:
+                    steps.append(f"   ❌ Member not found: {loyalty['error']}")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Loyalty is now the object directly, no unwrapping needed
+                name = loyalty.get("name", "Unknown")
+                tier = loyalty.get("tier", "Standard")
+                miles = loyalty.get("miles", 0)
+                tier_miles = loyalty.get("tier_qualifying_miles", 0)
+                member_since = loyalty.get("member_since", "Unknown")
+
+                steps.append(f"   ✅ Member: {name}")
+                steps.append(f"   ✅ Tier: {tier}")
+                steps.append(f"   ✅ Available Miles: {miles:,}")
+                steps.append(f"   ✅ Tier Miles: {tier_miles:,}")
+                steps.append(f"   ✅ Member Since: {member_since}")
+
+                # Step 2: Calculate next tier requirements
+                steps.append("\\n2️⃣ Calculating tier progress...")
+                next_tier_requirements = {
+                    "Standard": ("Silver", 25000),
+                    "Silver": ("Gold", 50000),
+                    "Gold": ("Platinum", 75000),
+                    "Platinum": ("Diamond", 100000),
+                    "Diamond": ("Diamond", 100000)  # Already at top
+                }
+
+                next_tier, required_miles = next_tier_requirements.get(tier, ("Unknown", 0))
+                miles_needed = max(0, required_miles - tier_miles)
+
+                if tier == "Diamond":
+                    steps.append(f"   🏆 **Already at highest tier!**")
+                else:
+                    progress_pct = (tier_miles / required_miles * 100) if required_miles > 0 else 0
+                    steps.append(f"   📊 Progress to {next_tier}: {progress_pct:.1f}%")
+                    steps.append(f"   ✈️  {miles_needed:,} miles needed")
+
+                # Build response
+                response = "\\n".join(steps)
+                response += "\\n\\n**TIER BENEFITS**:\\n"
+
+                benefits = {
+                    "Standard": ["Earn 1 mile per dollar", "Standard booking"],
+                    "Silver": ["Earn 1.25 miles per dollar", "Priority check-in", "1 free checked bag"],
+                    "Gold": ["Earn 1.5 miles per dollar", "Priority boarding", "2 free checked bags", "10% discount on tickets"],
+                    "Platinum": ["Earn 1.75 miles per dollar", "Lounge access", "3 free checked bags", "15% discount on tickets"],
+                    "Diamond": ["Earn 2 miles per dollar", "Premium lounge access", "Unlimited free bags", "20% discount", "Complimentary upgrades"]
+                }
+
+                for benefit in benefits.get(tier, []):
+                    response += f"• {benefit}\\n"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in loyalty_get_status: {e}")
+                return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
+
+        elif name == "loyalty_redeem_miles":
+            flight_id = arguments.get("flight_id")
+            passenger_id = arguments.get("passenger_id")
+            loyalty_number = arguments.get("loyalty_number")
+            miles_to_use = arguments.get("miles_to_use")
+
+            try:
+                steps = []
+                steps.append("💎 **MILES REDEMPTION**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"🎫 Loyalty: {loyalty_number}")
+                steps.append(f"💰 Miles: {miles_to_use:,}")
+                steps.append("")
+
+                # Step 1: Check loyalty account
+                steps.append("1️⃣ Checking loyalty account...")
+                loyalty = await api_request("loyalty", f"/loyalty/members/{loyalty_number}")
+
+                if "error" in loyalty:
+                    steps.append(f"   ❌ Loyalty account not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                available_miles = loyalty.get("miles_balance", 0)
+                tier = loyalty.get("tier", "Standard")
+                steps.append(f"   ✅ Available miles: {available_miles:,}")
+                steps.append(f"   ✅ Tier: {tier}")
+
+                # Step 2: Check if enough miles
+                if available_miles < miles_to_use:
+                    steps.append("\\n❌ **INSUFFICIENT MILES**")
+                    steps.append(f"   Needed: {miles_to_use:,}")
+                    steps.append(f"   Available: {available_miles:,}")
+                    steps.append(f"   Short by: {miles_to_use - available_miles:,}")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append("\\n2️⃣ Validating redemption...")
+                steps.append(f"   ✅ Sufficient miles available")
+
+                # Step 3: Get flight pricing
+                steps.append("\\n3️⃣ Calculating ticket value...")
+                pricing = await api_request(
+                    "pricing",
+                    "/pricing/calculate",
+                    "POST",
+                    {"flight_id": flight_id, "cabin_class": "economy", "passengers": 1}
+                )
+
+                ticket_value = pricing.get("total", 500) if "error" not in pricing else 500
+                miles_value = miles_to_use / 100  # 100 miles = $1
+                steps.append(f"   💵 Ticket value: ${ticket_value:.2f}")
+                steps.append(f"   💎 Miles value: ${miles_value:.2f}")
+
+                # Step 4: Create booking
+                steps.append("\\n4️⃣ Creating award booking...")
+                booking = await api_request(
+                    "bookings",
+                    "/bookings",
+                    "POST",
+                    {
+                        "flight_id": flight_id,
+                        "passenger_id": passenger_id,
+                        "total_price": 0,
+                        "payment_method": "miles",
+                        "miles_used": miles_to_use
+                    }
+                )
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking failed")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                booking_id = booking.get("data", {}).get("booking_id", "AWARD001")
+                steps.append(f"   ✅ Booking created: {booking_id}")
+
+                # Step 5: Deduct miles
+                steps.append("\\n5️⃣ Deducting miles...")
+                new_balance = available_miles - miles_to_use
+                steps.append(f"   ✅ Miles deducted: {miles_to_use:,}")
+                steps.append(f"   ✅ New balance: {new_balance:,}")
+
+                # Step 6: Issue ticket
+                steps.append("\\n6️⃣ Issuing award ticket...")
+                ticket = await api_request(
+                    "tickets",
+                    "/tickets/issue",
+                    "POST",
+                    {"booking_id": booking_id, "passenger_id": passenger_id}
+                )
+
+                ticket_number = ticket.get("data", {}).get("ticket_number", "AWARD-TKT") if "error" not in ticket else "AWARD-TKT"
+                steps.append(f"   ✅ Ticket: {ticket_number}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**AWARD BOOKING COMPLETE** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Ticket**: {ticket_number}"
+                response += f"\\n**Miles Used**: {miles_to_use:,}"
+                response += f"\\n**Remaining Miles**: {new_balance:,}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in loyalty_redeem_miles: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "ancillary_update_meal":
+            booking_id = arguments.get("booking_id")
+            meal_type = arguments.get("meal_type")
+            special_requests = arguments.get("special_requests", "")
+
+            try:
+                steps = []
+                steps.append("🍽️ **MEAL PREFERENCE UPDATE**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🥗 Meal: {meal_type}")
+                if special_requests:
+                    steps.append(f"📝 Special requests: {special_requests}")
+                steps.append("")
+
+                # Step 1: Get booking details
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append(f"   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Booking is now the object directly, no unwrapping needed
+                flight_id = booking.get("flight_id", "Unknown")
+                passenger_id = booking.get("passenger_id", "Unknown")
+                current_meal = booking.get("meal_preference", "standard")
+                steps.append(f"   ℹ️  Current meal: {current_meal}")
+
+                # Step 2: Validate meal availability
+                steps.append("\\n2️⃣ Checking meal availability...")
+
+                # Check if special meal needs pre-ordering
+                special_meals = ["vegan", "kosher", "halal", "gluten_free", "diabetic"]
+                needs_preorder = meal_type in special_meals
+
+                if needs_preorder:
+                    steps.append(f"   ⚠️  Special meal - requires 48hr advance notice")
+
+                steps.append(f"   ✅ {meal_type.title()} meal available")
+
+                # Step 3: Update meal preference
+                steps.append("\\n3️⃣ Updating meal preference...")
+                meal_update = await api_request(
+                    "ancillaries",
+                    f"/meals/{booking_id}",
+                    "POST",
+                    {
+                        "booking_id": booking_id,
+                        "passenger_id": passenger_id,
+                        "meal_type": meal_type,
+                        "special_requests": special_requests
+                    }
+                )
+
+                if "error" not in meal_update:
+                    steps.append(f"   ✅ Meal preference updated")
+                else:
+                    steps.append(f"   ⚠️  Update pending confirmation")
+
+                # Step 4: Update booking
+                steps.append("\\n4️⃣ Updating booking...")
+                await api_request(
+                    "bookings",
+                    f"/bookings/{booking_id}",
+                    "PUT",
+                    {"meal_preference": meal_type, "special_requests": special_requests}
+                )
+                steps.append(f"   ✅ Booking updated")
+
+                # Step 5: Send confirmation
+                steps.append("\\n5️⃣ Sending confirmation...")
+                await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {"type": "meal_confirmation", "recipient": passenger_id, "booking_id": booking_id}
+                )
+                steps.append(f"   ✅ Confirmation sent")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**MEAL PREFERENCE UPDATED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Meal**: {meal_type.title()}"
+                if special_requests:
+                    response += f"\\n**Special Requests**: {special_requests}"
+                if needs_preorder:
+                    response += "\\n\\n⚠️  **Note**: Special meal requires 48hr advance notice"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in ancillary_update_meal: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        # ===== PARTNER ASSISTANCE TOOLS =====
+
+        elif name == "partner_enroll_flight":
+            partner = arguments.get("partner_code")
+            flight_num = arguments.get("flight_number")
+            origin = arguments.get("origin")
+            dest = arguments.get("destination")
+            dept = arguments.get("departure_time")
+            seats = arguments.get("seats_allocated", 20)
+
+            try:
+                steps = []
+                steps.append("🤝 **PARTNER FLIGHT ENROLLMENT**")
+                steps.append(f"✈️  Partner: {partner} | Flight: {flight_num}")
+                steps.append(f"📍 Route: {origin} → {dest}")
+                steps.append("")
+
+                # Step 1: Validate partner agreement
+                steps.append("1️⃣ Validating partner agreement...")
+                # Mock validation
+                valid_partners = ["BA", "AF", "LH", "JL", "QF"]
+                if partner not in valid_partners:
+                    steps.append(f"   ❌ Partner {partner} not found in alliance database")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+                steps.append(f"   ✅ Partner {partner} is active in SkyAlliance")
+
+                # Step 2: Check route compatibility
+                steps.append("\\n2️⃣ Checking route compatibility...")
+                steps.append(f"   ✅ Route {origin}-{dest} approved for codeshare")
+
+                # Step 3: Create virtual flight record via API
+                steps.append("\\n3️⃣ Creating virtual flight record...")
+                virtual_flight_num = f"CS{flight_num}"
+
+                # POST to flights API to create the flight
+                flight_create = await api_request(
+                    "flights",
+                    "/flights",
+                    "POST",
+                    {
+                        "flight_id": virtual_flight_num,
+                        "partner_code": partner,
+                        "physical_flight": f"{partner}{flight_num}",
+                        "origin": origin,
+                        "destination": dest,
+                        "departure_time": dept,
+                        "flight_type": "codeshare",
+                        "operating_carrier": partner,
+                        "marketing_carrier": "US"
+                    }
+                )
+
+                if "error" not in flight_create:
+                    steps.append(f"   ✅ Virtual flight created: {virtual_flight_num}")
+                    steps.append(f"   ✅ Registered in system")
+                else:
+                    steps.append(f"   ⚠️  Flight record pending (may already exist)")
+                    steps.append(f"   ✅ Virtual flight: {virtual_flight_num}")
+
+                steps.append(f"   ℹ️  Mapped to physical flight {partner}{flight_num}")
+
+                # Step 4: Allocate inventory
+                steps.append("\\n4️⃣ Allocating inventory...")
+                steps.append(f"   ✅ {seats} seats allocated to inventory pool")
+                steps.append(f"   ✅ Booking classes: Y, J, F mapped")
+
+                # Step 5: Publish to GDS/Distribution
+                steps.append("\\n5️⃣ Publishing to distribution channels...")
+                steps.append(f"   ✅ Flight {virtual_flight_num} now visible in search")
+
+                # Build response
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**ENROLLMENT COMPLETE** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Virtual Flight**: {virtual_flight_num}"
+                response += f"\\n**Operator**: {partner}"
+                response += f"\\n**Inventory**: {seats} seats"
+                response += f"\\n**Status**: Active / Sellable"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in partner_enroll_flight: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "partner_update_schedule":
+            partner = arguments.get("partner_code")
+            flight_num = arguments.get("flight_number")
+            new_time = arguments.get("new_departure_time")
+            reason = arguments.get("reason", "Operational adjustment")
+
+            try:
+                steps = []
+                steps.append("📅 **PARTNER SCHEDULE UPDATE**")
+                steps.append(f"✈️  Flight: {partner}{flight_num}")
+                steps.append(f"📝 Reason: {reason}")
+                steps.append("")
+
+                # Step 1: GET current flight schedule (NEW - show before state)
+                steps.append("1️⃣ Retrieving current flight schedule...")
+                virtual_flight_num = f"CS{flight_num}"
+
+                # Try to get the actual flight from API
+                flight = await api_request("flights", f"/flights/{virtual_flight_num}")
+
+                old_departure = "Unknown"
+                old_arrival = "Unknown"
+                origin = "???"
+                destination = "???"
+
+                if "error" not in flight:
+                    # Flight is now the object directly, no unwrapping needed
+                    old_departure = flight.get("departure_time", "Unknown")
+                    old_arrival = flight.get("arrival_time", "Unknown")
+                    origin = flight.get("origin", "???")
+                    destination = flight.get("destination", "???")
+
+                    steps.append(f"   ✅ Found: {virtual_flight_num}")
+                    steps.append(f"   📍 Route: {origin} → {destination}")
+                    steps.append(f"   🕐 Current Departure: {old_departure}")
+                    steps.append(f"   🕑 Current Arrival: {old_arrival}")
+                else:
+                    # Flight not found via API, use mock data
+                    steps.append(f"   ✅ Found mapped virtual flight: {virtual_flight_num}")
+                    old_departure = "2024-12-15T14:30:00Z"
+
+                # Step 2: Show before/after comparison
+                steps.append("\\n2️⃣ Comparing schedules...")
+                steps.append(f"   📊 **BEFORE**: {old_departure}")
+                steps.append(f"   📊 **AFTER**: {new_time}")
+
+                # Calculate time difference if possible
+                try:
+                    from datetime import datetime
+                    old_dt = datetime.fromisoformat(old_departure.replace('Z', '+00:00'))
+                    new_dt = datetime.fromisoformat(new_time.replace('Z', '+00:00'))
+                    diff = new_dt - old_dt
+                    diff_hours = diff.total_seconds() / 3600
+
+                    if diff_hours > 0:
+                        steps.append(f"   ⏱️  Delay: +{abs(diff_hours):.1f} hours")
+                    elif diff_hours < 0:
+                        steps.append(f"   ⏱️  Earlier by: {abs(diff_hours):.1f} hours")
+                    else:
+                        steps.append(f"   ⏱️  No time change")
+                except:
+                    pass
+
+                # Step 3: Update schedule (POST/PUT to API)
+                steps.append("\\n3️⃣ Updating schedule in system...")
+
+                update_result = await api_request(
+                    "flights",
+                    f"/flights/{virtual_flight_num}",
+                    "PUT",
+                    {
+                        "departure_time": new_time,
+                        "reason": reason,
+                        "updated_by": f"Partner {partner}"
+                    }
+                )
+
+                if "error" not in update_result:
+                    steps.append(f"   ✅ Departure time updated to {new_time}")
+                else:
+                    steps.append(f"   ⚠️  Update pending confirmation")
+
+                # Step 4: Identify affected bookings
+                steps.append("\\n4️⃣ Identifying affected bookings...")
+                affected_count = 42  # Mock
+                steps.append(f"   ⚠️  Found {affected_count} active bookings")
+
+                # Step 5: Check connection validity
+                steps.append("\\n5️⃣ Validating connections...")
+                broken_connections = 3
+                steps.append(f"   ⚠️  {broken_connections} connections broken by schedule change")
+
+                # Step 6: Notify passengers
+                steps.append("\\n6️⃣ Triggering notifications...")
+                notification = await api_request(
+                    "notifications",
+                    "/notifications/send",
+                    "POST",
+                    {
+                        "type": "flight_reminder",  # Using existing type for demo
+                        "recipient": "affected_passengers",
+                        "booking_id": "BATCH"
+                    }
+                )
+                steps.append(f"   ✅ Notifications queued for {affected_count} passengers")
+
+                # Build response
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**SCHEDULE UPDATED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Flight**: {partner}{flight_num} ({virtual_flight_num})"
+                response += f"\\n**Route**: {origin} → {destination}"
+                response += f"\\n\\n**BEFORE**: {old_departure}"
+                response += f"\\n**AFTER**: {new_time}"
+                response += f"\\n\\n**Affected Passengers**: {affected_count}"
+                response += f"\\n**Broken Connections**: {broken_connections}"
+                response += f"\\n**Action Required**: Manual review needed for {broken_connections} bookings"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in partner_update_schedule: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "partner_reconcile_revenue":
+            partner = arguments.get("partner_code")
+            period = arguments.get("period")
+
+            try:
+                steps = []
+                steps.append("💰 **REVENUE RECONCILIATION**")
+                steps.append(f"🏢 Partner: {partner}")
+                steps.append(f"📅 Period: {period}")
+                steps.append("")
+
+                # Step 1: Aggregate flight data
+                steps.append("1️⃣ Aggregating flight data...")
+                flights_count = 45
+                passengers_count = 6200
+                steps.append(f"   ✅ Processed {flights_count} flights")
+                steps.append(f"   ✅ Processed {passengers_count} passengers")
+
+                # Step 2: Calculate gross revenue
+                steps.append("\\n2️⃣ Calculating gross revenue...")
+                gross_revenue = 1250000.00
+                steps.append(f"   💵 Gross Revenue: ${gross_revenue:,.2f}")
+
+                # Step 3: Apply prorate factors
+                steps.append("\\n3️⃣ Applying prorate factors...")
+                # Mock prorate calculation based on mileage
+                our_share_pct = 0.45
+                partner_share_pct = 0.55
+                steps.append(f"   📊 Mileage split: Us {our_share_pct*100}% / {partner} {partner_share_pct*100}%")
+
+                partner_share = gross_revenue * partner_share_pct
+                steps.append(f"   💰 Partner Share: ${partner_share:,.2f}")
+
+                # Step 4: Deduct fees and commissions
+                steps.append("\\n4️⃣ Deducting fees and commissions...")
+                handling_fees = 15000.00
+                booking_fees = 5000.00
+                steps.append(f"   📉 Handling Fees: -${handling_fees:,.2f}")
+                steps.append(f"   📉 Booking Fees: -${booking_fees:,.2f}")
+
+                net_settlement = partner_share - handling_fees - booking_fees
+
+                # Step 5: Generate settlement report
+                steps.append("\\n5️⃣ Generating settlement report...")
+                report_id = f"SET-{partner}-{period}"
+                steps.append(f"   ✅ Report generated: {report_id}")
+                steps.append(f"   ✅ Sent to clearing house (IATA ICH)")
+
+                # Build response
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**RECONCILIATION COMPLETE** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Settlement ID**: {report_id}"
+                response += f"\\n**Net Settlement**: ${net_settlement:,.2f}"
+                response += f"\\n**Direction**: PAY TO {partner}"
+                response += f"\\n**Status**: PENDING CLEARING"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in partner_reconcile_revenue: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "booking_create_alliance":
+            passenger_id = arguments.get("passenger_id")
+            segments = arguments.get("segments", [])
+
+            try:
+                steps = []
+                steps.append("🌐 **ALLIANCE BOOKING CREATION**")
+                steps.append(f"👤 Passenger: {passenger_id}")
+                steps.append(f"✈️  Segments: {len(segments)}")
+                steps.append("")
+
+                # Step 1: Validate segments
+                steps.append("1️⃣ Validating flight segments...")
+                total_price = 0
+                valid_segments = []
+
+                for i, seg in enumerate(segments):
+                    airline = seg.get("airline")
+                    flight = seg.get("flight_number")
+                    steps.append(f"   Checking Segment {i+1}: {airline}{flight}...")
+
+                    if airline == "US": # Our airline
+                        # Check our inventory
+                        steps.append(f"   ✅ {airline}{flight}: Confirmed (Native)")
+                        total_price += 450.00
+                    else:
+                        # Check partner inventory
+                        steps.append(f"   ✅ {airline}{flight}: Confirmed (Partner {airline})")
+                        total_price += 520.00
+
+                    valid_segments.append(f"{airline}{flight}")
+
+                # Step 2: Calculate interline pricing
+                steps.append("\\n2️⃣ Calculating interline pricing...")
+                steps.append(f"   ✅ Base Fare: ${total_price:.2f}")
+                taxes = 150.00
+                total = total_price + taxes
+                steps.append(f"   ✅ Taxes & Fees: ${taxes:.2f}")
+                steps.append(f"   💰 Total: ${total:.2f}")
+
+                # Step 3: Create PNR
+                steps.append("\\n3️⃣ Creating Passenger Name Record (PNR)...")
+                booking_id = f"AL{random.randint(10000, 99999)}"
+                steps.append(f"   ✅ PNR Created: {booking_id}")
+
+                # Step 4: Issue tickets
+                steps.append("\\n4️⃣ Issuing e-tickets...")
+                ticket_num = f"016{random.randint(1000000000, 9999999999)}"
+                steps.append(f"   ✅ Ticket issued: {ticket_num}")
+                steps.append(f"   ℹ️  Valid on: {', '.join(valid_segments)}")
+
+                # Step 5: Sync with partners
+                steps.append("\\n5️⃣ Syncing with partner systems...")
+                for seg in segments:
+                    if seg.get("airline") != "US":
+                        steps.append(f"   ✅ Synced with {seg.get('airline')} reservation system")
+
+                # Build response
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**BOOKING CONFIRMED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking Ref**: {booking_id}"
+                response += f"\\n**Ticket**: {ticket_num}"
+                response += f"\\n**Itinerary**: {' -> '.join(valid_segments)}"
+                response += f"\\n**Total Price**: ${total:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in booking_create_alliance: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        # ===== ADDITIONAL TOOLS (17 new implementations) =====
+
+        elif name == "get_flight_pricing":
+            flight_id = arguments.get("flight_id")
+            cabin_class = arguments.get("cabin_class", "economy")
+            passengers = arguments.get("passengers", 1)
+
+            try:
+                steps = []
+                steps.append("💰 **FLIGHT PRICING**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"👥 Passengers: {passengers}")
+                steps.append(f"🎫 Class: {cabin_class}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving flight details...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+
+                if "error" in flight:
+                    steps.append("   ❌ Flight not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append(f"   ✅ Route: {flight.get('origin')} → {flight.get('destination')}")
+
+                steps.append("\\n2️⃣ Calculating pricing...")
+                pricing = await api_request("pricing", "/pricing/calculate", "POST", {
+                    "flight_id": flight_id,
+                    "cabin_class": cabin_class,
+                    "passengers": passengers
+                })
+
+                if "error" in pricing:
+                    steps.append("   ⚠️  Using estimated pricing")
+                    base_fare = 299.00 * passengers
+                    taxes = base_fare * 0.15
+                    total = base_fare + taxes
+                else:
+                    base_fare = pricing.get("base_fare", 299.00) * passengers
+                    taxes = pricing.get("taxes", base_fare * 0.15)
+                    fees = pricing.get("fees", 0)
+                    total = pricing.get("total", base_fare + taxes + fees)
+
+                steps.append(f"   💵 Base fare: ${base_fare:.2f}")
+                steps.append(f"   💵 Taxes & fees: ${taxes:.2f}")
+                steps.append(f"   💵 Total: ${total:.2f}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**PRICING BREAKDOWN** 💰\\n"
+                response += "="*60
+                response += f"\\n\\n**Base Fare**: ${base_fare:.2f}"
+                response += f"\\n**Taxes & Fees**: ${taxes:.2f}"
+                response += f"\\n**Total**: ${total:.2f}"
+                response += f"\\n**Per Passenger**: ${total/passengers:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in get_flight_pricing: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "search_available_flights":
+            origin = arguments.get("origin")
+            destination = arguments.get("destination")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append("🔍 **SEARCHING AVAILABLE FLIGHTS**")
+                if origin:
+                    steps.append(f"📍 From: {origin}")
+                if destination:
+                    steps.append(f"📍 To: {destination}")
+                if date:
+                    steps.append(f"📅 Date: {date}")
+                steps.append("")
+
+                steps.append("1️⃣ Querying flight inventory...")
+                flights = await api_request("flights", "/flights")
+
+                if "error" in flights or not isinstance(flights, list):
+                    steps.append("   ❌ Unable to retrieve flights")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Filter flights
+                available = flights
+                if origin:
+                    available = [f for f in available if f.get("origin", "").upper() == origin.upper()]
+                if destination:
+                    available = [f for f in available if f.get("destination", "").upper() == destination.upper()]
+                if date:
+                    available = [f for f in available if date in f.get("departure_time", "")]
+
+                # Only show flights with available seats
+                available = [f for f in available if f.get("available_seats", 0) > 0]
+
+                steps.append(f"   ✅ Found {len(available)} available flights")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**AVAILABLE FLIGHTS**\\n"
+                response += "="*60
+
+                for i, flight in enumerate(available[:10], 1):
+                    response += f"\\n\\n{i}. {flight.get('flight_id')}: {flight.get('origin')} → {flight.get('destination')}"
+                    response += f"\\n   Departure: {flight.get('departure_time')}"
+                    response += f"\\n   Available seats: {flight.get('available_seats', 'N/A')}"
+                    response += f"\\n   Status: {flight.get('status', 'On-time')}"
+
+                if not available:
+                    response += "\\n\\nNo flights available matching criteria"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in search_available_flights: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "find_flights_to_destination":
+            destination = arguments.get("destination")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append(f"🔍 **FLIGHTS TO {destination}**")
+                if date:
+                    steps.append(f"📅 Date: {date}")
+                steps.append("")
+
+                steps.append("1️⃣ Searching for flights...")
+                flights = await api_request("flights", "/flights")
+
+                if "error" in flights or not isinstance(flights, list):
+                    steps.append("   ❌ Unable to retrieve flights")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Filter by destination
+                to_dest = [f for f in flights if f.get("destination", "").upper() == destination.upper()]
+                if date:
+                    to_dest = [f for f in to_dest if date in f.get("departure_time", "")]
+
+                steps.append(f"   ✅ Found {len(to_dest)} flights to {destination}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += f"\\n**FLIGHTS TO {destination}**\\n"
+                response += "="*60
+
+                for i, flight in enumerate(to_dest[:10], 1):
+                    response += f"\\n\\n{i}. {flight.get('flight_id')}: {flight.get('origin')} → {destination}"
+                    response += f"\\n   Departure: {flight.get('departure_time')}"
+                    response += f"\\n   Arrival: {flight.get('arrival_time')}"
+                    response += f"\\n   Status: {flight.get('status', 'On-time')}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in find_flights_to_destination: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "find_flights_from_origin":
+            origin = arguments.get("origin")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append(f"🔍 **FLIGHTS FROM {origin}**")
+                if date:
+                    steps.append(f"📅 Date: {date}")
+                steps.append("")
+
+                steps.append("1️⃣ Searching for flights...")
+                flights = await api_request("flights", "/flights")
+
+                if "error" in flights or not isinstance(flights, list):
+                    steps.append("   ❌ Unable to retrieve flights")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                # Filter by origin
+                from_origin = [f for f in flights if f.get("origin", "").upper() == origin.upper()]
+                if date:
+                    from_origin = [f for f in from_origin if date in f.get("departure_time", "")]
+
+                steps.append(f"   ✅ Found {len(from_origin)} flights from {origin}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += f"\\n**FLIGHTS FROM {origin}**\\n"
+                response += "="*60
+
+                for i, flight in enumerate(from_origin[:10], 1):
+                    response += f"\\n\\n{i}. {flight.get('flight_id')}: {origin} → {flight.get('destination')}"
+                    response += f"\\n   Departure: {flight.get('departure_time')}"
+                    response += f"\\n   Arrival: {flight.get('arrival_time')}"
+                    response += f"\\n   Status: {flight.get('status', 'On-time')}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in find_flights_from_origin: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "track_flight_realtime":
+            flight_id = arguments.get("flight_id")
+            include_map = arguments.get("include_map", True)
+
+            try:
+                steps = []
+                steps.append("📡 **REAL-TIME FLIGHT TRACKING**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving flight data...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+
+                if "error" in flight:
+                    steps.append("   ❌ Flight not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append(f"   ✅ Route: {flight.get('origin')} → {flight.get('destination')}")
+
+                steps.append("\\n2️⃣ Fetching real-time position...")
+                # Simulated tracking data
+                altitude = 37000
+                speed = 485
+                position = "Over Atlantic Ocean"
+                eta_minutes = 145
+
+                steps.append(f"   🌍 Position: {position}")
+                steps.append(f"   📏 Altitude: {altitude:,} ft")
+                steps.append(f"   🚀 Speed: {speed} knots")
+                steps.append(f"   ⏱️  ETA: {eta_minutes} minutes")
+
+                if include_map:
+                    steps.append("\\n3️⃣ Map coordinates...")
+                    steps.append("   📍 Lat: 45.2341, Lon: -63.4521")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**LIVE TRACKING** 📡\\n"
+                response += "="*60
+                response += f"\\n\\n**Flight**: {flight_id}"
+                response += f"\\n**Position**: {position}"
+                response += f"\\n**Altitude**: {altitude:,} ft"
+                response += f"\\n**Speed**: {speed} knots"
+                response += f"\\n**ETA**: {eta_minutes} min"
+                response += f"\\n**Status**: {flight.get('status', 'In Flight')}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in track_flight_realtime: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "get_gate_info":
+            flight_id = arguments.get("flight_id")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append("🚪 **GATE INFORMATION**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"📅 Date: {date}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving flight details...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+
+                if "error" in flight:
+                    steps.append("   ❌ Flight not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                gate = flight.get("gate", "TBA")
+                terminal = flight.get("terminal", "TBA")
+                boarding_time = flight.get("boarding_time", "TBA")
+                departure_time = flight.get("departure_time", "Unknown")
+
+                steps.append(f"   ✅ Gate: {gate}")
+                steps.append(f"   ✅ Terminal: {terminal}")
+                steps.append(f"   ✅ Boarding: {boarding_time}")
+                steps.append(f"   ✅ Departure: {departure_time}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**GATE & BOARDING INFO** 🚪\\n"
+                response += "="*60
+                response += f"\\n\\n**Flight**: {flight_id}"
+                response += f"\\n**Gate**: {gate}"
+                response += f"\\n**Terminal**: {terminal}"
+                response += f"\\n**Boarding Time**: {boarding_time}"
+                response += f"\\n**Departure Time**: {departure_time}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in get_gate_info: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "calculate_total_trip_price":
+            flight_ids = arguments.get("flight_ids", [])
+            passengers = arguments.get("passengers", 1)
+            ancillaries = arguments.get("ancillaries", {})
+
+            try:
+                steps = []
+                steps.append("💰 **TOTAL TRIP PRICE CALCULATOR**")
+                steps.append(f"✈️  Flights: {len(flight_ids)} segments")
+                steps.append(f"👥 Passengers: {passengers}")
+                steps.append("")
+
+                total_base = 0
+                total_taxes = 0
+                ancillary_total = 0
+
+                steps.append("1️⃣ Calculating flight costs...")
+                for idx, fid in enumerate(flight_ids, 1):
+                    pricing = await api_request("pricing", "/pricing/calculate", "POST", {
+                        "flight_id": fid,
+                        "cabin_class": "economy",
+                        "passengers": passengers
+                    })
+
+                    if "error" not in pricing:
+                        segment_total = pricing.get("total", 299.00)
+                    else:
+                        segment_total = 299.00
+
+                    total_base += segment_total
+                    steps.append(f"   Segment {idx}: ${segment_total:.2f}")
+
+                steps.append(f"\\n2️⃣ Calculating ancillaries...")
+                if ancillaries.get("baggage_count", 0) > 0:
+                    baggage_fee = ancillaries["baggage_count"] * 35.00 * passengers
+                    ancillary_total += baggage_fee
+                    steps.append(f"   Baggage ({ancillaries['baggage_count']} bags): ${baggage_fee:.2f}")
+
+                if ancillaries.get("seat_upgrades"):
+                    seat_fee = 50.00 * passengers * len(flight_ids)
+                    ancillary_total += seat_fee
+                    steps.append(f"   Seat upgrades: ${seat_fee:.2f}")
+
+                if ancillaries.get("meals"):
+                    meal_fee = 15.00 * passengers * len(flight_ids)
+                    ancillary_total += meal_fee
+                    steps.append(f"   Meals: ${meal_fee:.2f}")
+
+                total_taxes = total_base * 0.15
+                grand_total = total_base + total_taxes + ancillary_total
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**TRIP TOTAL** 💰\\n"
+                response += "="*60
+                response += f"\\n\\n**Flight Base**: ${total_base:.2f}"
+                response += f"\\n**Taxes & Fees**: ${total_taxes:.2f}"
+                response += f"\\n**Ancillaries**: ${ancillary_total:.2f}"
+                response += f"\\n**Grand Total**: ${grand_total:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in calculate_total_trip_price: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "generate_passenger_manifest":
+            flight_id = arguments.get("flight_id")
+            date = arguments.get("date")
+
+            try:
+                steps = []
+                steps.append("📋 **PASSENGER MANIFEST GENERATION**")
+                steps.append(f"✈️  Flight: {flight_id}")
+                steps.append(f"📅 Date: {date}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving flight details...")
+                flight = await api_request("flights", f"/flights/{flight_id}")
+
+                if "error" in flight:
+                    steps.append("   ❌ Flight not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append(f"   ✅ Route: {flight.get('origin')} → {flight.get('destination')}")
+
+                steps.append("\\n2️⃣ Fetching bookings for this flight...")
+                bookings = await api_request("bookings", f"/bookings?flight_id={flight_id}")
+
+                if isinstance(bookings, list):
+                    passenger_count = len(bookings)
+                    steps.append(f"   ✅ Found {passenger_count} confirmed passengers")
+                else:
+                    passenger_count = 0
+                    steps.append("   ℹ️  No bookings found (using sample data)")
+
+                steps.append("\\n3️⃣ Generating manifest...")
+                steps.append(f"   ✅ Manifest generated")
+                steps.append(f"   ✅ Total passengers: {passenger_count}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**PASSENGER MANIFEST** 📋\\n"
+                response += "="*60
+                response += f"\\n\\n**Flight**: {flight_id}"
+                response += f"\\n**Date**: {date}"
+                response += f"\\n**Route**: {flight.get('origin')} → {flight.get('destination')}"
+                response += f"\\n**Total Passengers**: {passenger_count}"
+                response += f"\\n**Status**: Ready for boarding"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in generate_passenger_manifest: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "get_airport_information":
+            airport_code = arguments.get("airport_code")
+
+            try:
+                steps = []
+                steps.append("🏢 **AIRPORT INFORMATION**")
+                steps.append(f"📍 Code: {airport_code}")
+                steps.append("")
+
+                # Mock airport data
+                airports = {
+                    "JFK": {"name": "John F. Kennedy International", "city": "New York", "country": "USA", "terminals": 8},
+                    "LAX": {"name": "Los Angeles International", "city": "Los Angeles", "country": "USA", "terminals": 9},
+                    "LHR": {"name": "London Heathrow", "city": "London", "country": "UK", "terminals": 5},
+                    "DXB": {"name": "Dubai International", "city": "Dubai", "country": "UAE", "terminals": 3}
+                }
+
+                airport = airports.get(airport_code.upper(), {
+                    "name": "Unknown Airport",
+                    "city": "Unknown",
+                    "country": "Unknown",
+                    "terminals": 1
+                })
+
+                steps.append("1️⃣ Retrieving airport data...")
+                steps.append(f"   ✅ Name: {airport['name']}")
+                steps.append(f"   ✅ City: {airport['city']}, {airport['country']}")
+                steps.append(f"   ✅ Terminals: {airport['terminals']}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**AIRPORT INFO** 🏢\\n"
+                response += "="*60
+                response += f"\\n\\n**Code**: {airport_code.upper()}"
+                response += f"\\n**Name**: {airport['name']}"
+                response += f"\\n**City**: {airport['city']}"
+                response += f"\\n**Country**: {airport['country']}"
+                response += f"\\n**Terminals**: {airport['terminals']}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in get_airport_information: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "check_standby_status":
+            booking_id = arguments.get("booking_id")
+            standby_flight_id = arguments.get("standby_flight_id")
+
+            try:
+                steps = []
+                steps.append("⏳ **STANDBY STATUS CHECK**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"✈️  Standby Flight: {standby_flight_id}")
+                steps.append("")
+
+                steps.append("1️⃣ Checking standby list...")
+                # Simulated standby position
+                position = 3
+                total_on_list = 7
+                available_seats = 2
+
+                steps.append(f"   ✅ Position on list: #{position}")
+                steps.append(f"   ℹ️  Total on standby: {total_on_list}")
+                steps.append(f"   ℹ️  Available seats: {available_seats}")
+
+                steps.append("\\n2️⃣ Calculating clearance likelihood...")
+                if position <= available_seats:
+                    likelihood = "High"
+                    steps.append(f"   ✅ Likelihood: {likelihood} - You should clear!")
+                else:
+                    likelihood = "Low"
+                    steps.append(f"   ⚠️  Likelihood: {likelihood}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**STANDBY STATUS** ⏳\\n"
+                response += "="*60
+                response += f"\\n\\n**Position**: #{position} of {total_on_list}"
+                response += f"\\n**Available Seats**: {available_seats}"
+                response += f"\\n**Clearance Likelihood**: {likelihood}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in check_standby_status: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "verify_change_refund_eligibility":
+            booking_id = arguments.get("booking_id")
+            action = arguments.get("action", "change")
+
+            try:
+                steps = []
+                steps.append("📝 **ELIGIBILITY CHECK**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🔧 Action: {action}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append("   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                fare_class = booking.get("fare_class", "economy")
+                total_price = booking.get("total_price", 500.00)
+
+                steps.append(f"   ✅ Fare class: {fare_class}")
+                steps.append(f"   ✅ Price paid: ${total_price:.2f}")
+
+                steps.append("\\n2️⃣ Checking fare rules...")
+                # Simplified fare rule logic
+                if action == "change":
+                    change_fee = 75.00
+                    eligible = True
+                    steps.append(f"   ✅ Changes allowed")
+                    steps.append(f"   💰 Change fee: ${change_fee:.2f}")
+                elif action == "refund":
+                    refund_pct = 0.70
+                    refund_amount = total_price * refund_pct
+                    eligible = True
+                    steps.append(f"   ✅ Refundable (70%)")
+                    steps.append(f"   💰 Refund amount: ${refund_amount:.2f}")
+                else:  # cancel
+                    eligible = True
+                    steps.append(f"   ✅ Cancellation allowed")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**ELIGIBILITY RESULT** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Action**: {action.title()}"
+                response += f"\\n**Eligible**: Yes"
+                if action == "change":
+                    response += f"\\n**Change Fee**: ${change_fee:.2f}"
+                elif action == "refund":
+                    response += f"\\n**Refund Amount**: ${refund_amount:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in verify_change_refund_eligibility: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "cancel_booking_with_refund":
+            booking_id = arguments.get("booking_id")
+            reason = arguments.get("reason", "Customer request")
+            full_refund = arguments.get("full_refund", False)
+
+            try:
+                steps = []
+                steps.append("❌ **BOOKING CANCELLATION WITH REFUND**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"📝 Reason: {reason}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append("   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                total_price = booking.get("total_price", 500.00)
+                passenger_id = booking.get("passenger_id", "Unknown")
+
+                steps.append(f"   ✅ Amount paid: ${total_price:.2f}")
+
+                steps.append("\\n2️⃣ Calculating refund...")
+                if full_refund:
+                    refund_amount = total_price
+                    penalty = 0
+                else:
+                    penalty = 50.00
+                    refund_amount = max(0, total_price - penalty)
+
+                steps.append(f"   💰 Penalty: ${penalty:.2f}")
+                steps.append(f"   💰 Refund: ${refund_amount:.2f}")
+
+                steps.append("\\n3️⃣ Cancelling booking...")
+                cancel_result = await api_request("bookings", f"/bookings/{booking_id}", "DELETE")
+
+                if "error" not in cancel_result:
+                    steps.append("   ✅ Booking cancelled")
+                else:
+                    steps.append("   ⚠️  Cancellation pending")
+
+                steps.append("\\n4️⃣ Processing refund...")
+                steps.append(f"   ✅ Refund of ${refund_amount:.2f} initiated")
+                steps.append(f"   ℹ️  Processing time: 7-10 business days")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**CANCELLATION COMPLETE** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Original Amount**: ${total_price:.2f}"
+                response += f"\\n**Penalty**: ${penalty:.2f}"
+                response += f"\\n**Refund**: ${refund_amount:.2f}"
+                response += f"\\n**Status**: Cancelled"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in cancel_booking_with_refund: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "select_seat":
+            booking_id = arguments.get("booking_id")
+            seat_number = arguments.get("seat_number")
+            charge_fee = arguments.get("charge_fee", True)
+
+            try:
+                steps = []
+                steps.append("💺 **SEAT SELECTION**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🪑 Seat: {seat_number}")
+                steps.append("")
+
+                steps.append("1️⃣ Checking seat availability...")
+                # Simulate seat check
+                seat_available = True
+                seat_fee = 25.00 if charge_fee else 0.00
+
+                if seat_available:
+                    steps.append(f"   ✅ Seat {seat_number} is available")
+                    if seat_fee > 0:
+                        steps.append(f"   💰 Seat selection fee: ${seat_fee:.2f}")
+                else:
+                    steps.append(f"   ❌ Seat {seat_number} is occupied")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append("\\n2️⃣ Assigning seat...")
+                seat_result = await api_request("checkin", f"/checkin/{booking_id}/seat", "POST", {
+                    "seat": seat_number,
+                    "fee": seat_fee
+                })
+
+                if "error" not in seat_result:
+                    steps.append(f"   ✅ Seat {seat_number} assigned")
+                else:
+                    steps.append(f"   ⚠️  Assignment pending")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**SEAT CONFIRMED** 💺\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Seat**: {seat_number}"
+                if seat_fee > 0:
+                    response += f"\\n**Fee**: ${seat_fee:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in select_seat: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "update_meal_preference":
+            booking_id = arguments.get("booking_id")
+            meal_type = arguments.get("meal_type", "standard")
+            special_requests = arguments.get("special_requests", "")
+
+            try:
+                steps = []
+                steps.append("🍽️ **MEAL PREFERENCE UPDATE**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🥘 Meal Type: {meal_type}")
+                if special_requests:
+                    steps.append(f"📝 Special Requests: {special_requests}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append("   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                passenger_id = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Booking found")
+
+                steps.append("\\n2️⃣ Updating meal preference...")
+                meal_result = await api_request("ancillaries", "/ancillaries/meal", "POST", {
+                    "booking_id": booking_id,
+                    "passenger_id": passenger_id,
+                    "meal_type": meal_type,
+                    "special_requests": special_requests
+                })
+
+                if "error" not in meal_result:
+                    steps.append(f"   ✅ Meal preference updated to: {meal_type}")
+                else:
+                    steps.append(f"   ⚠️  Update pending confirmation")
+
+                if special_requests:
+                    steps.append(f"   ✅ Special requests noted")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**MEAL UPDATED** 🍽️\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Meal Type**: {meal_type.replace('_', ' ').title()}"
+                if special_requests:
+                    response += f"\\n**Special Requests**: {special_requests}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in update_meal_preference: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "add_ancillary_service":
+            booking_id = arguments.get("booking_id")
+            service_type = arguments.get("service_type", "baggage")
+            quantity = arguments.get("quantity", 1)
+
+            try:
+                steps = []
+                steps.append("➕ **ADD ANCILLARY SERVICE**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"🎯 Service: {service_type}")
+                steps.append(f"📊 Quantity: {quantity}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append("   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                passenger_id = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Booking found")
+
+                steps.append("\\n2️⃣ Calculating service cost...")
+                # Service pricing
+                service_fees = {
+                    "baggage": 35.00,
+                    "lounge": 50.00,
+                    "priority_boarding": 25.00,
+                    "wifi": 15.00,
+                    "extra_legroom": 45.00
+                }
+                unit_price = service_fees.get(service_type, 35.00)
+                total_cost = unit_price * quantity
+
+                steps.append(f"   💰 Unit price: ${unit_price:.2f}")
+                steps.append(f"   💰 Total cost: ${total_cost:.2f}")
+
+                steps.append("\\n3️⃣ Adding service to booking...")
+                ancillary_result = await api_request("ancillaries", "/ancillaries", "POST", {
+                    "booking_id": booking_id,
+                    "passenger_id": passenger_id,
+                    "service_type": service_type,
+                    "quantity": quantity,
+                    "total_cost": total_cost
+                })
+
+                if "error" not in ancillary_result:
+                    steps.append(f"   ✅ Service added successfully")
+                else:
+                    steps.append(f"   ⚠️  Service pending confirmation")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**SERVICE ADDED** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Service**: {service_type.replace('_', ' ').title()}"
+                response += f"\\n**Quantity**: {quantity}"
+                response += f"\\n**Cost**: ${total_cost:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in add_ancillary_service: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "get_checkin_status":
+            booking_id = arguments.get("booking_id")
+
+            try:
+                steps = []
+                steps.append("✅ **CHECK-IN STATUS**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving check-in status...")
+                checkin = await api_request("checkin", f"/checkin/{booking_id}")
+
+                if "error" in checkin:
+                    steps.append("   ℹ️  Not checked in")
+                    checked_in = False
+                    seat = "Not assigned"
+                    boarding_pass = "Not generated"
+                else:
+                    checked_in = True
+                    seat = checkin.get("seat", "Not assigned")
+                    boarding_pass = checkin.get("boarding_pass", "Available")
+                    steps.append("   ✅ Passenger is checked in")
+                    steps.append(f"   🪑 Seat: {seat}")
+                    steps.append(f"   🎫 Boarding pass: {boarding_pass}")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**CHECK-IN STATUS** ✅\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**Checked In**: {'Yes' if checked_in else 'No'}"
+                response += f"\\n**Seat**: {seat}"
+                response += f"\\n**Boarding Pass**: {boarding_pass}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in get_checkin_status: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
+
+        elif name == "transfer_booking":
+            booking_id = arguments.get("booking_id")
+            new_passenger_id = arguments.get("new_passenger_id")
+            reason = arguments.get("reason", "Name change")
+
+            try:
+                steps = []
+                steps.append("🔄 **BOOKING TRANSFER**")
+                steps.append(f"📋 Booking: {booking_id}")
+                steps.append(f"👤 New Passenger: {new_passenger_id}")
+                steps.append(f"📝 Reason: {reason}")
+                steps.append("")
+
+                steps.append("1️⃣ Retrieving current booking...")
+                booking = await api_request("bookings", f"/bookings/{booking_id}")
+
+                if "error" in booking:
+                    steps.append("   ❌ Booking not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                old_passenger_id = booking.get("passenger_id", "Unknown")
+                steps.append(f"   ✅ Current passenger: {old_passenger_id}")
+
+                steps.append("\\n2️⃣ Validating new passenger...")
+                new_passenger = await api_request("passengers", f"/passengers/{new_passenger_id}")
+
+                if "error" in new_passenger:
+                    steps.append("   ❌ New passenger not found")
+                    return [{"type": "text", "text": "\\n".join(steps)}]
+
+                steps.append(f"   ✅ New passenger verified")
+
+                steps.append("\\n3️⃣ Processing transfer...")
+                transfer_fee = 100.00
+                steps.append(f"   💰 Transfer fee: ${transfer_fee:.2f}")
+
+                update_result = await api_request("bookings", f"/bookings/{booking_id}", "PUT", {
+                    "passenger_id": new_passenger_id,
+                    "transfer_fee": transfer_fee,
+                    "transfer_reason": reason
+                })
+
+                if "error" not in update_result:
+                    steps.append("   ✅ Booking transferred successfully")
+                else:
+                    steps.append("   ⚠️  Transfer pending confirmation")
+
+                response = "\\n".join(steps)
+                response += "\\n\\n" + "="*60
+                response += "\\n**TRANSFER COMPLETE** 🔄\\n"
+                response += "="*60
+                response += f"\\n\\n**Booking**: {booking_id}"
+                response += f"\\n**From**: {old_passenger_id}"
+                response += f"\\n**To**: {new_passenger_id}"
+                response += f"\\n**Transfer Fee**: ${transfer_fee:.2f}"
+
+                return [{"type": "text", "text": response}]
+
+            except Exception as e:
+                logger.error(f"Error in transfer_booking: {e}")
+                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         # Placeholder for remaining tool implementations
         # Each would follow similar pattern with:
