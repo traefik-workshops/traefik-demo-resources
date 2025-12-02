@@ -40,13 +40,12 @@ metadata:
 spec:
   title: "Partner Assistance MCP"
   description: "B2B & Alliance Operations - MCP tools for managing partner airlines, codeshares, and alliance operations"
-  openApiSpec:
 ---
-# MCP Middleware for User Assistance Profile
+# MCP Middleware for User Assistance
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: user-assistance-mcp-profile
+  name: user-assistance-mcp
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
@@ -76,11 +75,11 @@ spec:
       listDefaultAction: hide
       description: "Customer support tools for handling disruptions and passenger assistance"
 ---
-# MCP Middleware for Ticketing Agent Profile
+# MCP Middleware for Ticketing Agent
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: ticketing-agent-mcp-profile
+  name: ticketing-agent-mcp
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
@@ -110,11 +109,11 @@ spec:
       listDefaultAction: hide
       description: "Ticketing and sales tools for booking, modifications, and passenger services"
 ---
-# MCP Middleware for Partner Assistance Profile
+# MCP Middleware for Partner Assistance
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: partner-assistance-mcp-profile
+  name: partner-assistance-mcp
   namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
