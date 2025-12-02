@@ -78,14 +78,14 @@ data:
             # Flight Information & Status
             Tool(
                 name="get_flight_status",
-                description="Retrieves real-time operational status and details for a specific flight including delays, gate info, and aircraft. Use when customer asks about flight times, delays, or gate changes.",
+                description="Retrieves real-time operational status and details for a specific flight including delays, gate info, and aircraft. Use when customer asks about flight times, delays, or gate changes. If date is not provided, returns the first flight status with that flight number.",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "flight_number": {"type": "string", "description": "Flight number (e.g., 'FL123')"},
-                        "date": {"type": "string", "description": "Date of travel (YYYY-MM-DD)"}
+                        "date": {"type": "string", "description": "Date of travel (YYYY-MM-DD) - Optional"}
                     },
-                    "required": ["flight_number", "date"]
+                    "required": ["flight_number"]
                 }
             ),
             Tool(
@@ -376,57 +376,6 @@ data:
                     }
                 }
             ),
-            Tool(
-                name="search_multi_city_flights",
-                description="Searches for multi-city/open-jaw itineraries with multiple segments. Use when customer needs complex routing (e.g., NYC->London->Paris->NYC).",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "segments": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "origin": {"type": "string"},
-                                    "destination": {"type": "string"},
-                                    "date": {"type": "string"}
-                                }
-                            },
-                            "description": "Array of flight segments"
-                        },
-                        "passengers": {"type": "integer", "default": 1},
-                        "cabin_class": {"type": "string", "default": "economy"}
-                    },
-                    "required": ["segments"]
-                }
-            ),
-            Tool(
-                name="check_seat_availability",
-                description="Shows detailed seat map with available/occupied seats by cabin class. Use when customer wants to see seat layout before booking.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"},
-                        "cabin_class": {
-                            "type": "string",
-                            "enum": ["economy", "premium_economy", "business", "first"],
-                            "description": "Cabin class to view"
-                        }
-                    },
-                    "required": ["flight_id"]
-                }
-            ),
-            Tool(
-                name="check_flight_load_factor",
-                description="Shows how full a flight is (load factor percentage, available seats by class). Use for inventory management or advising on alternate flights.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"}
-                    },
-                    "required": ["flight_id"]
-                }
-            ),
 
             # Pricing
             Tool(
@@ -468,18 +417,6 @@ data:
                     "required": ["flight_ids", "passengers"]
                 }
             ),
-            Tool(
-                name="compare_fare_classes",
-                description="Compares all available fare classes (economy, premium, business, first) with pricing, baggage allowance, change fees, and benefits. Use when customer wants to see all options.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"},
-                        "passengers": {"type": "integer", "description": "Number of passengers", "default": 1}
-                    },
-                    "required": ["flight_id"]
-                }
-            ),
 
             # Booking Creation
             Tool(
@@ -502,39 +439,6 @@ data:
                     "required": ["flight_id", "passenger_id"]
                 }
             ),
-            Tool(
-                name="create_group_booking",
-                description="Creates group booking for 10+ passengers with special group rates and block space. Use for group travel, corporate bookings, or tour operators.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"},
-                        "passenger_ids": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Array of passenger IDs"
-                        },
-                        "group_name": {"type": "string", "description": "Group identifier"},
-                        "group_leader": {"type": "string", "description": "Lead passenger ID"},
-                        "special_requests": {"type": "string", "description": "Group requirements"}
-                    },
-                    "required": ["flight_id", "passenger_ids", "group_name"]
-                }
-            ),
-            Tool(
-                name="book_round_trip",
-                description="Books round-trip journey with outbound and return flights. Handles fare rules and return ticket issuance. Use for standard round-trip bookings.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "outbound_flight_id": {"type": "string", "description": "Outbound flight ID"},
-                        "return_flight_id": {"type": "string", "description": "Return flight ID"},
-                        "passenger_id": {"type": "string", "description": "Passenger ID"},
-                        "loyalty_number": {"type": "string", "description": "Loyalty number (optional)"}
-                    },
-                    "required": ["outbound_flight_id", "return_flight_id", "passenger_id"]
-                }
-            ),
 
             # Booking Modifications
             Tool(
@@ -549,52 +453,6 @@ data:
                         "waive_fees": {"type": "boolean", "description": "Waive change fees (requires authorization)", "default": false}
                     },
                     "required": ["booking_id", "new_flight_id"]
-                }
-            ),
-            Tool(
-                name="rebook_disrupted_passenger",
-                description="Automatically rebooks passenger on next available flight due to disruption. Prioritizes by loyalty status. Use for irregular operations.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Disrupted booking reference"},
-                        "disruption_reason": {
-                            "type": "string",
-                            "enum": ["weather", "mechanical", "crew", "atc", "airport"],
-                            "description": "Disruption cause"
-                        },
-                        "preferred_time": {"type": "string", "description": "Preferred departure time (optional)"}
-                    },
-                    "required": ["booking_id", "disruption_reason"]
-                }
-            ),
-            Tool(
-                name="split_booking",
-                description="Splits multi-passenger booking into separate PNRs. Use when group needs to separate or make individual changes.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Original booking reference"},
-                        "passenger_ids_to_split": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Passengers to move to new PNR"
-                        }
-                    },
-                    "required": ["booking_id", "passenger_ids_to_split"]
-                }
-            ),
-            Tool(
-                name="add_segment_to_booking",
-                description="Adds additional flight segment to existing booking (e.g., add return flight, add connection). Updates PNR with new segment. Use for itinerary extensions.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Existing booking reference"},
-                        "flight_id": {"type": "string", "description": "Flight ID to add"},
-                        "segment_order": {"type": "integer", "description": "Position in itinerary (optional)"}
-                    },
-                    "required": ["booking_id", "flight_id"]
                 }
             ),
             Tool(
@@ -640,65 +498,6 @@ data:
                     "required": ["booking_id"]
                 }
             ),
-            Tool(
-                name="check_in_group",
-                description="Checks in multiple passengers from group booking together, keeping group seated together when possible. Use for group check-ins.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Group booking reference"},
-                        "keep_together": {"type": "boolean", "description": "Try to seat group together", "default": true}
-                    },
-                    "required": ["booking_id"]
-                }
-            ),
-            Tool(
-                name="get_boarding_pass",
-                description="Retrieves existing boarding pass for checked-in passenger. Use when customer needs to reprint boarding pass.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"}
-                    },
-                    "required": ["booking_id"]
-                }
-            ),
-            Tool(
-                name="update_checkin_status",
-                description="Updates check-in status for a passenger (check in, undo check-in, update seat). Use for manual check-in operations or corrections.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "passenger_id": {"type": "string", "description": "Passenger ID"},
-                        "status": {
-                            "type": "string",
-                            "enum": ["checked_in", "not_checked_in", "boarded"],
-                            "description": "New check-in status"
-                        }
-                    },
-                    "required": ["booking_id", "status"]
-                }
-            ),
-            Tool(
-                name="resend_boarding_pass",
-                description="Resends boarding pass to passenger via email/SMS. Use when customer lost boarding pass or needs it sent to different contact.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "email": {"type": "string", "description": "Email address to send to"},
-                        "phone": {"type": "string", "description": "Phone number for SMS"},
-                        "channel": {
-                            "type": "string",
-                            "enum": ["email", "sms", "both"],
-                            "description": "Delivery channel",
-                            "default": "both"
-                        }
-                    },
-                    "required": ["booking_id"]
-                }
-            ),
 
             # Seat Selection
             Tool(
@@ -714,79 +513,8 @@ data:
                     "required": ["booking_id", "seat_number"]
                 }
             ),
-            Tool(
-                name="auto_assign_seats",
-                description="Automatically assigns seats to all passengers in booking based on preferences and availability. Use for quick seat assignment.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "preference": {
-                            "type": "string",
-                            "enum": ["window", "aisle", "together", "front", "any"],
-                            "description": "Seat preference",
-                            "default": "any"
-                        }
-                    },
-                    "required": ["booking_id"]
-                }
-            ),
-            Tool(
-                name="view_seat_map",
-                description="Displays visual seat map showing available, occupied, and premium seats for a flight. Use when customer wants to see seat layout before selection.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"},
-                        "cabin_class": {
-                            "type": "string",
-                            "enum": ["economy", "premium_economy", "business", "first"],
-                            "description": "Cabin class to display"
-                        }
-                    },
-                    "required": ["flight_id"]
-                }
-            ),
 
             # Ancillary Services
-            Tool(
-                name="purchase_ancillary_services",
-                description="Adds ancillary services to booking (baggage, meals, seats, lounge, priority). Use to upsell or fulfill customer requests.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "services": {
-                            "type": "object",
-                            "properties": {
-                                "extra_baggage": {"type": "integer", "description": "Additional bags"},
-                                "meals": {
-                                    "type": "array",
-                                    "items": {"type": "string"},
-                                    "description": "Meal selections per passenger"
-                                },
-                                "lounge_access": {"type": "boolean"},
-                                "priority_boarding": {"type": "boolean"},
-                                "extra_legroom": {"type": "boolean"},
-                                "wifi": {"type": "boolean"}
-                            }
-                        }
-                    },
-                    "required": ["booking_id", "services"]
-                }
-            ),
-            Tool(
-                name="list_available_ancillaries",
-                description="Lists all available ancillary products for a flight with prices. Use to show customer what extras are available.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Flight ID"},
-                        "cabin_class": {"type": "string", "description": "Cabin class"}
-                    },
-                    "required": ["flight_id"]
-                }
-            ),
             Tool(
                 name="manage_baggage",
                 description="Add, remove, or modify checked baggage allowance. Calculates baggage fees. Use for baggage management.",
@@ -828,108 +556,10 @@ data:
             ),
 
             # Special Requests & Services
-            Tool(
-                name="request_special_assistance",
-                description="Requests special assistance services (wheelchair, unaccompanied minor, pet travel, medical equipment). Use for special service requests.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "assistance_type": {
-                            "type": "string",
-                            "enum": ["wheelchair", "wheelchair_to_gate", "wheelchair_to_seat", "blind", "deaf", "unaccompanied_minor", "medical_oxygen", "stretcher", "service_animal"],
-                            "description": "Type of assistance"
-                        },
-                        "details": {"type": "string", "description": "Additional details/requirements"},
-                        "contact_info": {"type": "string", "description": "Emergency contact (for minors)"}
-                    },
-                    "required": ["booking_id", "assistance_type"]
-                }
-            ),
-            Tool(
-                name="add_infant_to_booking",
-                description="Adds infant passenger (<2 years) to existing adult booking. Use when customer is traveling with infant.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Adult booking reference"},
-                        "infant_name": {"type": "string", "description": "Infant full name"},
-                        "infant_dob": {"type": "string", "description": "Infant date of birth (YYYY-MM-DD)"},
-                        "seat_request": {"type": "boolean", "description": "Request infant seat/bassinet", "default": false}
-                    },
-                    "required": ["booking_id", "infant_name", "infant_dob"]
-                }
-            ),
 
             # Upgrades
-            Tool(
-                name="request_cabin_upgrade",
-                description="Requests cabin class upgrade (economy to business, etc.). Checks availability and calculates upgrade cost. Use for upgrade requests.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "target_cabin": {
-                            "type": "string",
-                            "enum": ["premium_economy", "business", "first"],
-                            "description": "Target cabin class"
-                        },
-                        "use_miles": {"type": "boolean", "description": "Use loyalty miles for upgrade", "default": false},
-                        "loyalty_number": {"type": "string", "description": "Loyalty number (if using miles)"}
-                    },
-                    "required": ["booking_id", "target_cabin"]
-                }
-            ),
-            Tool(
-                name="process_complimentary_upgrade",
-                description="Processes complimentary upgrade for elite loyalty members or operational reasons. Use for status upgrades or goodwill gestures.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "target_cabin": {"type": "string", "description": "Target cabin class"},
-                        "reason": {
-                            "type": "string",
-                            "enum": ["loyalty_status", "overbooking", "goodwill", "operational"],
-                            "description": "Upgrade reason"
-                        }
-                    },
-                    "required": ["booking_id", "target_cabin", "reason"]
-                }
-            ),
-            Tool(
-                name="add_to_upgrade_waitlist",
-                description="Adds passenger to upgrade waitlist by loyalty status priority. Use when upgrade not immediately available.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "target_cabin": {"type": "string", "description": "Desired cabin class"},
-                        "loyalty_number": {"type": "string", "description": "Loyalty number for priority"}
-                    },
-                    "required": ["booking_id", "target_cabin"]
-                }
-            ),
 
             # Standby Management
-            Tool(
-                name="add_to_standby_list",
-                description="Adds passenger to standby list for earlier/different flight. Prioritizes by fare class and status. Use for standby requests.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Original booking reference"},
-                        "standby_flight_id": {"type": "string", "description": "Desired standby flight"},
-                        "priority": {
-                            "type": "string",
-                            "enum": ["regular", "high", "vip"],
-                            "description": "Standby priority level",
-                            "default": "regular"
-                        }
-                    },
-                    "required": ["booking_id", "standby_flight_id"]
-                }
-            ),
             Tool(
                 name="check_standby_status",
                 description="Checks passenger position on standby list and likelihood of clearing. Use to inform customers of standby chances.",
@@ -938,19 +568,6 @@ data:
                     "properties": {
                         "booking_id": {"type": "string", "description": "Booking reference"},
                         "standby_flight_id": {"type": "string", "description": "Standby flight ID"}
-                    },
-                    "required": ["booking_id", "standby_flight_id"]
-                }
-            ),
-            Tool(
-                name="clear_standby_passenger",
-                description="Clears passenger from standby to confirmed seat on flight. Use when standby space becomes available.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "standby_flight_id": {"type": "string", "description": "Standby flight ID"},
-                        "seat_assignment": {"type": "string", "description": "Assigned seat"}
                     },
                     "required": ["booking_id", "standby_flight_id"]
                 }
@@ -980,37 +597,6 @@ data:
                         "miles_to_use": {"type": "integer", "description": "Miles to redeem"}
                     },
                     "required": ["flight_id", "passenger_id", "loyalty_number", "miles_to_use"]
-                }
-            ),
-            Tool(
-                name="transfer_miles",
-                description="Transfers miles between loyalty accounts (family pooling, gifts). Use for miles transfers.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "from_loyalty_number": {"type": "string", "description": "Source loyalty account"},
-                        "to_loyalty_number": {"type": "string", "description": "Destination loyalty account"},
-                        "miles_amount": {"type": "integer", "description": "Miles to transfer"},
-                        "relationship": {
-                            "type": "string",
-                            "enum": ["family", "spouse", "partner", "friend", "gift"],
-                            "description": "Relationship for transfer"
-                        }
-                    },
-                    "required": ["from_loyalty_number", "to_loyalty_number", "miles_amount"]
-                }
-            ),
-            Tool(
-                name="purchase_miles",
-                description="Allows customer to purchase additional loyalty miles. Use when customer needs more miles for redemption.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "loyalty_number": {"type": "string", "description": "Loyalty program number"},
-                        "miles_quantity": {"type": "integer", "description": "Miles to purchase"},
-                        "payment_method": {"type": "string", "description": "Payment method"}
-                    },
-                    "required": ["loyalty_number", "miles_quantity"]
                 }
             ),
 
@@ -1048,21 +634,6 @@ data:
                     "required": ["partner_code", "flight_number", "new_departure_time"]
                 }
             ),
-            Tool(
-                name="manage_codeshare_inventory",
-                description="Adjusts inventory allocation between marketing and operating carriers. Use for inventory management on codeshare flights.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "flight_id": {"type": "string", "description": "Codeshare flight ID"},
-                        "partner_code": {"type": "string", "description": "Partner airline code"},
-                        "cabin_class": {"type": "string", "description": "Cabin class"},
-                        "seats_adjustment": {"type": "integer", "description": "Seat adjustment (+/-)"},
-                        "reason": {"type": "string", "description": "Reason for adjustment"}
-                    },
-                    "required": ["flight_id", "partner_code", "cabin_class", "seats_adjustment"]
-                }
-            ),
 
             # Alliance Bookings
             Tool(
@@ -1093,49 +664,6 @@ data:
                     "required": ["passenger_id", "segments"]
                 }
             ),
-            Tool(
-                name="create_interline_ticket",
-                description="Issues interline ticket for travel on multiple airlines. Handles revenue allocation and baggage through-checking. Use for multi-airline journeys.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "validating_carrier": {"type": "string", "description": "Validating carrier code"},
-                        "segments": {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "properties": {
-                                    "carrier": {"type": "string"},
-                                    "flight_number": {"type": "string"},
-                                    "origin": {"type": "string"},
-                                    "destination": {"type": "string"}
-                                }
-                            }
-                        }
-                    },
-                    "required": ["booking_id", "validating_carrier", "segments"]
-                }
-            ),
-            Tool(
-                name="coordinate_baggage_transfer",
-                description="Coordinates baggage transfer between partner airlines at connection point. Use for interline baggage handling.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "booking_id": {"type": "string", "description": "Booking reference"},
-                        "connection_airport": {"type": "string", "description": "Transfer airport code"},
-                        "inbound_carrier": {"type": "string", "description": "Arriving carrier"},
-                        "outbound_carrier": {"type": "string", "description": "Departing carrier"},
-                        "bag_tags": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Baggage tag numbers"
-                        }
-                    },
-                    "required": ["booking_id", "connection_airport", "inbound_carrier", "outbound_carrier"]
-                }
-            ),
 
             # Revenue Management
             Tool(
@@ -1157,93 +685,12 @@ data:
                     "required": ["partner_code", "period"]
                 }
             ),
-            Tool(
-                name="generate_prorate_report",
-                description="Generates prorate revenue allocation report for interline tickets. Use for billing cycles with partners.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "partner_code": {"type": "string", "description": "Partner airline code"},
-                        "start_date": {"type": "string", "description": "Report start date"},
-                        "end_date": {"type": "string", "description": "Report end date"},
-                        "currency": {"type": "string", "description": "Report currency", "default": "USD"}
-                    },
-                    "required": ["partner_code", "start_date", "end_date"]
-                }
-            ),
-            Tool(
-                name="manage_partner_loyalty_benefits",
-                description="Handles reciprocal loyalty benefits for alliance members (lounge access, baggage, boarding). Use for cross-airline loyalty benefits.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "loyalty_number": {"type": "string", "description": "Customer's loyalty number"},
-                        "partner_airline": {"type": "string", "description": "Partner airline code"},
-                        "benefit_type": {
-                            "type": "string",
-                            "enum": ["lounge_access", "extra_baggage", "priority_boarding", "upgrade_eligibility"],
-                            "description": "Benefit to apply"
-                        },
-                        "flight_id": {"type": "string", "description": "Partner flight ID"}
-                    },
-                    "required": ["loyalty_number", "partner_airline", "benefit_type"]
-                }
-            ),
 
             # Partner Communications
-            Tool(
-                name="send_partner_notification",
-                description="Sends operational notification to partner airline (schedule changes, irregular ops, inventory updates). Use for partner communications.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "partner_code": {"type": "string", "description": "Partner airline code"},
-                        "notification_type": {
-                            "type": "string",
-                            "enum": ["schedule_change", "cancellation", "inventory_update", "operational_alert", "revenue_report"],
-                            "description": "Notification type"
-                        },
-                        "message": {"type": "string", "description": "Notification message"},
-                        "flight_id": {"type": "string", "description": "Related flight ID (optional)"},
-                        "priority": {
-                            "type": "string",
-                            "enum": ["low", "normal", "high", "urgent"],
-                            "default": "normal"
-                        }
-                    },
-                    "required": ["partner_code", "notification_type", "message"]
-                }
-            ),
-            Tool(
-                name="query_partner_availability",
-                description="Queries partner airline for real-time seat availability on their flights. Use when booking partner segments.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "partner_code": {"type": "string", "description": "Partner airline code"},
-                        "flight_number": {"type": "string", "description": "Partner flight number"},
-                        "date": {"type": "string", "description": "Flight date"},
-                        "cabin_class": {"type": "string", "description": "Cabin class"}
-                    },
-                    "required": ["partner_code", "flight_number", "date"]
-                }
-            ),
 
             # ===== ADVANCED OPERATIONAL TOOLS =====
 
             # Weather & Operational Impact
-            Tool(
-                name="check_weather_impact",
-                description="Checks weather conditions at airports and predicts flight impact. Use for proactive disruption management.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "airport_code": {"type": "string", "description": "Airport code"},
-                        "forecast_hours": {"type": "integer", "description": "Forecast hours ahead", "default": 24}
-                    },
-                    "required": ["airport_code"]
-                }
-            ),
             Tool(
                 name="get_airport_information",
                 description="Retrieves airport information (terminals, facilities, ground transport, delays, closures). Use when customer needs airport info.",
@@ -1253,20 +700,6 @@ data:
                         "airport_code": {"type": "string", "description": "Airport code"}
                     },
                     "required": ["airport_code"]
-                }
-            ),
-            Tool(
-                name="check_connection_feasibility",
-                description="Validates if connection time is sufficient considering terminal changes, customs, minimum connect time. Use for complex itineraries.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "connection_airport": {"type": "string", "description": "Connection airport code"},
-                        "inbound_flight_id": {"type": "string", "description": "Arriving flight ID"},
-                        "outbound_flight_id": {"type": "string", "description": "Departing flight ID"},
-                        "international": {"type": "boolean", "description": "International connection requiring customs", "default": false}
-                    },
-                    "required": ["connection_airport", "inbound_flight_id", "outbound_flight_id"]
                 }
             ),
 
@@ -1281,32 +714,6 @@ data:
                         "include_ssr": {"type": "boolean", "description": "Include special service requests", "default": true}
                     },
                     "required": ["flight_id"]
-                }
-            ),
-            Tool(
-                name="generate_revenue_report",
-                description="Generates revenue report by route, flight, period, or segment. Use for business intelligence.",
-                inputSchema={
-                    "type": "object",
-                    "properties": {
-                        "report_type": {
-                            "type": "string",
-                            "enum": ["by_flight", "by_route", "by_period", "by_cabin"],
-                            "description": "Report type"
-                        },
-                        "start_date": {"type": "string", "description": "Start date"},
-                        "end_date": {"type": "string", "description": "End date"},
-                        "filters": {
-                            "type": "object",
-                            "properties": {
-                                "flight_id": {"type": "string"},
-                                "origin": {"type": "string"},
-                                "destination": {"type": "string"},
-                                "cabin_class": {"type": "string"}
-                            }
-                        }
-                    },
-                    "required": ["report_type", "start_date", "end_date"]
                 }
             ),
 
@@ -1389,7 +796,7 @@ data:
 
         # ===== USER ASSISTANCE TOOLS IMPLEMENTATION =====
 
-        elif name == "flight_get_status":
+        elif name == "get_flight_status":
             flight_number = arguments.get("flight_number")
             date = arguments.get("date")
 
@@ -1434,7 +841,7 @@ data:
                 logger.error(f"Error in get_flight_status: {e}")
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "flight_find_delayed":
+        elif name == "find_delayed_flights":
             try:
                 steps = []
                 steps.append("FINDING DELAYED/CANCELLED FLIGHTS")
@@ -1484,7 +891,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "flight_find_alternatives":
+        elif name == "find_alternative_flights":
             original_flight_id = arguments.get("original_flight_id")
             date_range_hours = arguments.get("date_range_hours", 24)
 
@@ -1541,7 +948,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "booking_get_details":
+        elif name == "get_booking_details":
             booking_id = arguments.get("booking_id")
 
             try:
@@ -1583,7 +990,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "booking_search_by_passenger":
+        elif name == "search_bookings_by_passenger":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             phone = arguments.get("phone")
@@ -1639,7 +1046,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "passenger_update_contact":
+        elif name == "update_passenger_contact_info":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             phone = arguments.get("phone")
@@ -1679,7 +1086,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "passenger_get_details":
+        elif name == "get_passenger_details":
             passenger_id = arguments.get("passenger_id")
 
             try:
@@ -1713,7 +1120,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "baggage_track":
+        elif name == "track_baggage":
             booking_id = arguments.get("booking_id")
             bag_tag = arguments.get("bag_tag")
 
@@ -1746,7 +1153,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "baggage_report_issue":
+        elif name == "report_baggage_issue":
             booking_id = arguments.get("booking_id")
             issue_type = arguments.get("issue_type")
             description = arguments.get("description")
@@ -1794,7 +1201,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "baggage_update_status":
+        elif name == "update_baggage_status":
             claim_id = arguments.get("claim_id")
             status = arguments.get("status")
             notes = arguments.get("notes", "")
@@ -1829,7 +1236,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "loyalty_get_profile":
+        elif name == "get_loyalty_profile":
             loyalty_number = arguments.get("loyalty_number")
 
             try:
@@ -1874,7 +1281,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "loyalty_search_by_passenger":
+        elif name == "search_loyalty_by_passenger":
             passenger_id = arguments.get("passenger_id")
             email = arguments.get("email")
             last_name = arguments.get("last_name")
@@ -1916,7 +1323,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "loyalty_add_miles":
+        elif name == "add_missing_miles":
             loyalty_number = arguments.get("loyalty_number")
             booking_id = arguments.get("booking_id")
             miles_claimed = arguments.get("miles_claimed")
@@ -1963,7 +1370,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "compensation_calculate_delay":
+        elif name == "calculate_delay_compensation":
             flight_id = arguments.get("flight_id")
             delay_hours = arguments.get("delay_hours")
             passenger_count = arguments.get("passenger_count", 1)
@@ -2026,7 +1433,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "compensation_process_refund":
+        elif name == "process_refund_request":
             booking_id = arguments.get("booking_id")
             reason = arguments.get("reason")
             documentation = arguments.get("documentation", "")
@@ -2098,7 +1505,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "compensation_issue_voucher":
+        elif name == "issue_travel_voucher":
             booking_id = arguments.get("booking_id")
             amount = arguments.get("amount")
             expiry_months = arguments.get("expiry_months", 12)
@@ -2151,7 +1558,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "notification_send":
+        elif name == "send_notification":
             passenger_id = arguments.get("passenger_id")
             notification_type = arguments.get("notification_type")
             message = arguments.get("message", "")
@@ -2192,7 +1599,7 @@ data:
             except Exception as e:
                 return [{"type": "text", "text": f"ERROR: {str(e)}"}]
 
-        elif name == "notification_get_history":
+        elif name == "get_notification_history":
             passenger_id = arguments.get("passenger_id")
             booking_id = arguments.get("booking_id")
 
@@ -2241,7 +1648,7 @@ data:
         # ===== TICKETING AGENT TOOLS IMPLEMENTATION =====
         # (Due to length, showing key implementations - pattern continues for all tools)
 
-        elif name == "flight_search":
+        elif name == "search_flights":
             origin = arguments.get("origin")
             destination = arguments.get("destination")
             date = arguments.get("date")
@@ -2324,7 +1731,7 @@ data:
         # Additional tool implementations would continue here following the same pattern...
         # For brevity, I'll add a few more critical ones and then provide a placeholder for the rest
 
-        elif name == "booking_create":
+        elif name == "book_flight_itinerary":
             flight_id = arguments.get("flight_id")
             passenger_id = arguments.get("passenger_id")
             loyalty_number = arguments.get("loyalty_number")
@@ -2380,7 +1787,7 @@ data:
 
         # ===== TICKETING AGENT TOOLS (Additional) =====
 
-        elif name == "booking_modify":
+        elif name == "modify_booking":
             booking_id = arguments.get("booking_id")
             new_flight_id = arguments.get("new_flight_id")
             reason = arguments.get("reason", "Customer request")
@@ -2459,83 +1866,8 @@ data:
                 logger.error(f"Error in booking_modify: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "booking_cancel":
-            booking_id = arguments.get("booking_id")
-            reason = arguments.get("reason", "Customer request")
 
-            try:
-                steps = []
-                steps.append("❌ **BOOKING CANCELLATION**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append(f"📝 Reason: {reason}")
-                steps.append("")
-
-                # Step 1: Get booking details
-                steps.append("1️⃣ Retrieving booking...")
-                booking = await api_request("bookings", f"/bookings/{booking_id}")
-
-                if "error" in booking:
-                    steps.append(f"   ❌ Booking not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                # Booking is now the object directly, no unwrapping needed
-                flight_id = booking.get("flight_id", "Unknown")
-                passenger_id = booking.get("passenger_id", "Unknown")
-                total_price = booking.get("total_price", 0)
-                steps.append(f"   ✅ Booking found: {flight_id}")
-
-                # Step 2: Check refund eligibility
-                steps.append("\\n2️⃣ Checking refund eligibility...")
-                cancellation_fee = 50.00
-                refund_amount = max(0, total_price - cancellation_fee)
-                steps.append(f"   💰 Original price: ${total_price:.2f}")
-                steps.append(f"   💰 Cancellation fee: ${cancellation_fee:.2f}")
-                steps.append(f"   💰 Refund amount: ${refund_amount:.2f}")
-
-                # Step 3: Cancel booking
-                steps.append("\\n3️⃣ Cancelling booking...")
-                cancel_result = await api_request(
-                    "bookings",
-                    f"/bookings/{booking_id}",
-                    "DELETE"
-                )
-
-                if "error" not in cancel_result:
-                    steps.append(f"   ✅ Booking cancelled")
-                else:
-                    steps.append(f"   ⚠️  Cancellation pending")
-
-                # Step 4: Process refund
-                if refund_amount > 0:
-                    steps.append("\\n4️⃣ Processing refund...")
-                    steps.append(f"   ✅ Refund of ${refund_amount:.2f} initiated")
-                    steps.append(f"   ℹ️  Processing time: 5-7 business days")
-
-                # Step 5: Send notification
-                steps.append("\\n5️⃣ Sending confirmation...")
-                await api_request(
-                    "notifications",
-                    "/notifications/send",
-                    "POST",
-                    {"type": "booking_confirmation", "recipient": passenger_id, "booking_id": booking_id}
-                )
-                steps.append(f"   ✅ Cancellation confirmation sent")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**BOOKING CANCELLED** ✅\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**Refund**: ${refund_amount:.2f}"
-                response += f"\\n**Status**: Cancelled"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in booking_cancel: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        elif name == "checkin_generate_boarding_pass":
+        elif name == "check_in_and_generate_boarding_pass":
             booking_id = arguments.get("booking_id")
             seat_selection = arguments.get("seat_selection")
 
@@ -2627,98 +1959,8 @@ data:
                 logger.error(f"Error in checkin_generate_boarding_pass: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "seat_select":
-            booking_id = arguments.get("booking_id")
-            seat_number = arguments.get("seat_number")
-            seat_type = arguments.get("seat_type", "window")
 
-            try:
-                steps = []
-                steps.append("💺 **SEAT SELECTION**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append(f"🪑 Desired Seat: {seat_number}")
-                steps.append(f"📍 Type: {seat_type}")
-                steps.append("")
-
-                # Step 1: Get booking details
-                steps.append("1️⃣ Retrieving booking...")
-                booking = await api_request("bookings", f"/bookings/{booking_id}")
-
-                if "error" in booking:
-                    steps.append(f"   ❌ Booking not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                # Booking is now the object directly, no unwrapping needed
-                flight_id = booking.get("flight_id", "Unknown")
-                passengers = booking.get("passenger_id", "Unknown")
-                steps.append(f"   ✅ Flight: {flight_id}")
-
-                # Step 2: Check seat availability
-                steps.append("\\n2️⃣ Checking seat availability...")
-
-                # Validate seat exists and is available
-                seat_fee = 0.0
-
-                if "exit" in seat_type.lower():
-                    seat_fee = 25.0
-                elif "bulkhead" in seat_type.lower():
-                    seat_fee = 15.0
-
-                steps.append(f"   ✅ Seat {seat_number} available")
-                if seat_fee > 0:
-                    steps.append(f"   💰 Seat selection fee: ${seat_fee:.2f}")
-
-                # Step 3: Assign seat
-                steps.append("\\n3️⃣ Assigning seat...")
-                seat_assignment = await api_request(
-                    "checkin",
-                    f"/checkin/{booking_id}/seat",
-                    "POST",
-                    {"seat": seat_number, "seat_type": seat_type, "fee": seat_fee}
-                )
-
-                if "error" not in seat_assignment:
-                    steps.append(f"   ✅ Seat {seat_number} assigned successfully")
-                else:
-                    steps.append(f"   ⚠️  Seat assignment pending confirmation")
-
-                # Step 4: Update booking
-                steps.append("\\n4️⃣ Updating booking record...")
-                await api_request(
-                    "bookings",
-                    f"/bookings/{booking_id}",
-                    "PUT",
-                    {"seat": seat_number, "seat_fee": seat_fee}
-                )
-                steps.append(f"   ✅ Booking updated")
-
-                # Step 5: Send confirmation
-                steps.append("\\n5️⃣ Sending confirmation...")
-                await api_request(
-                    "notifications",
-                    "/notifications/send",
-                    "POST",
-                    {"type": "seat_confirmation", "recipient": passengers, "booking_id": booking_id}
-                )
-                steps.append(f"   ✅ Confirmation sent")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**SEAT SELECTED** ✅\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**Flight**: {flight_id}"
-                response += f"\\n**Seat**: {seat_number} ({seat_type})"
-                if seat_fee > 0:
-                    response += f"\\n**Fee**: ${seat_fee:.2f}"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in seat_select: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        elif name == "baggage_manage":
+        elif name == "manage_baggage":
             booking_id = arguments.get("booking_id")
             action = arguments.get("action")
             baggage_count = arguments.get("baggage_count", 1)
@@ -2829,7 +2071,7 @@ data:
                 logger.error(f"Error in baggage_manage: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "loyalty_get_status":
+        elif name == "get_loyalty_status":
             loyalty_number = arguments.get("loyalty_number")
 
             try:
@@ -2900,7 +2142,7 @@ data:
                 logger.error(f"Error in loyalty_get_status: {e}")
                 return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
 
-        elif name == "loyalty_redeem_miles":
+        elif name == "redeem_miles_for_flight":
             flight_id = arguments.get("flight_id")
             passenger_id = arguments.get("passenger_id")
             loyalty_number = arguments.get("loyalty_number")
@@ -3007,105 +2249,10 @@ data:
                 logger.error(f"Error in loyalty_redeem_miles: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "ancillary_update_meal":
-            booking_id = arguments.get("booking_id")
-            meal_type = arguments.get("meal_type")
-            special_requests = arguments.get("special_requests", "")
-
-            try:
-                steps = []
-                steps.append("🍽️ **MEAL PREFERENCE UPDATE**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append(f"🥗 Meal: {meal_type}")
-                if special_requests:
-                    steps.append(f"📝 Special requests: {special_requests}")
-                steps.append("")
-
-                # Step 1: Get booking details
-                steps.append("1️⃣ Retrieving booking...")
-                booking = await api_request("bookings", f"/bookings/{booking_id}")
-
-                if "error" in booking:
-                    steps.append(f"   ❌ Booking not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                # Booking is now the object directly, no unwrapping needed
-                flight_id = booking.get("flight_id", "Unknown")
-                passenger_id = booking.get("passenger_id", "Unknown")
-                current_meal = booking.get("meal_preference", "standard")
-                steps.append(f"   ℹ️  Current meal: {current_meal}")
-
-                # Step 2: Validate meal availability
-                steps.append("\\n2️⃣ Checking meal availability...")
-
-                # Check if special meal needs pre-ordering
-                special_meals = ["vegan", "kosher", "halal", "gluten_free", "diabetic"]
-                needs_preorder = meal_type in special_meals
-
-                if needs_preorder:
-                    steps.append(f"   ⚠️  Special meal - requires 48hr advance notice")
-
-                steps.append(f"   ✅ {meal_type.title()} meal available")
-
-                # Step 3: Update meal preference
-                steps.append("\\n3️⃣ Updating meal preference...")
-                meal_update = await api_request(
-                    "ancillaries",
-                    f"/meals/{booking_id}",
-                    "POST",
-                    {
-                        "booking_id": booking_id,
-                        "passenger_id": passenger_id,
-                        "meal_type": meal_type,
-                        "special_requests": special_requests
-                    }
-                )
-
-                if "error" not in meal_update:
-                    steps.append(f"   ✅ Meal preference updated")
-                else:
-                    steps.append(f"   ⚠️  Update pending confirmation")
-
-                # Step 4: Update booking
-                steps.append("\\n4️⃣ Updating booking...")
-                await api_request(
-                    "bookings",
-                    f"/bookings/{booking_id}",
-                    "PUT",
-                    {"meal_preference": meal_type, "special_requests": special_requests}
-                )
-                steps.append(f"   ✅ Booking updated")
-
-                # Step 5: Send confirmation
-                steps.append("\\n5️⃣ Sending confirmation...")
-                await api_request(
-                    "notifications",
-                    "/notifications/send",
-                    "POST",
-                    {"type": "meal_confirmation", "recipient": passenger_id, "booking_id": booking_id}
-                )
-                steps.append(f"   ✅ Confirmation sent")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**MEAL PREFERENCE UPDATED** ✅\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**Meal**: {meal_type.title()}"
-                if special_requests:
-                    response += f"\\n**Special Requests**: {special_requests}"
-                if needs_preorder:
-                    response += "\\n\\n⚠️  **Note**: Special meal requires 48hr advance notice"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in ancillary_update_meal: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         # ===== PARTNER ASSISTANCE TOOLS =====
 
-        elif name == "partner_enroll_flight":
+        elif name == "enroll_partner_flight":
             partner = arguments.get("partner_code")
             flight_num = arguments.get("flight_number")
             origin = arguments.get("origin")
@@ -3189,7 +2336,7 @@ data:
                 logger.error(f"Error in partner_enroll_flight: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "partner_update_schedule":
+        elif name == "update_partner_schedule":
             partner = arguments.get("partner_code")
             flight_num = arguments.get("flight_number")
             new_time = arguments.get("new_departure_time")
@@ -3314,7 +2461,7 @@ data:
                 logger.error(f"Error in partner_update_schedule: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "partner_reconcile_revenue":
+        elif name == "reconcile_partner_revenue":
             partner = arguments.get("partner_code")
             period = arguments.get("period")
 
@@ -3378,7 +2525,7 @@ data:
                 logger.error(f"Error in partner_reconcile_revenue: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
-        elif name == "booking_create_alliance":
+        elif name == "create_alliance_booking":
             passenger_id = arguments.get("passenger_id")
             segments = arguments.get("segments", [])
 
@@ -4180,182 +3327,6 @@ data:
             except Exception as e:
                 logger.error(f"Error in update_meal_preference: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        elif name == "add_ancillary_service":
-            booking_id = arguments.get("booking_id")
-            service_type = arguments.get("service_type", "baggage")
-            quantity = arguments.get("quantity", 1)
-
-            try:
-                steps = []
-                steps.append("➕ **ADD ANCILLARY SERVICE**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append(f"🎯 Service: {service_type}")
-                steps.append(f"📊 Quantity: {quantity}")
-                steps.append("")
-
-                steps.append("1️⃣ Retrieving booking...")
-                booking = await api_request("bookings", f"/bookings/{booking_id}")
-
-                if "error" in booking:
-                    steps.append("   ❌ Booking not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                passenger_id = booking.get("passenger_id", "Unknown")
-                steps.append(f"   ✅ Booking found")
-
-                steps.append("\\n2️⃣ Calculating service cost...")
-                # Service pricing
-                service_fees = {
-                    "baggage": 35.00,
-                    "lounge": 50.00,
-                    "priority_boarding": 25.00,
-                    "wifi": 15.00,
-                    "extra_legroom": 45.00
-                }
-                unit_price = service_fees.get(service_type, 35.00)
-                total_cost = unit_price * quantity
-
-                steps.append(f"   💰 Unit price: ${unit_price:.2f}")
-                steps.append(f"   💰 Total cost: ${total_cost:.2f}")
-
-                steps.append("\\n3️⃣ Adding service to booking...")
-                ancillary_result = await api_request("ancillaries", "/ancillaries", "POST", {
-                    "booking_id": booking_id,
-                    "passenger_id": passenger_id,
-                    "service_type": service_type,
-                    "quantity": quantity,
-                    "total_cost": total_cost
-                })
-
-                if "error" not in ancillary_result:
-                    steps.append(f"   ✅ Service added successfully")
-                else:
-                    steps.append(f"   ⚠️  Service pending confirmation")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**SERVICE ADDED** ✅\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**Service**: {service_type.replace('_', ' ').title()}"
-                response += f"\\n**Quantity**: {quantity}"
-                response += f"\\n**Cost**: ${total_cost:.2f}"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in add_ancillary_service: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        elif name == "get_checkin_status":
-            booking_id = arguments.get("booking_id")
-
-            try:
-                steps = []
-                steps.append("✅ **CHECK-IN STATUS**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append("")
-
-                steps.append("1️⃣ Retrieving check-in status...")
-                checkin = await api_request("checkin", f"/checkin/{booking_id}")
-
-                if "error" in checkin:
-                    steps.append("   ℹ️  Not checked in")
-                    checked_in = False
-                    seat = "Not assigned"
-                    boarding_pass = "Not generated"
-                else:
-                    checked_in = True
-                    seat = checkin.get("seat", "Not assigned")
-                    boarding_pass = checkin.get("boarding_pass", "Available")
-                    steps.append("   ✅ Passenger is checked in")
-                    steps.append(f"   🪑 Seat: {seat}")
-                    steps.append(f"   🎫 Boarding pass: {boarding_pass}")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**CHECK-IN STATUS** ✅\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**Checked In**: {'Yes' if checked_in else 'No'}"
-                response += f"\\n**Seat**: {seat}"
-                response += f"\\n**Boarding Pass**: {boarding_pass}"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in get_checkin_status: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        elif name == "transfer_booking":
-            booking_id = arguments.get("booking_id")
-            new_passenger_id = arguments.get("new_passenger_id")
-            reason = arguments.get("reason", "Name change")
-
-            try:
-                steps = []
-                steps.append("🔄 **BOOKING TRANSFER**")
-                steps.append(f"📋 Booking: {booking_id}")
-                steps.append(f"👤 New Passenger: {new_passenger_id}")
-                steps.append(f"📝 Reason: {reason}")
-                steps.append("")
-
-                steps.append("1️⃣ Retrieving current booking...")
-                booking = await api_request("bookings", f"/bookings/{booking_id}")
-
-                if "error" in booking:
-                    steps.append("   ❌ Booking not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                old_passenger_id = booking.get("passenger_id", "Unknown")
-                steps.append(f"   ✅ Current passenger: {old_passenger_id}")
-
-                steps.append("\\n2️⃣ Validating new passenger...")
-                new_passenger = await api_request("passengers", f"/passengers/{new_passenger_id}")
-
-                if "error" in new_passenger:
-                    steps.append("   ❌ New passenger not found")
-                    return [{"type": "text", "text": "\\n".join(steps)}]
-
-                steps.append(f"   ✅ New passenger verified")
-
-                steps.append("\\n3️⃣ Processing transfer...")
-                transfer_fee = 100.00
-                steps.append(f"   💰 Transfer fee: ${transfer_fee:.2f}")
-
-                update_result = await api_request("bookings", f"/bookings/{booking_id}", "PUT", {
-                    "passenger_id": new_passenger_id,
-                    "transfer_fee": transfer_fee,
-                    "transfer_reason": reason
-                })
-
-                if "error" not in update_result:
-                    steps.append("   ✅ Booking transferred successfully")
-                else:
-                    steps.append("   ⚠️  Transfer pending confirmation")
-
-                response = "\\n".join(steps)
-                response += "\\n\\n" + "="*60
-                response += "\\n**TRANSFER COMPLETE** 🔄\\n"
-                response += "="*60
-                response += f"\\n\\n**Booking**: {booking_id}"
-                response += f"\\n**From**: {old_passenger_id}"
-                response += f"\\n**To**: {new_passenger_id}"
-                response += f"\\n**Transfer Fee**: ${transfer_fee:.2f}"
-
-                return [{"type": "text", "text": response}]
-
-            except Exception as e:
-                logger.error(f"Error in transfer_booking: {e}")
-                return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
-
-        # Placeholder for remaining tool implementations
-        # Each would follow similar pattern with:
-        # 1. Parameter extraction
-        # 2. Step-by-step execution with API calls
-        # 3. Error handling
-        # 4. Formatted response
 
         else:
             return [{"type": "text", "text": f"ERROR: Tool '{name}' not yet implemented. This comprehensive MCP server supports 80+ tools - full implementation in progress."}]
