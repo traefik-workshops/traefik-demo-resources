@@ -121,12 +121,12 @@ spec:
     mcp:
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
-          action: show
+          action: hide
         # - match: Prefix(`mcp.params.name`, `partner_`)
         #   action: show
         # - match: Prefix(`mcp.params.name`, `booking_create_alliance`)
         #   action: show
-      listDefaultAction: hide
+      listDefaultAction: show
 ---
 # IngressRoute for User Assistance MCP
 apiVersion: traefik.io/v1alpha1
