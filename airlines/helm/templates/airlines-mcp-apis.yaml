@@ -12,6 +12,20 @@ metadata:
 spec:
   title: "User Assistance MCP"
   description: "Customer Support & Disruption Management - MCP tools for handling customer issues, flight disruptions, and support requests"
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
 ---
 # Ticketing Agent MCP API - Sales & Operations Profile
 apiVersion: hub.traefik.io/v1alpha1
@@ -26,6 +40,20 @@ metadata:
 spec:
   title: "Ticketing Agent MCP"
   description: "Sales & Ticketing Operations - MCP tools for booking, ticketing, check-in, and passenger services"
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
 ---
 # Partner Assistance MCP API - B2B Operations Profile
 apiVersion: hub.traefik.io/v1alpha1
@@ -40,6 +68,20 @@ metadata:
 spec:
   title: "Partner Assistance MCP"
   description: "B2B & Alliance Operations - MCP tools for managing partner airlines, codeshares, and alliance operations"
+  cors:
+    allowHeadersList:
+      - "*"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "*"
+    exposeHeadersList:
+      - "*"
+    addVaryHeader: true
+    allowCredentials: true
+    allowOriginListRegex:
+      - ".*"
+    maxAge: 86400
 ---
 # MCP Middleware for User Assistance
 apiVersion: traefik.io/v1alpha1
