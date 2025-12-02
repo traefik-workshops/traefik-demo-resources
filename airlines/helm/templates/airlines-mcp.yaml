@@ -1863,7 +1863,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in booking_modify: {e}")
+                logger.error(f"Error in modify_booking: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
 
@@ -1956,7 +1956,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in checkin_generate_boarding_pass: {e}")
+                logger.error(f"Error in check_in_and_generate_boarding_pass: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
 
@@ -2068,7 +2068,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in baggage_manage: {e}")
+                logger.error(f"Error in manage_baggage: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         elif name == "get_loyalty_status":
@@ -2139,7 +2139,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in loyalty_get_status: {e}")
+                logger.error(f"Error in get_loyalty_status: {e}")
                 return [{"type": "text", "text": f"❌ System error: {str(e)}"}]
 
         elif name == "redeem_miles_for_flight":
@@ -2246,7 +2246,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in loyalty_redeem_miles: {e}")
+                logger.error(f"Error in redeem_miles_for_flight: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
 
@@ -2333,7 +2333,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in partner_enroll_flight: {e}")
+                logger.error(f"Error in enroll_partner_flight: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         elif name == "update_partner_schedule":
@@ -2458,7 +2458,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in partner_update_schedule: {e}")
+                logger.error(f"Error in update_partner_schedule: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         elif name == "reconcile_partner_revenue":
@@ -2522,7 +2522,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in partner_reconcile_revenue: {e}")
+                logger.error(f"Error in reconcile_partner_revenue: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         elif name == "create_alliance_booking":
@@ -2595,7 +2595,7 @@ data:
                 return [{"type": "text", "text": response}]
 
             except Exception as e:
-                logger.error(f"Error in booking_create_alliance: {e}")
+                logger.error(f"Error in create_alliance_booking: {e}")
                 return [{"type": "text", "text": f"❌ Error: {str(e)}"}]
 
         # ===== ADDITIONAL TOOLS (17 new implementations) =====
@@ -3368,34 +3368,34 @@ data:
 
         # User Assistance Tools
         @mcp_app.tool()
-        async def flight_get_status(flight_number: str, date: str) -> str:
+        async def get_flight_status(flight_number: str, date: str = None) -> str:
             """Get real-time flight status"""
-            result = await call_tool("flight_get_status", {"flight_number": flight_number, "date": date})
+            result = await call_tool("get_flight_status", {"flight_number": flight_number, "date": date})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def flight_find_delayed() -> str:
+        async def find_delayed_flights() -> str:
             """Find all delayed/cancelled flights"""
-            result = await call_tool("flight_find_delayed", {})
+            result = await call_tool("find_delayed_flights", {})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def flight_find_alternatives(original_flight_id: str, date_range_hours: int = 24) -> str:
+        async def find_alternative_flights(original_flight_id: str, date_range_hours: int = 24) -> str:
             """Find alternative flights for disrupted passengers"""
-            result = await call_tool("flight_find_alternatives", {
+            result = await call_tool("find_alternative_flights", {
                 "original_flight_id": original_flight_id,
                 "date_range_hours": date_range_hours
             })
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def booking_get_details(booking_id: str) -> str:
+        async def get_booking_details(booking_id: str) -> str:
             """Get comprehensive booking details"""
-            result = await call_tool("booking_get_details", {"booking_id": booking_id})
+            result = await call_tool("get_booking_details", {"booking_id": booking_id})
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def booking_search_by_passenger(
+        async def search_bookings_by_passenger(
             passenger_id: str = None,
             email: str = None,
             phone: str = None,
@@ -3407,26 +3407,26 @@ data:
             if email: args["email"] = email
             if phone: args["phone"] = phone
             if last_name: args["last_name"] = last_name
-            result = await call_tool("booking_search_by_passenger", args)
+            result = await call_tool("search_bookings_by_passenger", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def baggage_track(booking_id: str, bag_tag: str = None) -> str:
+        async def track_baggage(booking_id: str, bag_tag: str = None) -> str:
             """Track checked baggage"""
             args = {"booking_id": booking_id}
             if bag_tag: args["bag_tag"] = bag_tag
-            result = await call_tool("baggage_track", args)
+            result = await call_tool("track_baggage", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def baggage_report_issue(
+        async def report_baggage_issue(
             booking_id: str,
             issue_type: str,
             description: str,
             bag_details: str = ""
         ) -> str:
             """File baggage claim (PIR)"""
-            result = await call_tool("baggage_report_issue", {
+            result = await call_tool("report_baggage_issue", {
                 "booking_id": booking_id,
                 "issue_type": issue_type,
                 "description": description,
@@ -3435,13 +3435,13 @@ data:
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def compensation_calculate_delay(
+        async def calculate_delay_compensation(
             flight_id: str,
             delay_hours: float,
             passenger_count: int = 1
         ) -> str:
             """Calculate EU261/DOT delay compensation"""
-            result = await call_tool("compensation_calculate_delay", {
+            result = await call_tool("calculate_delay_compensation", {
                 "flight_id": flight_id,
                 "delay_hours": delay_hours,
                 "passenger_count": passenger_count
@@ -3450,7 +3450,7 @@ data:
 
         # Ticketing Agent Tools
         @mcp_app.tool()
-        async def flight_search(
+        async def search_flights(
             origin: str = None,
             destination: str = None,
             date: str = None,
@@ -3463,11 +3463,11 @@ data:
             if origin: args["origin"] = origin
             if destination: args["destination"] = destination
             if date: args["date"] = date
-            result = await call_tool("flight_search", args)
+            result = await call_tool("search_flights", args)
             return result[0]["text"] if result else str(result)
 
         @mcp_app.tool()
-        async def booking_create(
+        async def book_flight_itinerary(
             flight_id: str,
             passenger_id: str,
             loyalty_number: str = None,
@@ -3484,7 +3484,7 @@ data:
             }
             if loyalty_number: args["loyalty_number"] = loyalty_number
             if seat_preference: args["seat_preference"] = seat_preference
-            result = await call_tool("booking_create", args)
+            result = await call_tool("book_flight_itinerary", args)
             return result[0]["text"] if result else str(result)
 
         # Additional FastMCP endpoints would continue here...
