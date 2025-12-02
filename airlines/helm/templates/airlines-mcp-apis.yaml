@@ -54,7 +54,6 @@ metadata:
 spec:
   plugin:
     mcp:
-      profile: user-assistance
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
@@ -73,7 +72,6 @@ spec:
         - match: Prefix(`mcp.params.name`, `notification_`)
           action: show
       listDefaultAction: hide
-      description: "Customer support tools for handling disruptions and passenger assistance"
 ---
 # MCP Middleware for Ticketing Agent
 apiVersion: traefik.io/v1alpha1
@@ -88,7 +86,6 @@ metadata:
 spec:
   plugin:
     mcp:
-      profile: ticketing-agent
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
@@ -122,16 +119,14 @@ metadata:
 spec:
   plugin:
     mcp:
-      profile: partner-assistance
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        - match: Prefix(`mcp.params.name`, `partner_`)
-          action: show
-        - match: Prefix(`mcp.params.name`, `booking_create_alliance`)
-          action: show
+        # - match: Prefix(`mcp.params.name`, `partner_`)
+        #   action: show
+        # - match: Prefix(`mcp.params.name`, `booking_create_alliance`)
+        #   action: show
       listDefaultAction: hide
-      description: "B2B tools for managing partner airlines, alliances, and codeshare operations"
 ---
 # IngressRoute for User Assistance MCP
 apiVersion: traefik.io/v1alpha1
