@@ -97,21 +97,55 @@ spec:
   plugin:
     mcp:
       listPolicies:
+        # Common
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        - match: Prefix(`mcp.params.name`, `flight_`)
+        # Flight Information & Status (User Assistance only gets read tools)
+        - match: Equals(`mcp.params.name`, `get_flight_status`)
           action: show
-        - match: Prefix(`mcp.params.name`, `booking_get_`) || Prefix(`mcp.params.name`, `booking_search_`)
+        - match: Equals(`mcp.params.name`, `find_delayed_flights`)
           action: show
-        - match: Prefix(`mcp.params.name`, `passenger_`)
+        - match: Equals(`mcp.params.name`, `find_alternative_flights`)
           action: show
-        - match: Prefix(`mcp.params.name`, `baggage_track`) || Prefix(`mcp.params.name`, `baggage_report_`)
+        - match: Equals(`mcp.params.name`, `track_flight_realtime`)
           action: show
-        - match: Prefix(`mcp.params.name`, `loyalty_get_profile`) || Prefix(`mcp.params.name`, `loyalty_add_`)
+        - match: Equals(`mcp.params.name`, `get_gate_info`)
           action: show
-        - match: Prefix(`mcp.params.name`, `compensation_`)
+        # Booking Management (read-only)
+        - match: Equals(`mcp.params.name`, `get_booking_details`)
           action: show
-        - match: Prefix(`mcp.params.name`, `notification_`)
+        - match: Equals(`mcp.params.name`, `search_bookings_by_passenger`)
+          action: show
+        # Passenger Information
+        - match: Equals(`mcp.params.name`, `update_passenger_contact_info`)
+          action: show
+        - match: Equals(`mcp.params.name`, `get_passenger_details`)
+          action: show
+        # Baggage Services
+        - match: Equals(`mcp.params.name`, `track_baggage`)
+          action: show
+        - match: Equals(`mcp.params.name`, `report_baggage_issue`)
+          action: show
+        - match: Equals(`mcp.params.name`, `update_baggage_status`)
+          action: show
+        # Loyalty Program
+        - match: Equals(`mcp.params.name`, `get_loyalty_profile`)
+          action: show
+        - match: Equals(`mcp.params.name`, `search_loyalty_by_passenger`)
+          action: show
+        - match: Equals(`mcp.params.name`, `add_missing_miles`)
+          action: show
+        # Compensation & Refunds
+        - match: Equals(`mcp.params.name`, `calculate_delay_compensation`)
+          action: show
+        - match: Equals(`mcp.params.name`, `process_refund_request`)
+          action: show
+        - match: Equals(`mcp.params.name`, `issue_travel_voucher`)
+          action: show
+        # Notifications
+        - match: Equals(`mcp.params.name`, `send_notification`)
+          action: show
+        - match: Equals(`mcp.params.name`, `get_notification_history`)
           action: show
       listDefaultAction: hide
 ---
@@ -129,21 +163,105 @@ spec:
   plugin:
     mcp:
       listPolicies:
+        # Common
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        - match: Prefix(`mcp.params.name`, `flight_search`) || Prefix(`mcp.params.name`, `flight_get_pricing`)
+        # Flight Search & Availability
+        - match: Equals(`mcp.params.name`, `search_flights`)
           action: show
-        - match: Prefix(`mcp.params.name`, `booking_create`) || Prefix(`mcp.params.name`, `booking_modify`) || Prefix(`mcp.params.name`, `booking_cancel`)
+        - match: Equals(`mcp.params.name`, `search_multi_city_flights`)
           action: show
-        - match: Prefix(`mcp.params.name`, `checkin_`)
+        - match: Equals(`mcp.params.name`, `check_seat_availability`)
           action: show
-        - match: Prefix(`mcp.params.name`, `seat_`)
+        - match: Equals(`mcp.params.name`, `check_flight_load_factor`)
           action: show
-        - match: Prefix(`mcp.params.name`, `ancillary_`)
+        - match: Equals(`mcp.params.name`, `search_available_flights`)
           action: show
-        - match: Prefix(`mcp.params.name`, `baggage_manage`)
+        - match: Equals(`mcp.params.name`, `find_flights_to_destination`)
           action: show
-        - match: Prefix(`mcp.params.name`, `loyalty_get_status`) || Prefix(`mcp.params.name`, `loyalty_redeem_`) || Prefix(`mcp.params.name`, `loyalty_transfer_`)
+        - match: Equals(`mcp.params.name`, `find_flights_from_origin`)
+          action: show
+        # Pricing
+        - match: Equals(`mcp.params.name`, `get_flight_pricing`)
+          action: show
+        - match: Equals(`mcp.params.name`, `calculate_total_trip_price`)
+          action: show
+        - match: Equals(`mcp.params.name`, `compare_fare_classes`)
+          action: show
+        # Booking Creation
+        - match: Equals(`mcp.params.name`, `book_flight_itinerary`)
+          action: show
+        - match: Equals(`mcp.params.name`, `create_group_booking`)
+          action: show
+        - match: Equals(`mcp.params.name`, `book_round_trip`)
+          action: show
+        # Booking Modifications
+        - match: Equals(`mcp.params.name`, `modify_booking`)
+          action: show
+        - match: Equals(`mcp.params.name`, `rebook_disrupted_passenger`)
+          action: show
+        - match: Equals(`mcp.params.name`, `split_booking`)
+          action: show
+        - match: Equals(`mcp.params.name`, `add_segment_to_booking`)
+          action: show
+        - match: Equals(`mcp.params.name`, `verify_change_refund_eligibility`)
+          action: show
+        - match: Equals(`mcp.params.name`, `cancel_booking_with_refund`)
+          action: show
+        # Check-in & Boarding
+        - match: Equals(`mcp.params.name`, `check_in_and_generate_boarding_pass`)
+          action: show
+        - match: Equals(`mcp.params.name`, `check_in_group`)
+          action: show
+        - match: Equals(`mcp.params.name`, `get_boarding_pass`)
+          action: show
+        - match: Equals(`mcp.params.name`, `update_checkin_status`)
+          action: show
+        - match: Equals(`mcp.params.name`, `resend_boarding_pass`)
+          action: show
+        # Seat Selection
+        - match: Equals(`mcp.params.name`, `select_seat`)
+          action: show
+        - match: Equals(`mcp.params.name`, `auto_assign_seats`)
+          action: show
+        - match: Equals(`mcp.params.name`, `view_seat_map`)
+          action: show
+        # Ancillary Services
+        - match: Equals(`mcp.params.name`, `purchase_ancillary_services`)
+          action: show
+        - match: Equals(`mcp.params.name`, `list_available_ancillaries`)
+          action: show
+        - match: Equals(`mcp.params.name`, `manage_baggage`)
+          action: show
+        - match: Equals(`mcp.params.name`, `update_meal_preference`)
+          action: show
+        # Special Requests & Services
+        - match: Equals(`mcp.params.name`, `request_special_assistance`)
+          action: show
+        - match: Equals(`mcp.params.name`, `add_infant_to_booking`)
+          action: show
+        # Upgrades
+        - match: Equals(`mcp.params.name`, `request_cabin_upgrade`)
+          action: show
+        - match: Equals(`mcp.params.name`, `process_complimentary_upgrade`)
+          action: show
+        - match: Equals(`mcp.params.name`, `add_to_upgrade_waitlist`)
+          action: show
+        # Standby Management
+        - match: Equals(`mcp.params.name`, `add_to_standby_list`)
+          action: show
+        - match: Equals(`mcp.params.name`, `check_standby_status`)
+          action: show
+        - match: Equals(`mcp.params.name`, `clear_standby_passenger`)
+          action: show
+        # Loyalty Operations
+        - match: Equals(`mcp.params.name`, `get_loyalty_status`)
+          action: show
+        - match: Equals(`mcp.params.name`, `redeem_miles_for_flight`)
+          action: show
+        - match: Equals(`mcp.params.name`, `transfer_miles`)
+          action: show
+        - match: Equals(`mcp.params.name`, `purchase_miles`)
           action: show
       listDefaultAction: hide
       description: "Ticketing and sales tools for booking, modifications, and passenger services"
@@ -162,13 +280,36 @@ spec:
   plugin:
     mcp:
       listPolicies:
+        # Common
         - match: Equals(`mcp.params.name`, `ping`)
-          action: hide
-        # - match: Prefix(`mcp.params.name`, `partner_`)
+          action: show
+        # # Codeshare Management
+        # - match: Equals(`mcp.params.name`, `enroll_partner_flight`)
         #   action: show
-        # - match: Prefix(`mcp.params.name`, `booking_create_alliance`)
+        # - match: Equals(`mcp.params.name`, `update_partner_schedule`)
         #   action: show
-      listDefaultAction: show
+        # - match: Equals(`mcp.params.name`, `manage_codeshare_inventory`)
+        #   action: show
+        # # Alliance Bookings
+        # - match: Equals(`mcp.params.name`, `create_alliance_booking`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `create_interline_ticket`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `coordinate_baggage_transfer`)
+        #   action: show
+        # # Revenue Management
+        # - match: Equals(`mcp.params.name`, `reconcile_partner_revenue`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `generate_prorate_report`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `manage_partner_loyalty_benefits`)
+        #   action: show
+        # # Partner Communications
+        # - match: Equals(`mcp.params.name`, `send_partner_notification`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `query_partner_availability`)
+        #   action: show
+      listDefaultAction: hide
 ---
 # IngressRoute for User Assistance MCP
 apiVersion: traefik.io/v1alpha1
