@@ -61,6 +61,7 @@ spec:
       model: nvidia/llama-3.1-nemoguard-8b-topic-control
       sendReasonAsError: true
       request:
+        promptTemplate: '{"inputs": "{{ (index .messages 0).content }}"}'
         blockConditions:
           - reason: "Sorry, I am a ticketing agent and can only answer questions related to Traefik Airlines"
             condition: Contains("off-topic")
