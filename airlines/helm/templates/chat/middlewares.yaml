@@ -47,6 +47,8 @@ spec:
       readOnly: false
       includeCachedUsage: true
 ---
+{{- if .Values.chat.guards.topic_control.enabled }}
+---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
@@ -57,7 +59,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard:
-      endpoint: {{ .Values.chat.guards.topic_control.host }}
+      endpoint: https://{{ .Values.chat.guards.topic_control.host }}/v1/chat/completions
       model: nvidia/llama-3.1-nemoguard-8b-topic-control
       sendReasonAsError: true
       request:
@@ -118,6 +120,8 @@ spec:
 
           Analyze the user question and respond ONLY with "on-topic" or "off-topic".
           When in doubt about travel/airline services, respond "off-topic".
+{{- end }}
+{{- if .Values.chat.guards.content_safety.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -129,7 +133,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard:
-      endpoint: {{ .Values.chat.guards.content_safety.host }}
+      endpoint: https://{{ .Values.chat.guards.content_safety.host }}/v1/chat/completions
       model: nvidia/llama-3.1-nemoguard-8b-content-safety
       sendReasonAsError: true
       request:
@@ -175,6 +179,8 @@ spec:
           Provide your safety assessment:
           - First line: 'safe' or 'unsafe'
           - If unsafe, second line: comma-separated list of violated categories
+{{- end }}
+{{- if .Values.chat.guards.jailbreak_detection.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -186,7 +192,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard-custom:
-      endpoint: {{ .Values.chat.guards.jailbreak_detection.host }}
+      endpoint: https://{{ .Values.chat.guards.jailbreak_detection.host }}/v1/classify
       sendReasonAsError: true
       request:
         # Jailbreak NIM uses custom API format
@@ -197,6 +203,8 @@ spec:
         traceConditions:
           - reason: "jailbreak detected"
             condition: JSONGt(".score", "0.85")
+{{- end }}
+{{- if .Values.chat.guards.granite_guardian.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -208,7 +216,7 @@ metadata:
 spec:
   plugin:
     chat-completion-llm-guard-custom:
-      endpoint: {{ .Values.chat.guards.granite_guardian.host }}
+      endpoint: https://{{ .Values.chat.guards.granite_guardian.host }}/v1/chat/completions
       sendReasonAsError: true
       clientConfig: 
         headers:
@@ -218,6 +226,7 @@ spec:
         blockConditions:
           - condition: JSONStringContains(".choices[0].message.content", "yes")
             reason: request blocked
+{{- end }}
 {{- if .Values.chat.guards.parallel }}
 ---
 apiVersion: traefik.io/v1alpha1
