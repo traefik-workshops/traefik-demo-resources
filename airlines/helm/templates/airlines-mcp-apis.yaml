@@ -96,6 +96,7 @@ metadata:
 spec:
   plugin:
     mcp:
+      gracefulErrors: true
       policies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: allow
@@ -136,6 +137,7 @@ metadata:
 spec:
   plugin:
     mcp:
+      gracefulErrors: true
       policies:
         - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.tools`, `process_refund_request`)
           action: deny
@@ -159,6 +161,7 @@ metadata:
 spec:
   plugin:
     mcp:
+      gracefulErrors: true
       policies:
         - match: Equals(`mcp.params.name`, `ping`)
           reason: "Ping is not allowed"
