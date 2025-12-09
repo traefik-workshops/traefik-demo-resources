@@ -137,11 +137,11 @@ spec:
   plugin:
     mcp:
       policies:
-        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.claims.tools`, 'process_refund_request')
+        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.tools`, `process_refund_request`)
           action: deny
       defaultAction: allow
       listPolicies:
-        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.claims.tools`, 'process_refund_request')
+        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.tools`, `process_refund_request`)
           action: hide
       listDefaultAction: show
       description: "Ticketing and sales tools for booking, modifications, and passenger services"
