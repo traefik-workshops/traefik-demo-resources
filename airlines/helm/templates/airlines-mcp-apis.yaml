@@ -96,30 +96,30 @@ metadata:
 spec:
   plugin:
     mcp:
+      policies:
+        - match: Equals(`mcp.params.name`, `ping`)
+          action: allow
+        - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
+          action: allow
+        - match: Prefix(`mcp.params.name`, `track_baggage`)
+          action: allow
+        - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`)
+          action: allow
+        - match: Equals(`mcp.params.name`, `search_flights`)
+          action: allow
+      defaultAction: deny
       listPolicies:
-        # Common
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        # Flight Information & Status (User Assistance specific)
-        - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_delayed_flights`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
+        - match: Contains(`mcp.params.name`, `flights`)
           action: show
-        # Booking Management (read-only)
-        - match: Prefix(`mcp.params.name`, `get_booking`) || Prefix(`mcp.params.name`, `search_bookings`)
-          action: show
-        # Passenger Information
-        - match: Prefix(`mcp.params.name`, `get_passenger`) || Prefix(`mcp.params.name`, `update_passenger`)
-          action: show
-        # Baggage Services
         - match: Prefix(`mcp.params.name`, `track_baggage`) || Prefix(`mcp.params.name`, `report_baggage`) || Prefix(`mcp.params.name`, `update_baggage`)
           action: show
-        # Loyalty Program
-        - match: Prefix(`mcp.params.name`, `get_loyalty_p`) || Prefix(`mcp.params.name`, `search_loyalty`) || Prefix(`mcp.params.name`, `add_missing`)
+        - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`) || Prefix(`mcp.params.name`, `add_missing`)
           action: show
-        # Compensation & Refunds
-        - match: Prefix(`mcp.params.name`, `calculate_delay`) || Prefix(`mcp.params.name`, `process_refund`) || Prefix(`mcp.params.name`, `issue_travel`)
+        - match: Prefix(`mcp.params.name`, `calculate_delay`)
           action: show
-        # Notifications
-        - match: Prefix(`mcp.params.name`, `send_notification`) || Prefix(`mcp.params.name`, `get_notification`)
+        - match: Equals(`mcp.params.name`, `modify_booking`)
           action: show
       listDefaultAction: hide
 ---
@@ -136,29 +136,14 @@ metadata:
 spec:
   plugin:
     mcp:
+      policies:
+        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.claims.tools`, 'process_refund_request')
+          action: deny
+      defaultAction: allow
       listPolicies:
-        # Common
-        - match: Equals(`mcp.params.name`, `ping`)
-          action: show
-        # Flight Search & Availability (Ticketing specific)
-        - match: Equals(`mcp.params.name`, `search_flights`) || Equals(`mcp.params.name`, `search_available_flights`) || Equals(`mcp.params.name`, `find_flights_to_destination`) || Equals(`mcp.params.name`, `find_flights_from_origin`)
-          action: show
-        # Pricing
-        - match: Equals(`mcp.params.name`, `get_flight_pricing`) || Equals(`mcp.params.name`, `calculate_total_trip_price`)
-          action: show
-        # Booking Operations
-        - match: Equals(`mcp.params.name`, `book_flight_itinerary`) || Equals(`mcp.params.name`, `modify_booking`) || Equals(`mcp.params.name`, `cancel_booking_with_refund`) || Equals(`mcp.params.name`, `verify_change_refund_eligibility`)
-          action: show
-        # Check-in & Boarding
-        - match: Equals(`mcp.params.name`, `check_in_and_generate_boarding_pass`) || Equals(`mcp.params.name`, `check_standby_status`)
-          action: show
-        # Seat & Ancillaries
-        - match: Equals(`mcp.params.name`, `select_seat`) || Equals(`mcp.params.name`, `manage_baggage`) || Equals(`mcp.params.name`, `update_meal_preference`)
-          action: show
-        # Loyalty Operations
-        - match: Equals(`mcp.params.name`, `get_loyalty_status`) || Equals(`mcp.params.name`, `redeem_miles_for_flight`)
-          action: show
-      listDefaultAction: hide
+        - match: Equals(`mcp.params.name`, `process_refund_request`) && !Equals(`jwt.claims.tools`, 'process_refund_request')
+          action: hide
+      listDefaultAction: show
       description: "Ticketing and sales tools for booking, modifications, and passenger services"
 ---
 # MCP Middleware for Partner Assistance
@@ -175,19 +160,15 @@ spec:
   plugin:
     mcp:
       policies:
-        # Common
         - match: Equals(`mcp.params.name`, `ping`)
           reason: "Ping is not allowed"
           action: deny
       defaultAction: allow
       listPolicies:
-        # Common
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        # Partner & Alliance Operations
         - match: Prefix(`mcp.params.name`, `enroll_partner`) || Prefix(`mcp.params.name`, `update_partner`) || Prefix(`mcp.params.name`, `create_alliance`) || Prefix(`mcp.params.name`, `reconcile_partner`)
           action: show
-        # Airport & Manifest Operations
         - match: Prefix(`mcp.params.name`, `get_airport`) || Prefix(`mcp.params.name`, `generate_passenger`)
           action: show
       listDefaultAction: hide
