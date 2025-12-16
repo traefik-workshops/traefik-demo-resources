@@ -98,10 +98,10 @@ spec:
     mcp:
       gracefulErrors: true
       policies:
-        - action: allow
+        - action: deny
           match: >-
             Equals(`mcp.params.name`, `ping`)
-      defaultAction: deny
+      defaultAction: allow
       listPolicies:
         - action: show
           match: >-
