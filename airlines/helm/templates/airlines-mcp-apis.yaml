@@ -98,9 +98,9 @@ spec:
     mcp:
       gracefulErrors: true
       policies:
-        - action: deny
+        - action: allow
           match: >-
-            Equals(`mcp.params.name`, `ping`)
+            Equals(`mcp.params.name`, `ping`) || Equals(`mcp.params.name`, `tools/list`)
       #   - match: Equals(`mcp.params.name`, `ping`)
       #     action: allow
       #   - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
@@ -112,7 +112,7 @@ spec:
       #   - match: Equals(`mcp.params.name`, `search_flights`)
       #     action: allow
       # defaultAction: deny
-      defaultAction: allow
+      defaultAction: deny
       listPolicies:
         - action: show
           match: >-
