@@ -97,31 +97,31 @@ spec:
   plugin:
     mcp:
       gracefulErrors: true
-      policies:
-        - match: Equals(`mcp.params.name`, `ping`)
-          action: allow
-        - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
-          action: allow
-        - match: Prefix(`mcp.params.name`, `track_baggage`)
-          action: allow
-        - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`)
-          action: allow
-        - match: Equals(`mcp.params.name`, `search_flights`)
-          action: allow
-      defaultAction: deny
+      # policies:
+      #   - match: Equals(`mcp.params.name`, `ping`)
+      #     action: allow
+      #   - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
+      #     action: allow
+      #   - match: Prefix(`mcp.params.name`, `track_baggage`)
+      #     action: allow
+      #   - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`)
+      #     action: allow
+      #   - match: Equals(`mcp.params.name`, `search_flights`)
+      #     action: allow
+      # defaultAction: deny
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        - match: Prefix(`mcp.params.name`, `flights`)
-          action: show
-        - match: Prefix(`mcp.params.name`, `track_baggage`) || Prefix(`mcp.params.name`, `report_baggage`) || Prefix(`mcp.params.name`, `update_baggage`)
-          action: show
-        - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`) || Prefix(`mcp.params.name`, `add_missing`)
-          action: show
-        - match: Prefix(`mcp.params.name`, `calculate_delay`)
-          action: show
-        - match: Equals(`mcp.params.name`, `modify_booking`)
-          action: show
+        # - match: Prefix(`mcp.params.name`, `flights`)
+        #   action: show
+        # - match: Prefix(`mcp.params.name`, `track_baggage`) || Prefix(`mcp.params.name`, `report_baggage`) || Prefix(`mcp.params.name`, `update_baggage`)
+        #   action: show
+        # - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`) || Prefix(`mcp.params.name`, `add_missing`)
+        #   action: show
+        # - match: Prefix(`mcp.params.name`, `calculate_delay`)
+        #   action: show
+        # - match: Equals(`mcp.params.name`, `modify_booking`)
+        #   action: show
       listDefaultAction: hide
 ---
 # MCP Middleware for Ticketing Agent
