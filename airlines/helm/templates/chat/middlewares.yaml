@@ -63,7 +63,7 @@ spec:
       model: nvidia/llama-3.1-nemoguard-8b-topic-control
       sendReasonAsError: true
       request:
-        promptTemplate: '{"inputs": "{{ `{{ (index .messages 0).content }}` }}"}'
+        promptTemplate: '{"inputs": "{{ `{{ (index .messages (sub (len .messages) 1)).content }}` }}"}'
         blockConditions:
           - reason: "Sorry, I am a ticketing agent and can only answer questions related to Traefik Airlines"
             condition: Contains("off-topic")
@@ -196,7 +196,7 @@ spec:
       sendReasonAsError: true
       request:
         # Jailbreak NIM uses custom API format
-        template: '{"input": "{{`{{ (index .messages 0).content }}`}}"}'
+        template: '{"input": "{{`{{ (index .messages (sub (len .messages) 1)).content }}`}}"}'
         blockConditions:
           - reason: "jailbreak detected"
             condition: JSONGt(".score", "0.85")
@@ -222,7 +222,7 @@ spec:
         headers:
           Content-Type: application/json
       request:
-        template: '{\"messages\": [ {\"role\": \"user\", \"content\": \"{{`{{ (index .messages 0).content }}`}}\"} ]}'
+        template: '{\"messages\": [ {\"role\": \"user\", \"content\": \"{{`{{ (index .messages (sub (len .messages) 1)).content }}`}}\"} ]}'
         blockConditions:
           - condition: JSONStringContains(".choices[0].message.content", "yes")
             reason: request blocked
