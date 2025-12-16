@@ -137,6 +137,7 @@ spec:
       model: nvidia/llama-3.1-nemoguard-8b-content-safety
       sendReasonAsError: true
       request:
+        promptTemplate: '{"inputs": "{{ `{{ (index .messages (sub (len .messages) 1)).content }}` }}"}'
         blockConditions:
           - reason: "unsafe content detected"
             condition: Contains("unsafe")
@@ -158,6 +159,7 @@ spec:
           - First line: 'safe' or 'unsafe'
           - If unsafe, second line: comma-separated list of violated categories
       response:
+        promptTemplate: '{"inputs": "{{ `{{ (index .messages (sub (len .messages) 1)).content }}` }}"}'
         useRequestHistory: true
         blockConditions:
           - reason: "unsafe content detected"
