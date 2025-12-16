@@ -101,11 +101,28 @@ spec:
         - action: deny
           match: >-
             Equals(`mcp.params.name`, `ping`)
+      #   - match: Equals(`mcp.params.name`, `ping`)
+      #     action: allow
+      #   - match: Equals(`mcp.params.name`, `get_flight_status`) || Equals(`mcp.params.name`, `find_alternative_flights`) || Equals(`mcp.params.name`, `track_flight_realtime`) || Equals(`mcp.params.name`, `get_gate_info`)
+      #     action: allow
+      #   - match: Prefix(`mcp.params.name`, `track_baggage`)
+      #     action: allow
+      #   - match: Prefix(`mcp.params.name`, `get_loyalty`) || Prefix(`mcp.params.name`, `search_loyalty`)
+      #     action: allow
+      #   - match: Equals(`mcp.params.name`, `search_flights`)
+      #     action: allow
+      # defaultAction: deny
       defaultAction: allow
       listPolicies:
         - action: show
           match: >-
             Equals(`mcp.params.name`, `ping`)
+        - action: show
+          match: >-
+            Contains(`mcp.params.name`, `flights`) || Contains(`mcp.params.name`, `booking`)
+        - action: show
+          match: >-
+            Contains(`mcp.params.name`, `baggage`)
       listDefaultAction: hide
 ---
 # MCP Middleware for Ticketing Agent
