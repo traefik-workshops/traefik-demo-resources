@@ -222,7 +222,7 @@ spec:
         headers:
           Content-Type: application/json
       request:
-        template: '{\"messages\": [ {\"role\": \"user\", \"content\": \"{{`{{ (index .messages (sub (len .messages) 1)).content }}`}}\"} ]}'
+        template: '{"messages": [{"role": "user", "content": "{{`{{ (index .messages (sub (len .messages) 1)).content }}`}}"}]}'
         blockConditions:
           - condition: JSONStringContains(".choices[0].message.content", "yes")
             reason: request blocked
