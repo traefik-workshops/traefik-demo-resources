@@ -112,7 +112,7 @@ spec:
       listPolicies:
         - match: Equals(`mcp.params.name`, `ping`)
           action: show
-        - match: Contains(`mcp.params.name`, `flights`)
+        - match: Prefix(`mcp.params.name`, `flights`)
           action: show
         - match: Prefix(`mcp.params.name`, `track_baggage`) || Prefix(`mcp.params.name`, `report_baggage`) || Prefix(`mcp.params.name`, `update_baggage`)
           action: show
