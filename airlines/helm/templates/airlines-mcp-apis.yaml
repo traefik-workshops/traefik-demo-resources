@@ -98,7 +98,7 @@ spec:
     mcp:
       gracefulErrors: true
       policies:
-        - action: deny
+        - action: allow
           match: >-
             Equals(`mcp.params.name`, `ping`)
       #   - match: Equals(`mcp.params.name`, `ping`)
@@ -112,7 +112,7 @@ spec:
       #   - match: Equals(`mcp.params.name`, `search_flights`)
       #     action: allow
       # defaultAction: deny
-      defaultAction: allow
+      defaultAction: deny
       listPolicies:
         - action: show
           match: >-
