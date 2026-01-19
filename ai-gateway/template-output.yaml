@@ -1,0 +1,326 @@
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-ai-gateway-gemini
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: gemini
+spec:
+  type: ExternalName
+  externalName: generativelanguage.googleapis.com
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-ai-gateway-openai
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: openai
+spec:
+  type: ExternalName
+  externalName: api.openai.com
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: release-name-ai-gateway-gemini-api
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: gemini
+spec:
+  title: "Gemini API"
+  description: "Gemini AI Gateway"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: https://gemini.triple-gate.traefik.ai
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: release-name-ai-gateway-openai-api
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: openai
+spec:
+  title: "OpenAI API"
+  description: "OpenAI AI Gateway"
+  openApiSpec:
+    url: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    override:
+      servers:
+        - url: https://openai.triple-gate.traefik.ai
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: release-name-ai-gateway-gemini-route
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: gemini
+  annotations:
+    hub.traefik.io/api: release-name-ai-gateway-gemini-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`gemini.triple-gate.traefik.ai`) && PathPrefix(`/v1/chat/completions`)
+      services:
+        - name: release-name-ai-gateway-gemini
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: release-name-ai-gateway-gemini-cc
+        - name: release-name-ai-gateway-gemini-auth
+        - name: release-name-ai-gateway-topic-control
+        - name: release-name-ai-gateway-content-guard
+    - kind: Rule
+      match: Host(`gemini.triple-gate.traefik.ai`)
+      services:
+        - name: release-name-ai-gateway-gemini
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: release-name-ai-gateway-gemini-auth
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: release-name-ai-gateway-openai-route
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: openai
+  annotations:
+    hub.traefik.io/api: release-name-ai-gateway-openai-api
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - kind: Rule
+      match: Host(`openai.triple-gate.traefik.ai`) && PathPrefix(`/v1/chat/completions`)
+      services:
+        - name: release-name-ai-gateway-openai
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: release-name-ai-gateway-openai-cc
+        - name: release-name-ai-gateway-openai-auth
+        - name: release-name-ai-gateway-topic-control
+        - name: release-name-ai-gateway-content-safety
+    - kind: Rule
+      match: Host(`openai.triple-gate.traefik.ai`)
+      services:
+        - name: release-name-ai-gateway-openai
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: release-name-ai-gateway-openai-auth
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-gemini-cc
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: gemini
+spec:
+  plugin:
+    chat-completion:
+      model: models/gemini-1.5-pro
+      maxTokens: 2048
+      temperature: 1
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-gemini-auth
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: gemini
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: "Bearer YOUR_GEMINI_API_KEY"
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-openai-cc
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: openai
+spec:
+  plugin:
+    chat-completion:
+      model: gpt-4
+      temperature: 0.7
+---
+# Source: ai-gateway/templates/endpoint-resources.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-openai-auth
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+    endpoint: openai
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: "Bearer YOUR_OPENAI_API_KEY"
+---
+# Source: ai-gateway/templates/shared-middlewares.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-topic-control
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: https://topic-control-nim/v1/chat/completions
+      model: nvidia/llama-3.1-nemoguard-8b-topic-control
+      sendReasonAsError: true
+      request:
+        promptTemplate: '{"inputs": "{{ (index .messages (sub (len .messages) 1)).content }}"}'
+        blockConditions:
+          - condition: Contains("off-topic")
+            reason: off-topic detected
+        systemPrompt: |
+          You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
+          ...
+---
+# Source: ai-gateway/templates/shared-middlewares.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-content-safety
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  plugin:
+    chat-completion-llm-guard:
+      endpoint: https://content-safety-nim/v1/chat/completions
+      model: nvidia/llama-3.1-nemoguard-8b-content-safety
+      sendReasonAsError: true
+      request:
+        promptTemplate: '{"inputs": "{{ (index .messages (sub (len .messages) 1)).content }}"}'
+        blockConditions:
+          - condition: Contains("unsafe")
+            reason: unsafe content detected
+---
+# Source: ai-gateway/templates/shared-middlewares.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-jailbreak-detection
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  plugin:
+    chat-completion-llm-guard-custom:
+      endpoint: https://jailbreak-detection-nim/v1/classify
+      sendReasonAsError: true
+      request:
+        template: '{"input": "{{ (index .messages (sub (len .messages) 1)).content }}"}'
+        blockConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
+        traceConditions:
+          - reason: "jailbreak detected"
+            condition: JSONGt(".score", "0.85")
+---
+# Source: ai-gateway/templates/shared-middlewares.yaml
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: release-name-ai-gateway-content-guard
+  labels:
+    helm.sh/chart: ai-gateway-0.1.0
+    app.kubernetes.io/name: ai-gateway
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  plugin:
+    chat-completion-content-guard:
+      engine:
+        presidio:
+          host: presidio
+          language: en
+      response:
+        rules:
+          - entities:
+            - EMAIL_ADDRESS
+            - PHONE_NUMBER
+            mask:
+              char: '#'
+              unmaskFromRight: 3
