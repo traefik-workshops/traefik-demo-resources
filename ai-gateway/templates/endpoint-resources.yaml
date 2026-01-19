@@ -61,7 +61,7 @@ spec:
     url: {{ .api.oasUrl }}
     override:
       servers:
-        - url: https://{{ $routing.host }}
+        - url: https://{{ $routing.host }}.{{ $.Values.domain }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -76,9 +76,8 @@ spec:
   entryPoints:
     {{- toYaml $.Values.entryPoints | nindent 4 }}
   routes:
-    {{- range $routing.paths }}
     - kind: Rule
-      match: Host(`{{ $routing.host }}`) && PathPrefix(`{{ . }}`)
+      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
       services:
         - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
           port: 443
@@ -87,11 +86,10 @@ spec:
       middlewares:
         - name: {{ $fullName }}-auth
         {{- range $endpointMiddlewares }}
-        - name: {{ include "ai-gateway.fullname" $ }}-{{ . | kebabcase }}
+        - name: {{ if (has . (keys $.Values.sharedMiddlewares)) }}{{ include "ai-gateway.fullname" $ }}-{{ . | kebabcase }}{{ else }}{{ include "ai-gateway.fullname" $ }}-{{ $endpointName }}-{{ . | kebabcase }}{{ end }}
         {{- end }}
-    {{- end }}
     - kind: Rule
-      match: Host(`{{ $routing.host }}`)
+      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`)
       services:
         - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
           port: 443
@@ -99,8 +97,5 @@ spec:
           passHostHeader: false
       middlewares:
         - name: {{ $fullName }}-auth
-        {{- range $endpointMiddlewares }}
-        - name: {{ include "ai-gateway.fullname" $ }}-{{ . | kebabcase }}
-        {{- end }}
 {{- end }}
 {{- end }}

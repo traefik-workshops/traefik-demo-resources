@@ -72,9 +72,7 @@ endpoints:
       header: Authorization
       value: "Bearer YOUR_GEMINI_API_KEY"
     routing:
-      host: gemini.triple-gate.traefik.ai
-      paths:
-        - /v1/chat/completions
+      host: gemini
     api:
       title: "Gemini API"
       description: "Gemini AI Gateway"
@@ -95,9 +93,7 @@ endpoints:
       header: Authorization
       value: "Bearer YOUR_OPENAI_API_KEY"
     routing:
-      host: openai.triple-gate.traefik.ai
-      paths:
-        - /v1/chat/completions
+      host: openai
     api:
       title: "OpenAI API"
       description: "OpenAI AI Gateway"

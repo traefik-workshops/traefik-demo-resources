@@ -1,6 +1,6 @@
 dependencies:
 - name: ai-gateway
   repository: file://../../ai-gateway
-  version: 0.1.0
-digest: sha256:065d6f19f41830dd7448c9f3d360903b6d023366c005e0004f0ec5f46a46dd03
-generated: "2026-01-16T16:19:54.483218+01:00"
+  version: 1.0.1
+digest: sha256:d88dd32fe28361c84f31f4335f3fad9594523a8dcb3648b63faa53b2a43b03fd
+generated: "2026-01-19T13:12:14.183081-05:00"
