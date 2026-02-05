@@ -5,6 +5,9 @@ global:
   domain: triple-gate.traefik.ai
   unique_domain: false
 
+traefikDashboard:
+  enabled: false
+
 oidc:
   clientId: ""
   clientSecret: ""
