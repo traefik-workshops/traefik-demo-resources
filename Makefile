@@ -5,7 +5,7 @@ VERSION := $(shell git tag --list 'v*' | sort -V | tail -n1 2>/dev/null || echo 
 # Helper to bump version
 # Usage: make bump_part PART=major|minor|patch
 bump_part:
-	@current_tag=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
+	@current_tag=$$(git tag --list 'v*' | sort -V | tail -n1 2>/dev/null || echo "v0.0.0"); \
 	version_num=$${current_tag#v}; \
 	IFS='.' read -r major minor patch <<< "$$version_num"; \
 	if [ "$(PART)" = "major" ]; then \
