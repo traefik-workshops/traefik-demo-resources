@@ -1,6 +1,0 @@
-dependencies:
-- name: presidio
-  repository: file://../presidio
-  version: 0.1.0
-digest: sha256:614bb6e4ac0a2da51b0716d6fe9b9423cb8c556aefae40bcf90223708a0c4113
-generated: "2026-01-16T16:06:23.822205+01:00"
