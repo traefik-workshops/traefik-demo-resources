@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 {{- if .Values.sharedMiddlewares.topicControl.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
@@ -130,4 +131,5 @@ spec:
         blockConditions:
           - condition: JSONStringContains(".choices[0].message.content", "yes")
             reason: request blocked
+{{- end }}
 {{- end }}

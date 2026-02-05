@@ -1,3 +1,4 @@
+{{- if (index .Values "ai-gateway").enabled }}
 ---
 # Airlines MCP Server
 # Covers ALL airline operations: Customer Support, Ticketing, and Partner Management
@@ -2705,8 +2706,8 @@ spec:
     spec:
       containers:
         - name: mcp-server
-          image: "{{ .Values.mcpImage.repository }}:{{ .Values.mcpImage.tag }}"
-          imagePullPolicy: {{ .Values.mcpImage.pullPolicy }}
+          image: "{{ (index .Values "ai-gateway").mcp.image.repository }}:{{ (index .Values "ai-gateway").mcp.image.tag }}"
+          imagePullPolicy: {{ (index .Values "ai-gateway").mcp.image.pullPolicy }}
           ports:
             - containerPort: 8080
           command: ["/bin/sh", "-c"]
@@ -2741,3 +2742,4 @@ spec:
       name: mcp
   selector:
     app: airlines-mcp
+{{- end }}

@@ -49,131 +49,165 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
+Domain helper
+*/}}
+{{- define "airlines.domain" -}}
+{{- $domain := .Values.domain -}}
+{{- $unique := .Values.unique_domain -}}
+{{- if .Values.global -}}
+  {{- if not (kindIs "invalid" .Values.global.domain) -}}
+    {{- $domain = .Values.global.domain -}}
+  {{- end -}}
+  {{- if not (kindIs "invalid" .Values.global.unique_domain) -}}
+    {{- $unique = .Values.global.unique_domain -}}
+  {{- end -}}
+{{- end -}}
+{{- if $unique }}
+  {{- $secret := (lookup "v1" "Secret" .Release.Namespace "domain-secret") }}
+  {{- if $secret }}
+    {{- index $secret.data "domain" | b64dec }}
+  {{- else }}
+    {{- $prefix := sha256sum (printf "%s-%s" .Release.Name .Release.Namespace) | trunc 24 }}
+    {{- printf "airlines.%s.%s" $prefix $domain }}
+  {{- end }}
+{{- else }}
+{{- printf "airlines.%s" $domain }}
+{{- end }}
+{{- end }}
+
+{{/*
+Domain Match helper
+*/}}
+{{- define "airlines.domainMatch" -}}
+{{- printf "Host(`%s`)" (include "airlines.domain" .) }}
+{{- end }}
+
+{{/*
 Flights API URL
 */}}
 {{- define "airlines.flights.apiUrl" -}}
-https://flights.{{ .Values.domain }}
+https://flights.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.flights.hostMatch" -}}
-Host(`flights.{{ .Values.domain }}`)
+Host(`flights.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Bookings API URL
 */}}
 {{- define "airlines.bookings.apiUrl" -}}
-https://bookings.{{ .Values.domain }}
+https://bookings.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.bookings.hostMatch" -}}
-Host(`bookings.{{ .Values.domain }}`)
+Host(`bookings.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Tickets API URL
 */}}
 {{- define "airlines.tickets.apiUrl" -}}
-https://tickets.{{ .Values.domain }}
+https://tickets.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.tickets.hostMatch" -}}
-Host(`tickets.{{ .Values.domain }}`)
+Host(`tickets.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Passengers API URL
 */}}
 {{- define "airlines.passengers.apiUrl" -}}
-https://passengers.{{ .Values.domain }}
+https://passengers.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.passengers.hostMatch" -}}
-Host(`passengers.{{ .Values.domain }}`)
+Host(`passengers.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Loyalty API URL
 */}}
 {{- define "airlines.loyalty.apiUrl" -}}
-https://loyalty.{{ .Values.domain }}
+https://loyalty.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.loyalty.hostMatch" -}}
-Host(`loyalty.{{ .Values.domain }}`)
+Host(`loyalty.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Checkin API URL
 */}}
 {{- define "airlines.checkin.apiUrl" -}}
-https://checkin.{{ .Values.domain }}
+https://checkin.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.checkin.hostMatch" -}}
-Host(`checkin.{{ .Values.domain }}`)
+Host(`checkin.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Baggage API URL
 */}}
 {{- define "airlines.baggage.apiUrl" -}}
-https://baggage.{{ .Values.domain }}
+https://baggage.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.baggage.hostMatch" -}}
-Host(`baggage.{{ .Values.domain }}`)
+Host(`baggage.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Pricing API URL
 */}}
 {{- define "airlines.pricing.apiUrl" -}}
-https://pricing.{{ .Values.domain }}
+https://pricing.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.pricing.hostMatch" -}}
-Host(`pricing.{{ .Values.domain }}`)
+Host(`pricing.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Partners API URL
 */}}
 {{- define "airlines.partners.apiUrl" -}}
-https://partners.{{ .Values.domain }}
+https://partners.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.partners.hostMatch" -}}
-Host(`partners.{{ .Values.domain }}`)
+Host(`partners.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Notifications API URL
 */}}
 {{- define "airlines.notifications.apiUrl" -}}
-https://notifications.{{ .Values.domain }}
+https://notifications.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.notifications.hostMatch" -}}
-Host(`notifications.{{ .Values.domain }}`)
+Host(`notifications.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Ancillaries API URL
 */}}
 {{- define "airlines.ancillaries.apiUrl" -}}
-https://ancillaries.{{ .Values.domain }}
+https://ancillaries.{{ include "airlines.domain" . }}
 {{- end }}
 
 {{- define "airlines.ancillaries.hostMatch" -}}
-Host(`ancillaries.{{ .Values.domain }}`)
+Host(`ancillaries.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
 Portal Host Match
 */}}
 {{- define "airlines.portal.hostMatch" -}}
-Host(`portal.{{ .Values.domain }}`)
+Host(`portal.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*

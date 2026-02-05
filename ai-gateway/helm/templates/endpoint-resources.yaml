@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 {{- range .Values.endpoints }}
 {{- if (default true .enabled) }}
 {{- $endpointName := .name }}
@@ -97,5 +98,6 @@ spec:
           passHostHeader: false
       middlewares:
         - name: {{ $fullName }}-auth
+{{- end }}
 {{- end }}
 {{- end }}

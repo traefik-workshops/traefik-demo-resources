@@ -1,3 +1,4 @@
+{{- if .Values.enabled }}
 {{- if .Values.nims.enabled }}
 {{- range .Values.nims.types }}
 ---
@@ -43,5 +44,6 @@ spec:
       name: http
   selector:
     app: {{ .name }}
+{{- end }}
 {{- end }}
 {{- end }}

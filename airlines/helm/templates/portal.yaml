@@ -13,7 +13,7 @@ spec:
     ## Traefik Airlines APIs
     **Built with ❤️ by Traefik Labs**
   trustedUrls:
-    - https://portal.{{ .Values.domain }}
+    - https://portal.{{ include "airlines.domain" . }}
   auth:
     name: oidc-portal-auth
 ---
@@ -52,8 +52,10 @@ spec:
   apiBundles:
     - name: trip-bundle
     - name: booking-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: assistant-user-bundle
     - name: openai-bundle
+    {{- end }}
   apiPlan:
     name: airlines-access
 ---
@@ -70,9 +72,13 @@ spec:
   apiBundles:
     - name: trip-bundle
     - name: booking-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: assistant-user-bundle
     - name: assistant-ops-bundle
+    {{- end }}
     - name: admin-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: openai-bundle
+    {{- end }}
   apiPlan:
     name: airlines-admins-access

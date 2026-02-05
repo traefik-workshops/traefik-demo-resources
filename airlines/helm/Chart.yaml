@@ -8,4 +8,9 @@ appVersion: "1.0.0"
 dependencies:
   - name: ai-gateway
     version: 0.1.1
-    repository: "file://../../ai-gateway"
+    repository: "file://../../ai-gateway/helm"
+    condition: ai-gateway.enabled
+  - name: dns-traefiker
+    version: 0.2.1
+    repository: "file://../../dns-traefiker/helm"
+    condition: dns-traefiker.enabled

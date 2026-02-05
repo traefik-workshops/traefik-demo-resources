@@ -79,8 +79,10 @@ spec:
   apiBundles:
     - name: trip-bundle
     - name: booking-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: assistant-user-bundle
     - name: openai-bundle
+    {{- end }}
   apiPlan:
     name: airlines-access
   weight: 10
@@ -101,10 +103,14 @@ spec:
   apiBundles:
     - name: trip-bundle
     - name: booking-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: assistant-user-bundle
     - name: assistant-ops-bundle
+    {{- end }}
     - name: admin-bundle
+    {{- if (index .Values "ai-gateway").enabled }}
     - name: openai-bundle
+    {{- end }}
   apiPlan:
     name: airlines-admins-access
   weight: 100
