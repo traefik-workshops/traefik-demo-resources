@@ -61,11 +61,14 @@ jobs:
             chart_name=$(basename $(dirname $chart))
             echo "Processing $chart_name..."
             
-            # Package the chart
-            helm package $chart --version $VERSION --app-version $VERSION
+            # Package the chart and capture output
+            package_output=$(helm package $chart --version $VERSION --app-version $VERSION)
             
-            # Get the package filename
-            package_file="${chart_name}-helm-${VERSION}.tgz"
+            # Extract the actual package filename from helm output
+            package_file=$(echo "$package_output" | grep -oP 'saved it to: \K.*')
+            package_file=$(basename "$package_file")
+            
+            echo "Package file: $package_file"
             
             # Push to GitHub Container Registry
             echo "Pushing $package_file to ghcr.io/traefik-workshops..."
@@ -76,4 +79,4 @@ jobs:
 
           echo ""
           echo "All charts published successfully!"
-          echo "Charts are available at: oci://ghcr.io/traefik-workshops/<chart-name>-helm:$VERSION"
+          echo "Charts are available at: oci://ghcr.io/traefik-workshops/<chart-name>:$VERSION"

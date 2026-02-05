@@ -43,13 +43,15 @@ publish-charts:
 	for chart in $$charts; do \
 		chart_name=$$(basename $$(dirname $$chart)); \
 		echo "Processing $$chart_name..."; \
-		helm package $$chart --version $(VERSION) --app-version $(VERSION); \
-		package_file="$$chart_name-helm-$(VERSION).tgz"; \
+		package_output=$$(helm package $$chart --version $(VERSION) --app-version $(VERSION)); \
+		package_file=$$(basename $$(echo "$$package_output" | grep -oE '[^ ]+\.tgz$$')); \
+		echo "Package file: $$package_file"; \
 		echo "Pushing $$package_file to ghcr.io/traefik-workshops..."; \
 		helm push $$package_file oci://ghcr.io/traefik-workshops; \
 		echo "✓ Published $$chart_name version $(VERSION)"; \
 	done
 	@echo ""
 	@echo "All charts published successfully!"
-	@echo "Charts are available at: oci://ghcr.io/traefik-workshops/<chart-name>-helm:$(VERSION)"
+	@echo "Charts are available at: oci://ghcr.io/traefik-workshops/<chart-name>:$(VERSION)"
+
 
