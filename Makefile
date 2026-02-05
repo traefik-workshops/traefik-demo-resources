@@ -1,4 +1,4 @@
-VERSION := $(shell git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+VERSION := $(shell git tag --list 'v*' | sort -V | tail -n1 2>/dev/null || echo "v0.0.0")
 
 .PHONY: bump_major bump_minor bump_patch release
 
