@@ -32,3 +32,24 @@ bump_patch:
 release:
 	@echo "Pushing git tags..."
 	git push origin --tags
+
+publish-charts:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "Error: VERSION is required. Usage: make publish-charts VERSION=0.1.0"; \
+		exit 1; \
+	fi
+	@echo "Packaging and publishing charts version $(VERSION)..."
+	@charts="ai-gateway/helm airlines/helm chats/helm dns-traefiker/helm gov/helm higher-ed/helm presidio/helm"; \
+	for chart in $$charts; do \
+		chart_name=$$(basename $$(dirname $$chart)); \
+		echo "Processing $$chart_name..."; \
+		helm package $$chart --version $(VERSION) --app-version $(VERSION); \
+		package_file="$$chart_name-helm-$(VERSION).tgz"; \
+		echo "Pushing $$package_file to ghcr.io/traefik-workshops..."; \
+		helm push $$package_file oci://ghcr.io/traefik-workshops; \
+		echo "✓ Published $$chart_name version $(VERSION)"; \
+	done
+	@echo ""
+	@echo "All charts published successfully!"
+	@echo "Charts are available at: oci://ghcr.io/traefik-workshops/<chart-name>-helm:$(VERSION)"
+
