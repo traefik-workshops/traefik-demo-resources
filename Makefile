@@ -39,7 +39,7 @@ publish-charts:
 		exit 1; \
 	fi
 	@echo "Packaging and publishing charts version $(VERSION)..."
-	@charts="ai-gateway/helm airlines/helm chats/helm dns-traefiker/helm gov/helm higher-ed/helm presidio/helm"; \
+	@charts="ai-gateway/helm airlines/helm chats/helm dns-traefiker/helm presidio/helm"; \
 	for chart in $$charts; do \
 		chart_name=$$(basename $$(dirname $$chart)); \
 		echo "Processing $$chart_name..."; \
