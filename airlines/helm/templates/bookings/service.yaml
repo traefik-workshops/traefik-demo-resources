@@ -4,7 +4,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: bookings-data
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: bookings
@@ -828,7 +827,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: bookings-openapi
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: bookings
@@ -960,7 +958,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: bookings-app
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: bookings

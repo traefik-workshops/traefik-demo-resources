@@ -10,7 +10,7 @@ dependencies:
     version: 0.1.1
     repository: "file://../../ai-gateway/helm"
     condition: ai-gateway.enabled
-  - name: dns-traefiker
-    version: 0.2.1
-    repository: "file://../../dns-traefiker/helm"
-    condition: dns-traefiker.enabled
+  - name: keycloak
+    version: 0.1.1
+    repository: "file://../../keycloak/helm"
+    condition: keycloak.enabled

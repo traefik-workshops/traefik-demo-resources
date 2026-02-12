@@ -52,6 +52,12 @@ spec:
               value: {{ .Values.maxRetries | quote }}
             - name: PROXIED
               value: {{ .Values.proxied | quote }}
+            - name: DOMAIN
+              value: {{ .Values.domain | quote }}
+            - name: UNIQUE_DOMAIN
+              value: {{ .Values.uniqueDomain | quote }}
+            - name: ENABLE_AIRLINES_SUBDOMAIN
+              value: {{ .Values.enableAirlinesSubdomain | quote }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

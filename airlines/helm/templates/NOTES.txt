@@ -15,7 +15,3 @@ Service URLs:
 - Partners:    {{ include "airlines.partners.apiUrl" . }}
 - Notifications: {{ include "airlines.notifications.apiUrl" . }}
 - Ancillaries: {{ include "airlines.ancillaries.apiUrl" . }}
-
-{{- if .Values.traefikDashboard.enabled }}
-Traefik Dashboard: https://dashboard.{{ include "airlines.domain" . }}/dashboard/
-{{- end }}

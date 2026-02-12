@@ -32,6 +32,11 @@ retryInterval: "30s"
 maxRetries: 5
 proxied: true
 
+# Domain Generation
+uniqueDomain: false
+domain: ""
+enableAirlinesSubdomain: false
+
 resources:
   limits:
     cpu: 100m

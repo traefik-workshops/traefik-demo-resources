@@ -2,16 +2,7 @@ entryPoints:
   - websecure
 
 global:
-  domain: triple-gate.traefik.ai
-  unique_domain: false
-
-traefikDashboard:
-  enabled: false
-
-oidc:
-  clientId: ""
-  clientSecret: ""
-  issuerUrl: ""
+  domain: demo.traefik.ai
 
 tools-access:
   dashboard:
@@ -122,12 +113,35 @@ resources:
     cpu: 100m
     memory: 128Mi
 
-dns-traefiker:
-  enabled: true
-  secretName: domain-secret
-  traefikServiceName: traefik
-  traefikServiceNamespace: traefik
-  ipOverride: ""
-  retryInterval: "30s"
-  maxRetries: 5
-  proxied: true
+keycloak:
+  enabled: false
+  realm:
+    enabled: true
+    name: traefik
+    users:
+      - admin
+      - user
+    advancedUsers:
+      - username: user-ahv
+        email: user-ahv@traefik.io
+        password: topsecretpassword
+        groups:
+          - platform
+        claims: {}
+      - username: user-nkp
+        email: user-nkp@traefik.io
+        password: topsecretpassword
+        groups:
+          - nkp
+        claims: {}
+    redirectUris: []
+  ingress:
+    enabled: true
+    domain: "{{ .Values.global.domain }}"
+    entrypoint: websecure
+  ingressInternal:
+    enabled: false
+  oidc:
+    clientId: ""
+    clientSecret: ""
+    issuerUrl: ""

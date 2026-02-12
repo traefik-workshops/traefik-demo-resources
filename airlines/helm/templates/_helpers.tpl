@@ -53,26 +53,12 @@ Domain helper
 */}}
 {{- define "airlines.domain" -}}
 {{- $domain := .Values.domain -}}
-{{- $unique := .Values.unique_domain -}}
 {{- if .Values.global -}}
   {{- if not (kindIs "invalid" .Values.global.domain) -}}
     {{- $domain = .Values.global.domain -}}
   {{- end -}}
-  {{- if not (kindIs "invalid" .Values.global.unique_domain) -}}
-    {{- $unique = .Values.global.unique_domain -}}
-  {{- end -}}
 {{- end -}}
-{{- if $unique }}
-  {{- $secret := (lookup "v1" "Secret" .Release.Namespace "domain-secret") }}
-  {{- if $secret }}
-    {{- index $secret.data "domain" | b64dec }}
-  {{- else }}
-    {{- $prefix := sha256sum (printf "%s-%s" .Release.Name .Release.Namespace) | trunc 24 }}
-    {{- printf "airlines.%s.%s" $prefix $domain }}
-  {{- end }}
-{{- else }}
-{{- printf "airlines.%s" $domain }}
-{{- end }}
+{{- $domain }}
 {{- end }}
 
 {{/*
@@ -214,10 +200,10 @@ Host(`portal.{{ include "airlines.domain" . }}`)
 OIDC URL
 */}}
 {{- define "airlines.oidc.issuerUrl" -}}
-{{ .Values.oidc.issuerUrl }}
+{{ .Values.keycloak.oidc.issuerUrl }}
 {{- end }}
 {{- define "airlines.oidc.jwksUrl" -}}
-{{ .Values.oidc.issuerUrl }}/protocol/openid-connect/certs
+{{ .Values.keycloak.oidc.issuerUrl }}/protocol/openid-connect/certs
 {{- end }}
 
 {{- define "airlines.serviceDeployment" -}}
@@ -226,7 +212,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .name }}-code
-  namespace: airlines
   labels:
     app: {{ .name }}-app
     component: {{ .name }}
@@ -239,7 +224,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .name }}-app
-  namespace: airlines
   labels:
     {{- include "airlines.labels" .root | nindent 4 }}
     component: {{ .name }}

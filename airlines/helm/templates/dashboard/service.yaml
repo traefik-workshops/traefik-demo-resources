@@ -3,7 +3,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dashboard-html
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: dashboard
@@ -20,7 +19,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: dashboard
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: dashboard
@@ -53,7 +51,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: dashboard
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: dashboard

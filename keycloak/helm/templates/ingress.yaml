@@ -1,0 +1,36 @@
+{{- if and .Values.enabled .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak
+  namespace: {{ include "keycloak.namespace" . }}
+  labels:
+    {{- include "keycloak.labels" . | nindent 4 }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: {{ .Values.ingress.entrypoint }}
+    traefik.ingress.kubernetes.io/router.observability.accesslogs: {{ .Values.ingress.observability.accesslogs | quote  }}
+    traefik.ingress.kubernetes.io/router.observability.metrics: {{ .Values.ingress.observability.metrics | quote }}
+    traefik.ingress.kubernetes.io/router.observability.tracing: {{ .Values.ingress.observability.tracing | quote }}
+spec:
+  rules:
+    - host: keycloak.{{ .Values.ingress.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-service
+                port:
+                  number: 8080
+    - host: keycloak-service.{{ include "keycloak.namespace" . }}.svc
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak-service
+                port:
+                  number: 8080
+{{- end }}

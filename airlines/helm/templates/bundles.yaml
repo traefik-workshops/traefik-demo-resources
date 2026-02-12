@@ -3,7 +3,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: booking-bundle
-  namespace: airlines
 spec:
   title: "Booking APIs"
   apiSelector:
@@ -14,7 +13,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: trip-bundle
-  namespace: airlines
 spec:
   title: "Trip APIs"
   apiSelector:
@@ -25,7 +23,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: admin-bundle
-  namespace: airlines
 spec:
   title: "Admin & Reference Data"
   apiSelector:
@@ -37,7 +34,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: openai-bundle
-  namespace: airlines
 spec:
   title: "OpenAI LLMs"
   apiSelector:
@@ -48,7 +44,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: assistant-user-bundle
-  namespace: airlines
 spec:
   title: "User Assistance MCP"
   apis:
@@ -58,7 +53,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
   name: assistant-ops-bundle
-  namespace: airlines
 spec:
   title: "Operations & Partner MCPs"
   apis:

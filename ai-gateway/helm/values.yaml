@@ -1,6 +1,6 @@
 # Default values for ai-gateway.
 
-domain: triple-gate.traefik.ai
+domain: demo.traefik.ai
 entryPoints:
   - websecure
 

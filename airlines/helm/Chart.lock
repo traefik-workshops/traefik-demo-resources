@@ -2,8 +2,8 @@ dependencies:
 - name: ai-gateway
   repository: file://../../ai-gateway/helm
   version: 0.1.1
-- name: dns-traefiker
-  repository: file://../../dns-traefiker/helm
-  version: 0.2.1
-digest: sha256:08bb76440c79cee7e01dd094de1c67b627dd300ad271d0bd88b555184f6e692b
-generated: "2026-02-05T11:23:00.273225-05:00"
+- name: keycloak
+  repository: file://../../keycloak/helm
+  version: 0.1.1
+digest: sha256:c19324b1bd98caceb789766e96f30b6d2aa73ed8fc4543d26297f40e541cecd4
+generated: "2026-02-06T13:13:04.823271-05:00"
