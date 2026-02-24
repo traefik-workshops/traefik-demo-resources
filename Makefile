@@ -43,6 +43,10 @@ publish-charts:
 	for chart in $$charts; do \
 		chart_name=$$(basename $$(dirname $$chart)); \
 		echo "Processing $$chart_name..."; \
+		if [ -f "$$chart/Chart.yaml" ] && grep -q "^dependencies:" "$$chart/Chart.yaml" 2>/dev/null; then \
+			echo "Rebuilding dependencies for $$chart_name..."; \
+			helm dependency update $$chart; \
+		fi; \
 		package_output=$$(helm package $$chart --version $(VERSION) --app-version $(VERSION)); \
 		package_file=$$(basename $$(echo "$$package_output" | grep -oE '[^ ]+\.tgz$$')); \
 		echo "Package file: $$package_file"; \
