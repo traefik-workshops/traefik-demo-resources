@@ -4,7 +4,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: notifications-data
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: notifications
@@ -27,7 +26,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: notifications-openapi
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: notifications
@@ -87,7 +85,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: notifications-app
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: notifications

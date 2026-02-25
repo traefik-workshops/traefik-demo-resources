@@ -1,0 +1,17 @@
+Airlines Application Deployed!
+==============================
+
+Domain: {{ include "airlines.domain" . }}
+
+Service URLs:
+- Flights:     {{ include "airlines.flights.apiUrl" . }}
+- Bookings:    {{ include "airlines.bookings.apiUrl" . }}
+- Tickets:     {{ include "airlines.tickets.apiUrl" . }}
+- Passengers:  {{ include "airlines.passengers.apiUrl" . }}
+- Loyalty:     {{ include "airlines.loyalty.apiUrl" . }}
+- Checkin:     {{ include "airlines.checkin.apiUrl" . }}
+- Baggage:     {{ include "airlines.baggage.apiUrl" . }}
+- Pricing:     {{ include "airlines.pricing.apiUrl" . }}
+- Partners:    {{ include "airlines.partners.apiUrl" . }}
+- Notifications: {{ include "airlines.notifications.apiUrl" . }}
+- Ancillaries: {{ include "airlines.ancillaries.apiUrl" . }}

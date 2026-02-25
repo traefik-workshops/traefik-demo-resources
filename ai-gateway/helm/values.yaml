@@ -1,0 +1,120 @@
+# Default values for ai-gateway.
+
+domain: demo.traefik.ai
+entryPoints:
+  - websecure
+
+# Shared Middlewares configuration
+sharedMiddlewares:
+  topicControl:
+    enabled: true
+    host: topic-control-nim
+    model: nvidia/llama-3.1-nemoguard-8b-topic-control
+    systemPrompt: |
+      You are a topic control agent. Determine if the user question is about PROHIBITED or ALLOWED topics.
+      ...
+    blockConditions:
+      - reason: "off-topic detected"
+        condition: Contains("off-topic")
+
+  contentSafety:
+    enabled: true
+    host: content-safety-nim
+    model: nvidia/llama-3.1-nemoguard-8b-content-safety
+    blockConditions:
+      - reason: "unsafe content detected"
+        condition: Contains("unsafe")
+
+  jailbreakDetection:
+    enabled: true
+    host: jailbreak-detection-nim
+    scoreThreshold: "0.85"
+
+  graniteGuardian:
+    enabled: true
+    host: granite-guardian
+
+  contentGuard:
+    enabled: true
+    presidio:
+      host: presidio
+    rules:
+      - mask:
+          char: "#"
+          unmaskFromRight: 3
+        entities:
+          - EMAIL_ADDRESS
+          - PHONE_NUMBER
+
+  semanticCache:
+    enabled: false
+    tokenizer:
+      host: ollama:11434
+      model: nomic-embed-text
+    vectorDB:
+      weaviate:
+        host: weaviate:8080
+        scheme: http
+        collectionName: ai-gateway
+
+# List of AI endpoints
+endpoints:
+  - name: gemini
+    backend:
+      url: generativelanguage.googleapis.com
+      isExternal: true
+    chatCompletion:
+      model: models/gemini-1.5-pro
+      params:
+        temperature: 1
+        maxTokens: 2048
+    auth:
+      header: Authorization
+      value: "Bearer YOUR_GEMINI_API_KEY"
+    routing:
+      host: gemini
+    api:
+      title: "Gemini API"
+      description: "Gemini AI Gateway"
+      oasUrl: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    middlewares:
+      - topicControl
+      - contentGuard
+
+  - name: openai
+    backend:
+      url: api.openai.com
+      isExternal: true
+    chatCompletion:
+      model: gpt-4
+      params:
+        temperature: 0.7
+    auth:
+      header: Authorization
+      value: "Bearer YOUR_OPENAI_API_KEY"
+    routing:
+      host: openai
+    api:
+      title: "OpenAI API"
+      description: "OpenAI AI Gateway"
+      oasUrl: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    middlewares:
+      - topicControl
+      - contentSafety
+
+# Presidio subchart configuration
+presidio:
+  enabled: false
+  host: presidio
+
+# Local NIM configurations
+nims:
+  enabled: false
+  ngcToken: ""
+  types:
+    - name: topic-control-nim
+      image: nvcr.io/nim/nvidia/llama-3.1-nemoguard-8b-topic-control
+    - name: content-safety-nim
+      image: nvcr.io/nim/nvidia/llama-3.1-nemoguard-8b-content-safety
+    - name: jailbreak-detection-nim
+      image: nvcr.io/nim/nvidia/nemoguard-jailbreak-detect

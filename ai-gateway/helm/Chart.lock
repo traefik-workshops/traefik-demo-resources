@@ -1,0 +1,6 @@
+dependencies:
+- name: presidio
+  repository: file://../../presidio/helm
+  version: 0.2.2
+digest: sha256:97639967ba9d3025c64d760135248070d6ae8144f831262dc648b9d2ea841ede
+generated: "2026-02-12T17:22:03.828034-05:00"

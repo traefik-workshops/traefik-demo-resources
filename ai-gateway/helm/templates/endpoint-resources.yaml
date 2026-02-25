@@ -1,0 +1,103 @@
+{{- if .Values.enabled }}
+{{- range .Values.endpoints }}
+{{- if (default true .enabled) }}
+{{- $endpointName := .name }}
+{{- $fullName := printf "%s-%s" (include "ai-gateway.fullname" $) $endpointName }}
+{{- $routing := .routing }}
+{{- $endpointMiddlewares := .middlewares }}
+{{- $isExternal := .backend.isExternal }}
+{{- $backendUrl := .backend.url }}
+{{- if $isExternal }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+spec:
+  type: ExternalName
+  externalName: {{ $backendUrl }}
+{{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $fullName }}-cc
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+spec:
+  plugin:
+    chat-completion:
+      model: {{ .chatCompletion.model }}
+      {{- if .chatCompletion.params }}
+      {{- toYaml .chatCompletion.params | nindent 6 }}
+      {{- end }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $fullName }}-auth
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+spec:
+  headers:
+    customRequestHeaders:
+      {{ .auth.header }}: {{ .auth.value | quote }}
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: {{ $fullName }}-api
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+spec:
+  title: {{ .api.title | quote }}
+  description: {{ .api.description | quote }}
+  openApiSpec:
+    url: {{ .api.oasUrl }}
+    override:
+      servers:
+        - url: https://{{ $routing.host }}.{{ $.Values.domain }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ $fullName }}-route
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+  annotations:
+    hub.traefik.io/api: {{ $fullName }}-api
+spec:
+  entryPoints:
+    {{- toYaml $.Values.entryPoints | nindent 4 }}
+  routes:
+    - kind: Rule
+      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
+      services:
+        - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: {{ $fullName }}-auth
+        {{- range $endpointMiddlewares }}
+        - name: {{ if (has . (keys $.Values.sharedMiddlewares)) }}{{ include "ai-gateway.fullname" $ }}-{{ . | kebabcase }}{{ else }}{{ include "ai-gateway.fullname" $ }}-{{ $endpointName }}-{{ . | kebabcase }}{{ end }}
+        {{- end }}
+    - kind: Rule
+      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`)
+      services:
+        - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
+          port: 443
+          scheme: https
+          passHostHeader: false
+      middlewares:
+        - name: {{ $fullName }}-auth
+{{- end }}
+{{- end }}
+{{- end }}

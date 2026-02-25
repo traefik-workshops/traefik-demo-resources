@@ -1,10 +1,10 @@
+{{- if (index .Values "ai-gateway").enabled }}
 ---
 # User Assistance MCP API - Customer Support Profile
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
 metadata:
   name: user-assistance-api
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -32,7 +32,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: API
 metadata:
   name: ticketing-agent-api
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -60,7 +59,6 @@ apiVersion: hub.traefik.io/v1alpha1
 kind: API
 metadata:
   name: partner-assistance-api
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -88,7 +86,6 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: user-assistance-mcp
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -125,7 +122,6 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: ticketing-agent-mcp
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -152,7 +148,6 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: partner-assistance-mcp
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -188,7 +183,6 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: user-assistance-mcp-route
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -202,7 +196,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`user-assistance.{{ .Values.domain }}`)
+      match: Host(`user-assistance.{{ include "airlines.domain" . }}`)
       services:
         - name: airlines-mcp
           port: 8080
@@ -214,7 +208,6 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: ticketing-agent-mcp-route
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -228,7 +221,7 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`ticketing-agent.{{ .Values.domain }}`)
+      match: Host(`ticketing-agent.{{ include "airlines.domain" . }}`)
       services:
         - name: airlines-mcp
           port: 8080
@@ -240,7 +233,6 @@ apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
   name: partner-assistance-mcp-route
-  namespace: airlines
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: mcp
@@ -254,9 +246,10 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: Host(`partner-assistance.{{ .Values.domain }}`)
+      match: Host(`partner-assistance.{{ include "airlines.domain" . }}`)
       services:
         - name: airlines-mcp
           port: 8080
       middlewares:
         - name: partner-assistance-mcp
+{{- end }}
