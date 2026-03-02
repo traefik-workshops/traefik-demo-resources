@@ -215,7 +215,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: validation
-          image: bitnami/kubectl:latest
+          image: {{ .Values.validation.image }}
           command: ["/bin/bash", "/scripts/validate.sh"]
           volumeMounts:
             - name: validation-script

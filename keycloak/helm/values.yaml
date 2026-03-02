@@ -57,6 +57,10 @@ realm:
   # redirectUris:
   #   - https://app.example.com
 
+# Validation hook configuration
+validation:
+  image: bitnami/kubectl:latest
+
 # External ingress configuration
 ingress:
   enabled: true
