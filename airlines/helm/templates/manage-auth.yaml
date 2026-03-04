@@ -7,7 +7,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   title: "Airlines Access"
-  description: "Airlines Access plan for Airlines APIs"
+  description: "Standard access plan for Airlines APIs"
   rateLimit:
     limit: 100
     period: 1s
@@ -23,7 +23,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 spec:
   title: "Airlines Admin Access"
-  description: "Admins Access plan for Admin APIs"
+  description: "Admin access plan for all Airlines APIs"
   rateLimit:
     limit: 10000
     period: 1s
@@ -72,12 +72,8 @@ spec:
     - name: {{ .name }}-application
     {{- end }}
   apiBundles:
-    - name: trip-bundle
-    - name: booking-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: assistant-user-bundle
-    - name: openai-bundle
-    {{- end }}
+    - name: flight-ops-bundle
+    - name: passenger-svc-bundle
   apiPlan:
     name: airlines-access
   weight: 10
@@ -95,16 +91,9 @@ spec:
     - name: {{ $group }}-application
     {{- end }}
   apiBundles:
-    - name: trip-bundle
-    - name: booking-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: assistant-user-bundle
-    - name: assistant-ops-bundle
-    {{- end }}
-    - name: admin-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: openai-bundle
-    {{- end }}
+    - name: flight-ops-bundle
+    - name: passenger-svc-bundle
+    - name: airport-ops-bundle
   apiPlan:
     name: airlines-admins-access
   weight: 100

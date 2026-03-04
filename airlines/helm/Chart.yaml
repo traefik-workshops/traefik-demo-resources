@@ -1,16 +1,12 @@
 apiVersion: v2
 name: airlines
-description: Airlines Demo - Traefik Triple Gateway Pattern
+description: Airlines Demo - Scalar Mock Server APIs with Traefik Hub API Management
 type: application
-version: 0.2.2
-appVersion: "1.0.0"
+version: 0.3.9
+appVersion: "2.0.0"
 
 dependencies:
-  - name: ai-gateway
-    version: 0.2.2
-    repository: "file://../../ai-gateway/helm"
-    condition: ai-gateway.enabled
   - name: keycloak
-    version: 0.2.2
+    version: 0.2.3
     repository: "file://../../keycloak/helm"
     condition: keycloak.enabled

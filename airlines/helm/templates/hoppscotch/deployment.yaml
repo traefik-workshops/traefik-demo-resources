@@ -1,0 +1,173 @@
+{{- if .Values.hoppscotch.enabled }}
+{{- $domain := include "airlines.domain" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hoppscotch-nginx-conf
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+data:
+  default.conf: |
+    server {
+      listen 8081;
+      root /data;
+      add_header Access-Control-Allow-Origin *;
+      add_header Access-Control-Allow-Methods "GET, OPTIONS";
+      add_header Access-Control-Allow-Headers "*";
+      location = /collection.json {
+        try_files $uri =404;
+      }
+      location / {
+        return 404;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hoppscotch
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    app: hoppscotch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hoppscotch
+  template:
+    metadata:
+      labels:
+        app: hoppscotch
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: postgres:16-alpine
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              until pg_isready -h hoppscotch-postgresql -U hoppscotch -d hoppscotch; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+              echo "PostgreSQL ready."
+        - name: migrations
+          image: {{ .Values.hoppscotch.image }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - cd /dist/backend && npx prisma migrate deploy
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hoppscotch-postgresql
+                  key: DATABASE_URL
+      containers:
+        - name: hoppscotch
+          image: {{ .Values.hoppscotch.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: hoppscotch-postgresql
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              value: {{ .Values.hoppscotch.jwtSecret | quote }}
+            - name: SESSION_SECRET
+              value: {{ .Values.hoppscotch.sessionSecret | quote }}
+            - name: DATA_ENCRYPTION_KEY
+              value: {{ .Values.hoppscotch.dataEncryptionKey | quote }}
+            - name: TOKEN_SALT_COMPLEXITY
+              value: "10"
+            - name: MAGIC_LINK_TOKEN_VALIDITY
+              value: "3"
+            - name: ACCESS_TOKEN_VALIDITY
+              value: "604800000"
+            - name: REFRESH_TOKEN_VALIDITY
+              value: "604800000"
+            - name: VITE_BASE_URL
+              value: "https://test.{{ $domain }}"
+            - name: VITE_SHORTCODE_BASE_URL
+              value: "https://test.{{ $domain }}"
+            - name: VITE_BACKEND_API_URL
+              value: "https://test.{{ $domain }}/backend"
+            - name: VITE_BACKEND_GQL_URL
+              value: "https://test.{{ $domain }}/backend/graphql"
+            - name: VITE_BACKEND_WS_URL
+              value: "wss://test.{{ $domain }}/backend/graphql"
+            - name: VITE_ADMIN_URL
+              value: "https://test.{{ $domain }}/admin"
+            - name: VITE_ALLOWED_AUTH_PROVIDERS
+              value: "EMAIL"
+            - name: MAILER_SMTP_ENABLE
+              value: "false"
+            - name: WHITELISTED_ORIGINS
+              value: "https://test.{{ $domain }}"
+            - name: PRODUCTION
+              value: "true"
+            - name: PORT
+              value: "8080"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+
+        - name: collection-server
+          image: nginx:alpine
+          ports:
+            - containerPort: 8081
+              name: collection
+          volumeMounts:
+            - name: collection-data
+              mountPath: /data
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 50m
+              memory: 64Mi
+
+      volumes:
+        - name: collection-data
+          configMap:
+            name: hoppscotch-collection
+        - name: nginx-conf
+          configMap:
+            name: hoppscotch-nginx-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hoppscotch
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    app: hoppscotch
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+    - port: 8081
+      targetPort: 8081
+      name: collection
+  selector:
+    app: hoppscotch
+{{- end }}

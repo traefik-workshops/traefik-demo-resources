@@ -1,5 +1,4 @@
 ---
-# Airlines API Portal - Developer Portal for all Airlines APIs
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPortal
 metadata:
@@ -9,8 +8,8 @@ metadata:
 spec:
   title: "Traefik Airlines APIs"
   description: |
-    ## Traefik Airlines APIs
-    **Built with ❤️ by Traefik Labs**
+    ## Traefik Airlines API Portal
+    Explore and subscribe to airline APIs across Flight Operations, Passenger Services, and Airport Operations.
   trustedUrls:
     - https://portal.{{ include "airlines.domain" . }}
   auth:
@@ -47,12 +46,8 @@ spec:
   groups:
     - users
   apiBundles:
-    - name: trip-bundle
-    - name: booking-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: assistant-user-bundle
-    - name: openai-bundle
-    {{- end }}
+    - name: flight-ops-bundle
+    - name: passenger-svc-bundle
   apiPlan:
     name: airlines-access
 ---
@@ -66,15 +61,8 @@ spec:
   groups:
     - admins
   apiBundles:
-    - name: trip-bundle
-    - name: booking-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: assistant-user-bundle
-    - name: assistant-ops-bundle
-    {{- end }}
-    - name: admin-bundle
-    {{- if (index .Values "ai-gateway").enabled }}
-    - name: openai-bundle
-    {{- end }}
+    - name: flight-ops-bundle
+    - name: passenger-svc-bundle
+    - name: airport-ops-bundle
   apiPlan:
     name: airlines-admins-access

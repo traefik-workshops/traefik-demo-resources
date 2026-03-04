@@ -1,9 +1,6 @@
 dependencies:
-- name: ai-gateway
-  repository: file://../../ai-gateway/helm
-  version: 0.2.2
 - name: keycloak
   repository: file://../../keycloak/helm
-  version: 0.2.2
-digest: sha256:ba59f892b4d6de9d51293b8cd160fa588618bd9e5fe298939ab3045d03fc221c
-generated: "2026-02-12T17:22:00.709601-05:00"
+  version: 0.2.3
+digest: sha256:0fb301e96aa78e1ae3ca72d53778086e1fbaee32b2c565b8081a2a3f2a394a69
+generated: "2026-02-27T08:05:54.799169-05:00"

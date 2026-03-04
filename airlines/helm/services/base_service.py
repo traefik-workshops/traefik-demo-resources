@@ -171,7 +171,7 @@ def create_rest_api(resource_path: str):
             return jsonify({"error": "No data provided"}), 400
         
         record = store.create(data)
-        return jsonify({"status": "created", "data": record}), 201
+        return jsonify(record), 201
     
     @app.route(f'/{resource_path}/<record_id>', methods=['PUT', 'PATCH'])
     def update(record_id):

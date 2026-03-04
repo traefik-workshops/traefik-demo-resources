@@ -1,0 +1,333 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: crew-openapi
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: crew
+    group: flight-ops
+data:
+  openapi.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 2.0.0
+      title: Crew API
+      description: |
+        Traefik Airlines Crew Service — flight crew assignments, crew member roster, and duty scheduling.
+      contact:
+        name: Flight Operations Team
+        email: flight-ops@traefik-airlines.io
+    servers:
+      - url: {{ include "airlines.crew.apiUrl" . }}
+        description: Crew API
+    tags:
+      - name: assignments
+        description: Crew-to-flight assignments
+      - name: members
+        description: Crew member roster
+    paths:
+      /crew:
+        get:
+          summary: List all crew assignments
+          operationId: listCrewAssignments
+          tags: [assignments]
+          x-handler: |
+            return [
+              { assignment_id: "CA-001", flight_id: "TK-1042", crew_member_id: "CM-101", name: "Captain James Harlow", role: "captain", status: "on-duty" },
+              { assignment_id: "CA-002", flight_id: "TK-1042", crew_member_id: "CM-102", name: "First Officer Mia Chen", role: "first-officer", status: "on-duty" },
+              { assignment_id: "CA-003", flight_id: "TK-1042", crew_member_id: "CM-201", name: "Yuki Sato", role: "purser", status: "on-duty" },
+              { assignment_id: "CA-004", flight_id: "TK-1042", crew_member_id: "CM-202", name: "David Okafor", role: "cabin-crew", status: "on-duty" },
+              { assignment_id: "CA-005", flight_id: "TK-2187", crew_member_id: "CM-103", name: "Captain Fatima Al-Rashid", role: "captain", status: "on-duty" },
+              { assignment_id: "CA-006", flight_id: "TK-2187", crew_member_id: "CM-104", name: "First Officer Lars Eriksson", role: "first-officer", status: "on-duty" },
+              { assignment_id: "CA-007", flight_id: "TK-2187", crew_member_id: "CM-203", name: "Amara Diallo", role: "purser", status: "on-duty" },
+              { assignment_id: "CA-008", flight_id: "TK-0553", crew_member_id: "CM-105", name: "Captain Robert Nguyen", role: "captain", status: "on-duty" },
+              { assignment_id: "CA-009", flight_id: "TK-0553", crew_member_id: "CM-106", name: "First Officer Ana Costa", role: "first-officer", status: "standby" },
+              { assignment_id: "CA-010", flight_id: "TK-0553", crew_member_id: "CM-204", name: "Liam O'Brien", role: "cabin-crew", status: "on-duty" },
+              { assignment_id: "CA-011", flight_id: "TK-1590", crew_member_id: "CM-107", name: "Captain Ingrid Johansson", role: "captain", status: "on-duty" },
+              { assignment_id: "CA-012", flight_id: "TK-1590", crew_member_id: "CM-108", name: "First Officer Raj Kapoor", role: "first-officer", status: "on-duty" }
+            ]
+          responses:
+            "200":
+              description: All crew assignments
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrewAssignment'
+                  example:
+                    - assignment_id: "CA-001"
+                      flight_id: "TK-1042"
+                      crew_member_id: "CM-101"
+                      name: "Captain James Harlow"
+                      role: "captain"
+                      status: "on-duty"
+                    - assignment_id: "CA-002"
+                      flight_id: "TK-1042"
+                      crew_member_id: "CM-102"
+                      name: "First Officer Mia Chen"
+                      role: "first-officer"
+                      status: "on-duty"
+                    - assignment_id: "CA-003"
+                      flight_id: "TK-1042"
+                      crew_member_id: "CM-201"
+                      name: "Yuki Sato"
+                      role: "purser"
+                      status: "on-duty"
+                    - assignment_id: "CA-004"
+                      flight_id: "TK-1042"
+                      crew_member_id: "CM-202"
+                      name: "David Okafor"
+                      role: "cabin-crew"
+                      status: "on-duty"
+                    - assignment_id: "CA-005"
+                      flight_id: "TK-2187"
+                      crew_member_id: "CM-103"
+                      name: "Captain Fatima Al-Rashid"
+                      role: "captain"
+                      status: "on-duty"
+                    - assignment_id: "CA-006"
+                      flight_id: "TK-2187"
+                      crew_member_id: "CM-104"
+                      name: "First Officer Lars Eriksson"
+                      role: "first-officer"
+                      status: "on-duty"
+                    - assignment_id: "CA-007"
+                      flight_id: "TK-0553"
+                      crew_member_id: "CM-105"
+                      name: "Captain Robert Nguyen"
+                      role: "captain"
+                      status: "on-duty"
+                    - assignment_id: "CA-008"
+                      flight_id: "TK-0553"
+                      crew_member_id: "CM-106"
+                      name: "First Officer Ana Costa"
+                      role: "first-officer"
+                      status: "standby"
+        post:
+          summary: Create crew assignment
+          operationId: createCrewAssignment
+          tags: [assignments]
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/CrewAssignmentInput'
+          responses:
+            "201":
+              description: Assignment created
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/CrewAssignment'
+      /crew/{flightId}:
+        get:
+          summary: Get crew for a specific flight
+          operationId: getFlightCrew
+          tags: [assignments]
+          parameters:
+            - name: flightId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "TK-1042"
+          responses:
+            "200":
+              description: Crew assigned to the flight
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      flight_id:
+                        type: string
+                      cockpit:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CrewAssignment'
+                      cabin:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CrewAssignment'
+                  example:
+                    flight_id: "TK-1042"
+                    cockpit:
+                      - assignment_id: "CA-001"
+                        crew_member_id: "CM-101"
+                        name: "Captain James Harlow"
+                        role: "captain"
+                        status: "on-duty"
+                      - assignment_id: "CA-002"
+                        crew_member_id: "CM-102"
+                        name: "First Officer Mia Chen"
+                        role: "first-officer"
+                        status: "on-duty"
+                    cabin:
+                      - assignment_id: "CA-003"
+                        crew_member_id: "CM-201"
+                        name: "Yuki Sato"
+                        role: "purser"
+                        status: "on-duty"
+                      - assignment_id: "CA-004"
+                        crew_member_id: "CM-202"
+                        name: "David Okafor"
+                        role: "cabin-crew"
+                        status: "on-duty"
+            "404":
+              description: Flight not found
+      /crew/members:
+        get:
+          summary: List all crew members
+          operationId: listCrewMembers
+          tags: [members]
+          parameters:
+            - name: role
+              in: query
+              schema:
+                type: string
+                enum: [captain, first-officer, purser, cabin-crew]
+            - name: status
+              in: query
+              schema:
+                type: string
+                enum: [available, on-duty, off-duty, on-leave]
+          responses:
+            "200":
+              description: Crew member roster
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrewMember'
+                  example:
+                    - crew_member_id: "CM-101"
+                      name: "Captain James Harlow"
+                      role: "captain"
+                      license: "ATPL-28491"
+                      total_hours: 14200
+                      status: "on-duty"
+                      base: "JFK"
+                      certifications: ["B777", "B787", "A350"]
+                    - crew_member_id: "CM-102"
+                      name: "Mia Chen"
+                      role: "first-officer"
+                      license: "ATPL-39102"
+                      total_hours: 6800
+                      status: "on-duty"
+                      base: "JFK"
+                      certifications: ["B777", "B787"]
+                    - crew_member_id: "CM-103"
+                      name: "Captain Fatima Al-Rashid"
+                      role: "captain"
+                      license: "ATPL-21045"
+                      total_hours: 18500
+                      status: "on-duty"
+                      base: "CDG"
+                      certifications: ["A380", "A350", "B777"]
+                    - crew_member_id: "CM-104"
+                      name: "Lars Eriksson"
+                      role: "first-officer"
+                      license: "ATPL-44210"
+                      total_hours: 4200
+                      status: "on-duty"
+                      base: "CDG"
+                      certifications: ["A350", "B787"]
+                    - crew_member_id: "CM-201"
+                      name: "Yuki Sato"
+                      role: "purser"
+                      employee_id: "FA-5501"
+                      years_of_service: 12
+                      status: "on-duty"
+                      base: "NRT"
+                      languages: ["Japanese", "English", "Korean"]
+                    - crew_member_id: "CM-202"
+                      name: "David Okafor"
+                      role: "cabin-crew"
+                      employee_id: "FA-5502"
+                      years_of_service: 5
+                      status: "on-duty"
+                      base: "LHR"
+                      languages: ["English", "French", "Yoruba"]
+      /crew/members/{crewId}:
+        get:
+          summary: Get crew member details
+          operationId: getCrewMember
+          tags: [members]
+          parameters:
+            - name: crewId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "CM-101"
+          responses:
+            "200":
+              description: Crew member details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/CrewMember'
+            "404":
+              description: Crew member not found
+    components:
+      schemas:
+        CrewAssignment:
+          type: object
+          properties:
+            assignment_id:
+              type: string
+            flight_id:
+              type: string
+            crew_member_id:
+              type: string
+            name:
+              type: string
+            role:
+              type: string
+              enum: [captain, first-officer, purser, cabin-crew]
+            status:
+              type: string
+              enum: [on-duty, standby, off-duty]
+        CrewAssignmentInput:
+          type: object
+          required: [flight_id, crew_member_id, role]
+          properties:
+            flight_id:
+              type: string
+            crew_member_id:
+              type: string
+            role:
+              type: string
+              enum: [captain, first-officer, purser, cabin-crew]
+        CrewMember:
+          type: object
+          properties:
+            crew_member_id:
+              type: string
+            name:
+              type: string
+            role:
+              type: string
+              enum: [captain, first-officer, purser, cabin-crew]
+            license:
+              type: string
+            total_hours:
+              type: integer
+            status:
+              type: string
+              enum: [available, on-duty, off-duty, on-leave]
+            base:
+              type: string
+            certifications:
+              type: array
+              items:
+                type: string
+            languages:
+              type: array
+              items:
+                type: string
+
+{{ include "airlines.flaskService" (dict "root" . "name" "crew") }}

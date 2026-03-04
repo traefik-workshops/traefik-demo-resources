@@ -1,0 +1,161 @@
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: flights-api
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+    bundle: flight-ops
+spec:
+  title: "Flights API"
+  description: "Flight schedules, routes, status, and search for Traefik Airlines"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.flights.apiUrl" . }}
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowCredentials: true
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flights-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flights
+  annotations:
+    hub.traefik.io/api: flights-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.flights.hostMatch" . }}
+      services:
+        - name: flights-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: pricing-api
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: pricing
+    bundle: flight-ops
+spec:
+  title: "Pricing API"
+  description: "Fare rules, cabin classes, and pricing calculation for Traefik Airlines"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.pricing.apiUrl" . }}
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "OPTIONS"
+    allowCredentials: true
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pricing-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: pricing
+  annotations:
+    hub.traefik.io/api: pricing-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.pricing.hostMatch" . }}
+      services:
+        - name: pricing-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: crew-api
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: crew
+    bundle: flight-ops
+spec:
+  title: "Crew API"
+  description: "Flight crew assignments and crew member roster for Traefik Airlines"
+  openApiSpec:
+    path: /openapi.yaml
+    override:
+      servers:
+        - url: {{ include "airlines.crew.apiUrl" . }}
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "OPTIONS"
+    allowCredentials: true
+    maxAge: 86400
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: crew-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: crew
+  annotations:
+    hub.traefik.io/api: crew-api
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.crew.hostMatch" . }}
+      services:
+        - name: crew-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed

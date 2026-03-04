@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traefik Airlines - Flight Board</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Traefik brand palette */
+      --traefik-navy: #0d2b3e;
+      --traefik-navy-dark: #091e2c;
+      --traefik-teal: #24a1c1;
+      --traefik-teal-bright: #2dc4e8;
+      --traefik-cyan: #00bcd4;
+      --traefik-dark: #0a1628;
+
+      /* Board colors */
+      --board-bg: #0e1117;
+      --flap-bg: #1c2030;
+      --flap-bg-top: #222638;
+      --flap-bg-bottom: #181c2a;
+      --flap-text: #e8f4f8;
+      --flap-border: #0a0e18;
+      --flap-divider: rgba(0,0,0,0.7);
+
+      /* Status colors */
+      --status-on-time: #00e676;
+      --status-delayed: #ffab00;
+      --status-cancelled: #ff5252;
+      --status-boarding: var(--traefik-teal-bright);
+      --status-departed: #78909c;
+      --status-in-flight: #42a5f5;
+      --status-landed: #00e676;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--traefik-dark);
+      color: #c8d6dc;
+      font-family: 'Roboto Mono', monospace;
+      overflow-x: hidden;
+      height: 100vh;
+      overflow-y: hidden;
+    }
+
+    /* ============ SPLIT-FLAP CHARACTER ============ */
+    .flap-char {
+      display: inline-block;
+      position: relative;
+      width: 0.85em;
+      height: 1.4em;
+      margin: 0 0.5px;
+      background: var(--flap-bg);
+      border-radius: 3px;
+      overflow: hidden;
+      text-align: center;
+      line-height: 1.4em;
+      font-size: inherit;
+      font-weight: 700;
+      color: var(--flap-text);
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.04) inset,
+        0 -1px 0 rgba(0,0,0,0.3) inset,
+        0 2px 4px rgba(0,0,0,0.5);
+      text-shadow: 0 0 6px rgba(36, 161, 193, 0.15);
+    }
+
+    .flap-char::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .flap-char::before {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 49%;
+      height: 2px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.4));
+      z-index: 3;
+      pointer-events: none;
+    }
+
+    .flap-char.space {
+      background: transparent;
+      box-shadow: none;
+      text-shadow: none;
+    }
+    .flap-char.space::before,
+    .flap-char.space::after { display: none; }
+
+    /* ============ FLIP ANIMATION ============ */
+    @keyframes flipTopHalf {
+      0% { transform: rotateX(0deg); }
+      100% { transform: rotateX(-90deg); }
+    }
+    @keyframes flipBottomHalf {
+      0% { transform: rotateX(90deg); }
+      100% { transform: rotateX(0deg); }
+    }
+
+    .flap-char.flipping .flap-top-flip {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, var(--flap-bg-top), var(--flap-bg));
+      color: var(--flap-text);
+      line-height: 2.8em;
+      overflow: hidden;
+      border-radius: 3px 3px 0 0;
+      transform-origin: bottom center;
+      animation: flipTopHalf 0.12s ease-in forwards;
+      z-index: 6;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .flap-char.flipping .flap-bottom-flip {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(to bottom, var(--flap-bg), var(--flap-bg-bottom));
+      color: var(--flap-text);
+      line-height: 0;
+      overflow: hidden;
+      border-radius: 0 0 3px 3px;
+      transform-origin: top center;
+      animation: flipBottomHalf 0.12s 0.12s ease-out forwards;
+      z-index: 6;
+    }
+
+    .flap-char.flipping {
+      animation: mechanicalClick 0.24s ease-out;
+    }
+    @keyframes mechanicalClick {
+      0% { transform: scale(1); }
+      30% { transform: scale(0.98) translateY(0.5px); }
+      60% { transform: scale(1.01); }
+      100% { transform: scale(1); }
+    }
+
+    /* ============ STATUS GLOW EFFECTS ============ */
+    .status-on-time .flap-char:not(.space),
+    .status-scheduled .flap-char:not(.space) {
+      color: var(--status-on-time);
+      text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+    }
+    .status-delayed .flap-char:not(.space) {
+      color: var(--status-delayed);
+      text-shadow: 0 0 10px rgba(255, 171, 0, 0.5);
+    }
+    .status-cancelled .flap-char:not(.space) {
+      color: var(--status-cancelled);
+      text-shadow: 0 0 8px rgba(255, 82, 82, 0.4);
+    }
+    .status-boarding .flap-char:not(.space) {
+      color: var(--status-boarding);
+      text-shadow: 0 0 12px rgba(45, 196, 232, 0.5);
+      animation: boardingGlow 1.5s ease-in-out infinite;
+    }
+    .status-departed .flap-char:not(.space) {
+      color: var(--status-departed);
+      text-shadow: 0 0 4px rgba(120, 144, 156, 0.3);
+    }
+    .status-in-flight .flap-char:not(.space) {
+      color: var(--status-in-flight);
+      text-shadow: 0 0 8px rgba(66, 165, 245, 0.4);
+    }
+    .status-landed .flap-char:not(.space) {
+      color: var(--status-landed);
+      text-shadow: 0 0 8px rgba(0, 230, 118, 0.4);
+    }
+
+    @keyframes boardingGlow {
+      0%, 100% { text-shadow: 0 0 8px rgba(45, 196, 232, 0.3); }
+      50% { text-shadow: 0 0 18px rgba(45, 196, 232, 0.7), 0 0 36px rgba(45, 196, 232, 0.2); }
+    }
+
+    .status-delayed {
+      animation: delayedPulse 2s ease-in-out infinite;
+    }
+    @keyframes delayedPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* ============ BOARD STRUCTURE ============ */
+    .board-outer {
+      background: var(--board-bg);
+      border: 2px solid rgba(36, 161, 193, 0.15);
+      box-shadow:
+        0 0 60px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(36, 161, 193, 0.05);
+      position: relative;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Scan sweep */
+    .scan-sweep {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      background: linear-gradient(to bottom, transparent, rgba(36, 161, 193, 0.02), transparent);
+      z-index: 8;
+      pointer-events: none;
+      animation: scanSweep 6s ease-in-out infinite;
+    }
+    @keyframes scanSweep {
+      0% { top: -60px; }
+      100% { top: calc(100% + 60px); }
+    }
+
+    /* ============ HEADER ============ */
+    .board-header {
+      background: linear-gradient(135deg, var(--traefik-navy) 0%, var(--traefik-navy-dark) 100%);
+      border-bottom: 2px solid var(--traefik-teal);
+      position: relative;
+      z-index: 5;
+      padding: 1rem 2rem;
+      flex-shrink: 0;
+    }
+
+    .board-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(36, 161, 193, 0.3), transparent);
+    }
+
+    .logo-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+      background: linear-gradient(135deg, var(--traefik-teal), #1b8da8);
+      box-shadow: 0 0 16px rgba(36, 161, 193, 0.3);
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+    @keyframes logoPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(36, 161, 193, 0.2); }
+      50% { box-shadow: 0 0 20px rgba(36, 161, 193, 0.4); }
+    }
+
+    /* ============ CLOCK ============ */
+    .clock-container .flap-char {
+      width: 0.9em;
+      height: 1.5em;
+      line-height: 1.5em;
+      margin: 0 1px;
+      background: #15202e;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.05) inset,
+        0 -1px 0 rgba(0,0,0,0.4) inset,
+        0 3px 8px rgba(0,0,0,0.5);
+    }
+
+    .clock-colon {
+      color: var(--traefik-teal);
+      text-shadow: 0 0 8px rgba(36, 161, 193, 0.4);
+      margin: 0 3px;
+      animation: colonBlink 1s ease-in-out infinite;
+      font-weight: 700;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    @keyframes colonBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* ============ SECTION LABELS ============ */
+    .section-label {
+      padding: 0.35rem 2rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-shrink: 0;
+    }
+
+    .section-label-dep {
+      background: linear-gradient(to right, rgba(36, 161, 193, 0.08), transparent);
+      color: var(--traefik-teal);
+      border-bottom: 1px solid rgba(36, 161, 193, 0.2);
+    }
+
+    .section-label-arr {
+      background: linear-gradient(to right, rgba(120, 144, 156, 0.06), transparent);
+      color: #78909c;
+      border-top: 2px solid rgba(36, 161, 193, 0.12);
+      border-bottom: 1px solid rgba(120, 144, 156, 0.15);
+    }
+
+    .section-arrow {
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+
+    /* ============ COLUMN GRID ============ */
+    .column-header {
+      background: linear-gradient(to bottom, #111622, #0e1219);
+      border-bottom: 1px solid var(--traefik-teal);
+      position: relative;
+      padding: 0.5rem 2rem;
+      flex-shrink: 0;
+    }
+
+    .column-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(36, 161, 193, 0.2), transparent);
+    }
+
+    .flight-grid {
+      display: grid;
+      grid-template-columns: 10% 12% 8% 24% 8% 8% 6% 24%;
+      align-items: center;
+      width: 100%;
+    }
+
+    .flight-grid > div {
+      padding: 0 0.25rem;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .col-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--traefik-teal);
+    }
+
+    /* ============ FLIGHT ROWS ============ */
+    .board-body {
+      flex: 1;
+      padding: 0 2rem;
+      background: linear-gradient(to bottom, #0e1117, #0b0f15, #090d13);
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .board-row {
+      border-bottom: 1px solid rgba(36, 161, 193, 0.04);
+      padding: 0.45rem 0;
+      transition: background 0.3s ease;
+      font-size: 0.95rem;
+    }
+
+    .board-row.entering {
+      opacity: 0;
+      transform: translateY(6px);
+      animation: rowEntrance 0.35s ease-out forwards;
+    }
+
+    .board-row:hover {
+      background: rgba(36, 161, 193, 0.03);
+    }
+
+    @keyframes rowEntrance {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .board-row.updated {
+      animation: rowFlash 1.2s ease-out;
+    }
+    @keyframes rowFlash {
+      0% { background: rgba(36, 161, 193, 0.1); }
+      100% { background: transparent; }
+    }
+
+    /* ============ SSE EVENT ANIMATIONS ============ */
+    .flight-new {
+      animation: newSlideIn 0.5s ease-out, newGlow 2.5s ease-out 0.3s;
+    }
+    @keyframes newSlideIn {
+      0% { opacity: 0; transform: translateX(-30px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes newGlow {
+      0% { background: rgba(36, 161, 193, 0.18); box-shadow: inset 0 0 40px rgba(36, 161, 193, 0.08); }
+      40% { background: rgba(36, 161, 193, 0.08); }
+      100% { background: transparent; box-shadow: none; }
+    }
+
+    .flight-modified {
+      animation: modifyPulse 1.8s ease-out;
+    }
+    @keyframes modifyPulse {
+      0% { background: rgba(36, 161, 193, 0.15); }
+      30% { background: rgba(36, 161, 193, 0.08); }
+      100% { background: transparent; }
+    }
+
+    .flight-deleting {
+      animation: deleteFlash 0.5s ease-out, deleteCollapse 0.5s ease-in 1s forwards;
+      pointer-events: none;
+    }
+    @keyframes deleteFlash {
+      0% { background: rgba(255, 82, 82, 0.2); }
+      100% { background: rgba(255, 82, 82, 0.06); }
+    }
+    @keyframes deleteCollapse {
+      0% { opacity: 1; max-height: 60px; }
+      100% { opacity: 0; max-height: 0; padding: 0; overflow: hidden; border-color: transparent; }
+    }
+
+    .sse-dot {
+      display: inline-block; width: 6px; height: 6px;
+      border-radius: 50%; background: #00e676;
+      box-shadow: 0 0 8px #00e676;
+      animation: ssePulse 2s ease-in-out infinite;
+    }
+    .sse-dot.disconnected { background: #ff5252; box-shadow: 0 0 6px #ff5252; animation: none; }
+    @keyframes ssePulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 6px #00e676; }
+      50% { opacity: 0.5; box-shadow: 0 0 14px #00e676; }
+    }
+
+    /* ============ AIRCRAFT ICON ============ */
+    .aircraft-label {
+      font-size: 0.65rem;
+      color: #4a6a7a;
+      letter-spacing: 0.05em;
+      margin-top: 1px;
+    }
+
+    /* ============ LOADING ============ */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .skeleton-row {
+      height: 38px;
+      margin-bottom: 3px;
+      border-radius: 3px;
+      background: linear-gradient(90deg,
+        rgba(36, 161, 193, 0.02) 25%,
+        rgba(36, 161, 193, 0.05) 50%,
+        rgba(36, 161, 193, 0.02) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+
+    /* ============ FOOTER ============ */
+    .board-footer {
+      background: linear-gradient(to top, #080c12, #0b1018);
+      border-top: 1px solid rgba(36, 161, 193, 0.08);
+      padding: 0.5rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.65rem;
+      color: #3a5868;
+      flex-shrink: 0;
+    }
+
+    .refresh-ring { transform: rotate(-90deg); }
+
+    /* ============ SCROLLBAR ============ */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #080c12; }
+    ::-webkit-scrollbar-thumb { background: #1c2a38; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2a3a4a; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .date-label {
+      animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+
+    .empty-section {
+      padding: 2rem 0;
+      text-align: center;
+      color: #2a3a4a;
+    }
+
+    @media (max-width: 1200px) {
+      .flight-grid {
+        grid-template-columns: 10% 13% 9% 20% 9% 9% 6% 24%;
+      }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <div class="board-outer">
+    <div class="scan-sweep"></div>
+
+    <!-- Header -->
+    <div class="board-header">
+      <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div class="logo-badge">TK</div>
+          <div>
+            <h1 style="font-size: 1.3rem; font-weight: 700; letter-spacing: 0.2em; color: #fff; text-shadow: 0 0 16px rgba(36,161,193,0.15);">TRAEFIK AIRLINES</h1>
+            <p style="font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 2px; color: rgba(36,161,193,0.7);">
+              FLIGHT INFORMATION DISPLAY SYSTEM
+              <span v-if="sseConnected" style="margin-left: 10px; color: #00e676; font-size: 0.55rem; letter-spacing: 0.12em;">
+                <span class="sse-dot"></span> LIVE
+              </span>
+              <span v-else style="margin-left: 10px; color: #ff5252; font-size: 0.55rem; letter-spacing: 0.12em;">
+                <span class="sse-dot disconnected"></span> OFFLINE
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Clock -->
+        <div style="text-align: right;">
+          <div class="clock-container" style="font-size: 1.8rem; line-height: 1;">
+            <template v-for="(ch, i) in clockChars" :key="'clock-'+i">
+              <span v-if="ch === ':'" class="clock-colon" style="font-size: 1.4rem;">:</span>
+              <span v-else class="flap-char" :class="{ flipping: clockFlipping.has(i) }">
+                {{ ch }}
+                <span v-if="clockFlipping.has(i)" class="flap-top-flip">{{ ch }}</span>
+                <span v-if="clockFlipping.has(i)" class="flap-bottom-flip">{{ ch }}</span>
+              </span>
+            </template>
+          </div>
+          <p class="date-label" style="font-size: 0.55rem; margin-top: 4px; color: rgba(36,161,193,0.5); letter-spacing: 0.12em;">{{ currentDate }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== DEPARTURES SECTION ====== -->
+    <div class="section-label section-label-dep">
+      <span class="section-arrow">↑</span>
+      <span>Departures</span>
+      <span style="margin-left: auto; font-size: 0.6rem; color: rgba(36,161,193,0.5);">{{ departureFlights.length }} flights</span>
+    </div>
+
+    <div class="column-header">
+      <div class="flight-grid">
+        <div class="col-label">Flight</div>
+        <div class="col-label">Route</div>
+        <div class="col-label">Time</div>
+        <div class="col-label">Destination</div>
+        <div class="col-label">Gate</div>
+        <div class="col-label">Terminal</div>
+        <div class="col-label">Aircraft</div>
+        <div class="col-label">Status</div>
+      </div>
+    </div>
+
+    <div class="board-body">
+      <div v-if="loading" style="padding: 0.75rem 0;">
+        <div v-for="i in 6" :key="'skel-dep-'+i" class="skeleton-row" :style="{ animationDelay: (i * 0.08) + 's' }"></div>
+      </div>
+      <div v-else-if="departureFlights.length === 0" class="empty-section">
+        <p style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em;">NO DEPARTURES TO DISPLAY</p>
+      </div>
+      <div v-else>
+        <div v-for="(flight, idx) in departureFlights" :key="'dep-'+flight.flight_id"
+          class="board-row"
+          :class="{
+            entering: initialLoad && !deletingIds.has(flight.flight_id),
+            'flight-new': newFlightIds.has(flight.flight_id) && !deletingIds.has(flight.flight_id),
+            'flight-modified': modifiedIds.has(flight.flight_id) && !deletingIds.has(flight.flight_id),
+            'flight-deleting': deletingIds.has(flight.flight_id)
+          }"
+          :style="initialLoad ? { animationDelay: (idx * 40) + 'ms' } : {}">
+          <div class="flight-grid">
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : (flight.flight_number || flight.flight_id)" :len="7" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : formatRoute(flight)" :len="9" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : formatTime(flight.departure_time)" :len="5" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : airportName(flight.destination)" :len="18" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : (flight.gate || '--')" :len="5" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div style="text-align: center;">
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : ('T' + (flight.terminal || '-'))" :len="3" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <span class="aircraft-label">{{ deletingIds.has(flight.flight_id) ? '' : shortAircraft(flight.aircraft) }}</span>
+            </div>
+            <div>
+              <span class="font-bold tracking-wider uppercase"
+                    :class="deletingIds.has(flight.flight_id) ? '' : ('status-' + (flight.status || 'scheduled').toLowerCase().replace(/\s+/g, '-'))">
+                <flap-text
+                  :text="deletingIds.has(flight.flight_id) ? '' : (flight.status || 'SCHEDULED').toUpperCase()"
+                  :len="12"
+                  :color="deletingIds.has(flight.flight_id) ? '' : statusColor(flight.status)"
+                  :animate-in="newFlightIds.has(flight.flight_id)">
+                </flap-text>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== ARRIVALS SECTION ====== -->
+    <div class="section-label section-label-arr">
+      <span class="section-arrow">↓</span>
+      <span>Arrivals</span>
+      <span style="margin-left: auto; font-size: 0.6rem; color: rgba(120,144,156,0.5);">{{ arrivalFlights.length }} flights</span>
+    </div>
+
+    <div class="column-header" style="border-bottom-color: #4a6a7a;">
+      <div class="flight-grid">
+        <div class="col-label" style="color: #4a7a8a;">Flight</div>
+        <div class="col-label" style="color: #4a7a8a;">Route</div>
+        <div class="col-label" style="color: #4a7a8a;">Time</div>
+        <div class="col-label" style="color: #4a7a8a;">Origin</div>
+        <div class="col-label" style="color: #4a7a8a;">Gate</div>
+        <div class="col-label" style="color: #4a7a8a;">Terminal</div>
+        <div class="col-label" style="color: #4a7a8a;">Aircraft</div>
+        <div class="col-label" style="color: #4a7a8a;">Status</div>
+      </div>
+    </div>
+
+    <div class="board-body" style="background: linear-gradient(to bottom, #0c1015, #090d13);">
+      <div v-if="loading" style="padding: 0.75rem 0;">
+        <div v-for="i in 6" :key="'skel-arr-'+i" class="skeleton-row" :style="{ animationDelay: (i * 0.08) + 's' }"></div>
+      </div>
+      <div v-else-if="arrivalFlights.length === 0" class="empty-section">
+        <p style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.15em;">NO ARRIVALS TO DISPLAY</p>
+      </div>
+      <div v-else>
+        <div v-for="(flight, idx) in arrivalFlights" :key="'arr-'+flight.flight_id"
+          class="board-row"
+          :class="{
+            entering: initialLoad && !deletingIds.has(flight.flight_id),
+            'flight-new': newFlightIds.has(flight.flight_id) && !deletingIds.has(flight.flight_id),
+            'flight-modified': modifiedIds.has(flight.flight_id) && !deletingIds.has(flight.flight_id),
+            'flight-deleting': deletingIds.has(flight.flight_id)
+          }"
+          :style="initialLoad ? { animationDelay: (idx * 40) + 'ms' } : {}">
+          <div class="flight-grid">
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : (flight.flight_number || flight.flight_id)" :len="7" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : formatRoute(flight)" :len="9" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : formatTime(flight.arrival_time)" :len="5" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : airportName(flight.origin)" :len="18" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : (flight.gate || '--')" :len="5" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div style="text-align: center;">
+              <flap-text :text="deletingIds.has(flight.flight_id) ? '' : ('T' + (flight.terminal || '-'))" :len="3" :animate-in="newFlightIds.has(flight.flight_id)"></flap-text>
+            </div>
+            <div>
+              <span class="aircraft-label">{{ deletingIds.has(flight.flight_id) ? '' : shortAircraft(flight.aircraft) }}</span>
+            </div>
+            <div>
+              <span class="font-bold tracking-wider uppercase"
+                    :class="deletingIds.has(flight.flight_id) ? '' : ('status-' + (flight.status || 'scheduled').toLowerCase().replace(/\s+/g, '-'))">
+                <flap-text
+                  :text="deletingIds.has(flight.flight_id) ? '' : (flight.status || 'SCHEDULED').toUpperCase()"
+                  :len="12"
+                  :color="deletingIds.has(flight.flight_id) ? '' : statusColor(flight.status)"
+                  :animate-in="newFlightIds.has(flight.flight_id)">
+                </flap-text>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="board-footer">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00e676; box-shadow: 0 0 6px #00e676;"></span>
+        <span>{{ departureFlights.length }} departures · {{ arrivalFlights.length }} arrivals</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg class="refresh-ring" width="16" height="16" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10" fill="none" stroke="#162230" stroke-width="2"/>
+          <circle cx="12" cy="12" r="10" fill="none" stroke="var(--traefik-teal)" stroke-width="2"
+                  stroke-linecap="round"
+                  :stroke-dasharray="62.83"
+                  :stroke-dashoffset="62.83 - (62.83 * countdown / 30)"
+                  style="transition: stroke-dashoffset 1s linear;"/>
+        </svg>
+        <span>Refresh in {{ countdown }}s</span>
+      </div>
+
+      <span>Powered by <span style="color: var(--traefik-teal);">Traefik Hub</span></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted, onUnmounted, watch, h } = Vue;
+
+const AIRPORTS = {
+  JFK: 'New York (JFK)', CDG: 'Paris (CDG)', LAX: 'Los Angeles (LAX)',
+  SIN: 'Singapore (SIN)', FRA: 'Frankfurt (FRA)', DXB: 'Dubai (DXB)',
+  HND: 'Tokyo (HND)', AMS: 'Amsterdam (AMS)', ORD: 'Chicago (ORD)',
+  SFO: 'San Francisco (SFO)', MIA: 'Miami (MIA)', LHR: 'London (LHR)',
+  NRT: 'Tokyo (NRT)', ICN: 'Seoul (ICN)', SYD: 'Sydney (SYD)',
+  YYZ: 'Toronto (YYZ)', MUC: 'Munich (MUC)', ZRH: 'Zurich (ZRH)',
+  BKK: 'Bangkok (BKK)', DEL: 'Delhi (DEL)', DOH: 'Doha (DOH)',
+  IST: 'Istanbul (IST)', BCN: 'Barcelona (BCN)', FCO: 'Rome (FCO)'
+};
+
+const FlapText = {
+  props: {
+    text: { type: String, default: '' },
+    len: { type: Number, default: 10 },
+    color: { type: String, default: '' },
+    animateIn: { type: Boolean, default: false }
+  },
+  setup(props) {
+    const displayed = ref(props.animateIn ? ' '.repeat(props.len) : '');
+    const flipping = ref(new Set());
+    let timeouts = [];
+
+    const padded = computed(() => {
+      const t = (props.text || '').substring(0, props.len);
+      return t.padEnd(props.len, ' ');
+    });
+
+    watch(() => props.text, (newVal) => {
+      timeouts.forEach(clearTimeout);
+      timeouts = [];
+      const target = (newVal || '').substring(0, props.len).padEnd(props.len, ' ');
+      const current = displayed.value.padEnd(props.len, ' ');
+      for (let i = 0; i < props.len; i++) {
+        if (current[i] !== target[i]) {
+          const delay = i * 40 + Math.random() * 60;
+          flipping.value.add(i);
+          timeouts.push(setTimeout(() => {
+            const arr = displayed.value.padEnd(props.len, ' ').split('');
+            arr[i] = target[i];
+            displayed.value = arr.join('');
+            setTimeout(() => flipping.value.delete(i), 250);
+          }, delay));
+        }
+      }
+    }, { immediate: false });
+
+    onMounted(() => {
+      if (props.animateIn) {
+        const target = padded.value;
+        for (let i = 0; i < props.len; i++) {
+          if (target[i] !== ' ') {
+            const delay = 100 + i * 25 + Math.random() * 40;
+            flipping.value.add(i);
+            timeouts.push(setTimeout(() => {
+              const arr = displayed.value.padEnd(props.len, ' ').split('');
+              arr[i] = target[i];
+              displayed.value = arr.join('');
+              setTimeout(() => flipping.value.delete(i), 250);
+            }, delay));
+          }
+        }
+      } else {
+        displayed.value = padded.value;
+      }
+    });
+
+    watch(padded, (val) => {
+      if (!props.animateIn && (!displayed.value || displayed.value.trim() === '')) displayed.value = val;
+    }, { immediate: true });
+
+    return { displayed, flipping, padded };
+  },
+  render() {
+    const chars = this.displayed.padEnd(this.len, ' ').split('');
+    return h('span', { style: this.color ? `color: ${this.color}` : '' },
+      chars.map((ch, i) =>
+        h('span', {
+          class: ['flap-char', ch === ' ' ? 'space' : '', this.flipping.has(i) ? 'flipping' : ''],
+          key: i
+        }, [
+          ch,
+          this.flipping.has(i) ? h('span', { class: 'flap-top-flip' }, ch) : null,
+          this.flipping.has(i) ? h('span', { class: 'flap-bottom-flip' }, ch) : null
+        ])
+      )
+    );
+  }
+};
+
+createApp({
+  components: { 'flap-text': FlapText },
+  setup() {
+    const flights = ref([]);
+    const loading = ref(true);
+    const initialLoad = ref(true);
+    const countdown = ref(30);
+    const currentTime = ref(new Date());
+    const clockFlipping = ref(new Set());
+    let refreshTimer = null;
+    let clockTimer = null;
+    let prevClockStr = '';
+
+    // SSE overlay state
+    const overlayAdditions = ref({});
+    const overlayDeletions = ref(new Set());
+    const sseConnected = ref(false);
+
+    // Animation state
+    const newFlightIds = ref(new Set());
+    const modifiedIds = ref(new Set());
+    const deletingIds = ref(new Set());
+    let eventSource = null;
+
+    const clockChars = computed(() => {
+      const d = currentTime.value;
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mm = String(d.getMinutes()).padStart(2, '0');
+      const ss = String(d.getSeconds()).padStart(2, '0');
+      return (hh + ':' + mm + ':' + ss).split('');
+    });
+
+    watch(clockChars, (newChars) => {
+      const newStr = newChars.join('');
+      if (prevClockStr) {
+        const oldChars = prevClockStr.split('');
+        for (let i = 0; i < newChars.length; i++) {
+          if (newChars[i] !== oldChars[i] && newChars[i] !== ':') {
+            clockFlipping.value.add(i);
+            setTimeout(() => clockFlipping.value.delete(i), 250);
+          }
+        }
+      }
+      prevClockStr = newStr;
+    });
+
+    const currentDate = computed(() => {
+      return currentTime.value.toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+      }).toUpperCase();
+    });
+
+    function buildFlightMap() {
+      const map = new Map();
+      flights.value.forEach(f => map.set(f.flight_id, { ...f }));
+      for (const [fid, flight] of Object.entries(overlayAdditions.value)) {
+        if (map.has(fid)) {
+          map.set(fid, { ...map.get(fid), ...flight });
+        } else {
+          map.set(fid, { ...flight });
+        }
+      }
+      for (const fid of overlayDeletions.value) {
+        if (!deletingIds.value.has(fid)) {
+          map.delete(fid);
+        }
+      }
+      return map;
+    }
+
+    const departureFlights = computed(() => {
+      const list = Array.from(buildFlightMap().values());
+      list.sort((a, b) => (a.departure_time || '').localeCompare(b.departure_time || ''));
+      return list;
+    });
+
+    const arrivalFlights = computed(() => {
+      const list = Array.from(buildFlightMap().values());
+      list.sort((a, b) => (a.arrival_time || '').localeCompare(b.arrival_time || ''));
+      return list;
+    });
+
+    function formatTime(ts) {
+      if (!ts) return '--:--';
+      try {
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return ts.substring(11, 16) || '--:--';
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+      } catch { return '--:--'; }
+    }
+
+    function formatRoute(flight) {
+      const o = flight.origin || '???';
+      const d = flight.destination || '???';
+      return o + '>' + d;
+    }
+
+    function airportName(code) {
+      return AIRPORTS[code] || code || '---';
+    }
+
+    function shortAircraft(ac) {
+      if (!ac) return '--';
+      return ac.replace('Airbus ', '').replace('Boeing ', '').substring(0, 8);
+    }
+
+    function statusColor(status) {
+      if (!status) return '';
+      const s = status.toLowerCase();
+      if (s === 'on-time' || s === 'scheduled' || s === 'landed') return '#00e676';
+      if (s === 'delayed') return '#ffab00';
+      if (s === 'cancelled') return '#ff5252';
+      if (s === 'boarding') return '#2dc4e8';
+      if (s === 'departed') return '#78909c';
+      if (s === 'in-flight') return '#42a5f5';
+      return '';
+    }
+
+    async function fetchFlights() {
+      try {
+        const res = await fetch('/api/flights/flights');
+        if (res.ok) {
+          const data = await res.json();
+          flights.value = Array.isArray(data) ? data : (data.flights || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch flights:', err);
+      } finally {
+        loading.value = false;
+        if (initialLoad.value) {
+          setTimeout(() => { initialLoad.value = false; }, 600);
+        }
+      }
+    }
+
+    function connectSSE() {
+      if (eventSource) eventSource.close();
+      eventSource = new EventSource('/api/board/events');
+
+      eventSource.onopen = () => { sseConnected.value = true; };
+
+      eventSource.onmessage = (e) => {
+        const event = JSON.parse(e.data);
+        switch (event.type) {
+          case 'init': {
+            const additions = {};
+            (event.additions || []).forEach(f => { additions[f.flight_id] = f; });
+            overlayAdditions.value = additions;
+            overlayDeletions.value = new Set(event.deletions || []);
+            break;
+          }
+          case 'add': {
+            const fid = event.flight.flight_id;
+            overlayAdditions.value = { ...overlayAdditions.value, [fid]: event.flight };
+            if (overlayDeletions.value.has(fid)) {
+              const d = new Set(overlayDeletions.value); d.delete(fid);
+              overlayDeletions.value = d;
+            }
+            newFlightIds.value = new Set([...newFlightIds.value, fid]);
+            setTimeout(() => {
+              newFlightIds.value = new Set([...newFlightIds.value].filter(id => id !== fid));
+            }, 3000);
+            break;
+          }
+          case 'modify': {
+            const fid = event.flight.flight_id;
+            overlayAdditions.value = { ...overlayAdditions.value, [fid]: event.flight };
+            modifiedIds.value = new Set([...modifiedIds.value, fid]);
+            setTimeout(() => {
+              modifiedIds.value = new Set([...modifiedIds.value].filter(id => id !== fid));
+            }, 2000);
+            break;
+          }
+          case 'delete': {
+            const fid = event.flight_id;
+            deletingIds.value = new Set([...deletingIds.value, fid]);
+            setTimeout(() => {
+              const d = new Set(overlayDeletions.value); d.add(fid);
+              overlayDeletions.value = d;
+              const { [fid]: _, ...rest } = overlayAdditions.value;
+              overlayAdditions.value = rest;
+              deletingIds.value = new Set([...deletingIds.value].filter(id => id !== fid));
+            }, 1500);
+            break;
+          }
+          case 'reset': {
+            overlayAdditions.value = {};
+            overlayDeletions.value = new Set();
+            newFlightIds.value = new Set();
+            modifiedIds.value = new Set();
+            deletingIds.value = new Set();
+            fetchFlights();
+            break;
+          }
+        }
+      };
+
+      eventSource.onerror = () => {
+        sseConnected.value = false;
+        eventSource.close();
+        setTimeout(connectSSE, 3000);
+      };
+    }
+
+    function startRefreshCycle() {
+      countdown.value = 30;
+      refreshTimer = setInterval(() => {
+        countdown.value--;
+        if (countdown.value <= 0) {
+          fetchFlights();
+          countdown.value = 30;
+        }
+      }, 1000);
+    }
+
+    onMounted(() => {
+      fetchFlights();
+      startRefreshCycle();
+      connectSSE();
+      clockTimer = setInterval(() => { currentTime.value = new Date(); }, 1000);
+    });
+
+    onUnmounted(() => {
+      clearInterval(refreshTimer);
+      clearInterval(clockTimer);
+      if (eventSource) eventSource.close();
+    });
+
+    return {
+      flights, loading, initialLoad, countdown,
+      clockChars, clockFlipping, currentDate,
+      departureFlights, arrivalFlights,
+      formatTime, formatRoute, airportName, shortAircraft, statusColor,
+      sseConnected, newFlightIds, modifiedIds, deletingIds
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

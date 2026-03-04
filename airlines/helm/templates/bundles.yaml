@@ -2,60 +2,29 @@
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
-  name: booking-bundle
+  name: flight-ops-bundle
 spec:
-  title: "Booking APIs"
+  title: "Flight Operations"
   apiSelector:
     matchLabels:
-      bundle: booking
+      bundle: flight-ops
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
-  name: trip-bundle
+  name: passenger-svc-bundle
 spec:
-  title: "Trip APIs"
+  title: "Passenger Services"
   apiSelector:
     matchLabels:
-      bundle: trip
+      bundle: passenger-svc
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIBundle
 metadata:
-  name: admin-bundle
+  name: airport-ops-bundle
 spec:
-  title: "Admin & Reference Data"
+  title: "Airport Operations"
   apiSelector:
     matchLabels:
-      bundle: admin
-{{- if (index .Values "ai-gateway").enabled }}
----
-apiVersion: hub.traefik.io/v1alpha1
-kind: APIBundle
-metadata:
-  name: openai-bundle
-spec:
-  title: "OpenAI LLMs"
-  apiSelector:
-    matchLabels:
-      bundle: openai
----
-apiVersion: hub.traefik.io/v1alpha1
-kind: APIBundle
-metadata:
-  name: assistant-user-bundle
-spec:
-  title: "User Assistance MCP"
-  apis:
-    - name: user-assistance-api
----
-apiVersion: hub.traefik.io/v1alpha1
-kind: APIBundle
-metadata:
-  name: assistant-ops-bundle
-spec:
-  title: "Operations & Partner MCPs"
-  apis:
-    - name: partner-assistance-api
-    - name: ticketing-agent-api
-{{- end }}
+      bundle: airport-ops

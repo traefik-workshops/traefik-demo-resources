@@ -69,124 +69,113 @@ Domain Match helper
 {{- end }}
 
 {{/*
-Flights API URL
+Flights API
 */}}
 {{- define "airlines.flights.apiUrl" -}}
 https://flights.{{ include "airlines.domain" . }}
 {{- end }}
-
 {{- define "airlines.flights.hostMatch" -}}
 Host(`flights.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-Bookings API URL
-*/}}
-{{- define "airlines.bookings.apiUrl" -}}
-https://bookings.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.bookings.hostMatch" -}}
-Host(`bookings.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Tickets API URL
-*/}}
-{{- define "airlines.tickets.apiUrl" -}}
-https://tickets.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.tickets.hostMatch" -}}
-Host(`tickets.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Passengers API URL
-*/}}
-{{- define "airlines.passengers.apiUrl" -}}
-https://passengers.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.passengers.hostMatch" -}}
-Host(`passengers.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Loyalty API URL
-*/}}
-{{- define "airlines.loyalty.apiUrl" -}}
-https://loyalty.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.loyalty.hostMatch" -}}
-Host(`loyalty.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Checkin API URL
-*/}}
-{{- define "airlines.checkin.apiUrl" -}}
-https://checkin.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.checkin.hostMatch" -}}
-Host(`checkin.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Baggage API URL
-*/}}
-{{- define "airlines.baggage.apiUrl" -}}
-https://baggage.{{ include "airlines.domain" . }}
-{{- end }}
-
-{{- define "airlines.baggage.hostMatch" -}}
-Host(`baggage.{{ include "airlines.domain" . }}`)
-{{- end }}
-
-{{/*
-Pricing API URL
+Pricing API
 */}}
 {{- define "airlines.pricing.apiUrl" -}}
 https://pricing.{{ include "airlines.domain" . }}
 {{- end }}
-
 {{- define "airlines.pricing.hostMatch" -}}
 Host(`pricing.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-Partners API URL
+Bookings API
 */}}
-{{- define "airlines.partners.apiUrl" -}}
-https://partners.{{ include "airlines.domain" . }}
+{{- define "airlines.bookings.apiUrl" -}}
+https://bookings.{{ include "airlines.domain" . }}
 {{- end }}
-
-{{- define "airlines.partners.hostMatch" -}}
-Host(`partners.{{ include "airlines.domain" . }}`)
+{{- define "airlines.bookings.hostMatch" -}}
+Host(`bookings.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-Notifications API URL
+Passengers API
+*/}}
+{{- define "airlines.passengers.apiUrl" -}}
+https://passengers.{{ include "airlines.domain" . }}
+{{- end }}
+{{- define "airlines.passengers.hostMatch" -}}
+Host(`passengers.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+Check-in API
+*/}}
+{{- define "airlines.checkin.apiUrl" -}}
+https://checkin.{{ include "airlines.domain" . }}
+{{- end }}
+{{- define "airlines.checkin.hostMatch" -}}
+Host(`checkin.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+Baggage API
+*/}}
+{{- define "airlines.baggage.apiUrl" -}}
+https://baggage.{{ include "airlines.domain" . }}
+{{- end }}
+{{- define "airlines.baggage.hostMatch" -}}
+Host(`baggage.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+Crew API
+*/}}
+{{- define "airlines.crew.apiUrl" -}}
+https://crew.{{ include "airlines.domain" . }}
+{{- end }}
+{{- define "airlines.crew.hostMatch" -}}
+Host(`crew.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+Notifications API
 */}}
 {{- define "airlines.notifications.apiUrl" -}}
 https://notifications.{{ include "airlines.domain" . }}
 {{- end }}
-
 {{- define "airlines.notifications.hostMatch" -}}
 Host(`notifications.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-Ancillaries API URL
+Gates API
 */}}
-{{- define "airlines.ancillaries.apiUrl" -}}
-https://ancillaries.{{ include "airlines.domain" . }}
+{{- define "airlines.gates.apiUrl" -}}
+https://gates.{{ include "airlines.domain" . }}
+{{- end }}
+{{- define "airlines.gates.hostMatch" -}}
+Host(`gates.{{ include "airlines.domain" . }}`)
 {{- end }}
 
-{{- define "airlines.ancillaries.hostMatch" -}}
-Host(`ancillaries.{{ include "airlines.domain" . }}`)
+{{/*
+MCP Server Host Matches
+*/}}
+{{- define "airlines.flightOpsMcp.hostMatch" -}}
+Host(`flight-ops-mcp.{{ include "airlines.domain" . }}`)
+{{- end }}
+{{- define "airlines.passengerSvcMcp.hostMatch" -}}
+Host(`passenger-svc-mcp.{{ include "airlines.domain" . }}`)
+{{- end }}
+{{- define "airlines.airportOpsMcp.hostMatch" -}}
+Host(`airport-ops-mcp.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+Test (Hoppscotch) Host Match
+*/}}
+{{- define "airlines.test.hostMatch" -}}
+Host(`test.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
@@ -197,7 +186,23 @@ Host(`portal.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-OIDC URL
+Dashboard Host Matches
+*/}}
+{{- define "airlines.board.hostMatch" -}}
+Host(`board.{{ include "airlines.domain" . }}`)
+{{- end }}
+{{- define "airlines.flightOpsDash.hostMatch" -}}
+Host(`flight-ops.{{ include "airlines.domain" . }}`)
+{{- end }}
+{{- define "airlines.passengerSvcDash.hostMatch" -}}
+Host(`passenger-svc.{{ include "airlines.domain" . }}`)
+{{- end }}
+{{- define "airlines.airportOpsDash.hostMatch" -}}
+Host(`airport-ops.{{ include "airlines.domain" . }}`)
+{{- end }}
+
+{{/*
+OIDC URLs
 */}}
 {{- define "airlines.oidc.issuerUrl" -}}
 {{ .Values.keycloak.oidc.issuerUrl }}
@@ -206,19 +211,39 @@ OIDC URL
 {{ .Values.keycloak.oidc.issuerUrl }}/protocol/openid-connect/certs
 {{- end }}
 
-{{- define "airlines.serviceDeployment" -}}
+{{/*
+Flask stateful service deployment template.
+Creates: 2x ConfigMap (code + data) + Deployment + Service for a Python Flask CRUD service.
+Service code is loaded from services/{name}_service.py + services/base_service.py.
+Seed data is loaded from files/data/{name}.json.
+
+Usage: {{ include "airlines.flaskService" (dict "root" . "name" "flights") }}
+*/}}
+{{- define "airlines.flaskService" -}}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ .name }}-code
   labels:
-    app: {{ .name }}-app
+    {{- include "airlines.labels" .root | nindent 4 }}
     component: {{ .name }}
 data:
-  {{ .name }}_service.py: |
+  base_service.py: |
+{{ .root.Files.Get "services/base_service.py" | indent 4 }}
+  service.py: |
 {{ .root.Files.Get (printf "services/%s_service.py" .name) | indent 4 }}
-
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-data
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}
+data:
+  api.json: |
+{{ .root.Files.Get (printf "files/data/%s.json" .name) | indent 4 }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -228,7 +253,7 @@ metadata:
     {{- include "airlines.labels" .root | nindent 4 }}
     component: {{ .name }}
 spec:
-  replicas: {{ .root.Values.replicaCount }}
+  replicas: 1
   selector:
     matchLabels:
       app: {{ .name }}-app
@@ -236,73 +261,222 @@ spec:
     metadata:
       labels:
         app: {{ .name }}-app
-        component: api
+        component: {{ .name }}
     spec:
-      containers:
-        - name: api
+      initContainers:
+        - name: install-deps
           image: python:3.11-slim
-          command: ["sh", "-c"]
-          args:
-            - |
-              echo "📦 Installing dependencies..."
-              pip install --quiet -r /shared/requirements.txt
-              echo "✅ Dependencies installed"
-              
-              echo "🌱 Seeding data..."
-              python /shared/seed_data.py /api/api.json /app/api.json
-              
-              echo "🚀 Starting {{ .name | title }} service..."
-              # Copy files to a writable location
-              cp /shared/base_service.py /app/
-              cp /code/{{ .name }}_service.py /app/
-              cd /app
-              export DATA_FILE=/app/api.json
-              python {{ .name }}_service.py
+          command: ["pip", "install", "--quiet", "--target=/deps", "flask==3.0.0", "flask-cors==4.0.0"]
+          volumeMounts:
+            - name: deps
+              mountPath: /deps
+      containers:
+        - name: flask
+          image: python:3.11-slim
+          command: ["python", "/app/service.py"]
+          env:
+            - name: PYTHONPATH
+              value: /deps:/app
           ports:
             - containerPort: 3000
               name: http
           volumeMounts:
-            - name: shared-code
-              mountPath: /shared
-            - name: service-code
-              mountPath: /code
-            - name: api-data
-              mountPath: /api
-            - name: openapi-spec
-              mountPath: /public
-              readOnly: true
-            - name: app-dir
+            - name: deps
+              mountPath: /deps
+            - name: code
               mountPath: /app
-          env:
-            - name: PYTHONUNBUFFERED
-              value: "1"
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 15
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 3000
-            initialDelaySeconds: 10
-            periodSeconds: 5
+            - name: data
+              mountPath: /api
+            - name: openapi
+              mountPath: /public
           resources:
-            {{- toYaml .root.Values.resources | nindent 12 }}
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
       volumes:
-        - name: shared-code
-          configMap:
-            name: airlines-shared-code
-        - name: service-code
+        - name: deps
+          emptyDir: {}
+        - name: code
           configMap:
             name: {{ .name }}-code
-        - name: api-data
+        - name: data
           configMap:
             name: {{ .name }}-data
-        - name: openapi-spec
+        - name: openapi
           configMap:
             name: {{ .name }}-openapi
-        - name: app-dir
-          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-app
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .name }}-app
+{{- end -}}
+
+{{/*
+MCP Server deployment template.
+Creates: ConfigMap (requirements.txt) + Deployment + Service for a Python FastMCP server.
+The MCP code ConfigMap must be created separately (name: {name}-mcp-server).
+
+Usage: {{ include "airlines.mcpService" (dict "root" . "name" "flight-ops") }}
+*/}}
+{{- define "airlines.mcpService" -}}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .name }}-mcp-requirements
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}-mcp
+data:
+  requirements.txt: |
+    mcp==1.22.0
+    uvicorn>=0.32.1
+    aiohttp==3.9.1
+    anyio==4.11.0
+    httpx>=0.27.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}-mcp
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .name }}-mcp
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}-mcp
+        component: mcp
+    spec:
+      containers:
+        - name: mcp-server
+          image: python:3.11-slim
+          ports:
+            - containerPort: 8080
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install --no-cache-dir -r /app/requirements.txt && \
+              python /app/main.py
+          volumeMounts:
+            - name: mcp-code
+              mountPath: /app/main.py
+              subPath: main.py
+            - name: mcp-requirements
+              mountPath: /app/requirements.txt
+              subPath: requirements.txt
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: mcp-code
+          configMap:
+            name: {{ .name }}-mcp-server
+        - name: mcp-requirements
+          configMap:
+            name: {{ .name }}-mcp-requirements
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}-mcp
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}-mcp
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: mcp
+  selector:
+    app: {{ .name }}-mcp
+{{- end -}}
+
+{{/*
+Dashboard deployment template.
+Creates: Deployment + Service for an nginx dashboard instance.
+Expects ConfigMaps created separately: {name}-nginx-conf, {name}-html.
+
+Usage: {{ include "airlines.dashboardService" (dict "root" . "name" "flight-board") }}
+*/}}
+{{- define "airlines.dashboardService" -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .name }}
+        component: dashboard
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: html
+          configMap:
+            name: {{ .name }}-html
+        - name: nginx-conf
+          configMap:
+            name: {{ .name }}-nginx-conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .name }}
+  labels:
+    {{- include "airlines.labels" .root | nindent 4 }}
+    component: {{ .name }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      name: http
+  selector:
+    app: {{ .name }}
 {{- end -}}

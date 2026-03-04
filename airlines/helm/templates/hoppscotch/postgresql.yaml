@@ -1,0 +1,98 @@
+{{- if .Values.hoppscotch.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hoppscotch-postgresql
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  DATABASE_URL: "postgresql://hoppscotch:hoppscotch@hoppscotch-postgresql:5432/hoppscotch?sslmode=disable"
+  POSTGRES_PASSWORD: "hoppscotch"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hoppscotch-postgresql-init
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+data:
+  init.sql: |
+    CREATE DATABASE hoppscotch;
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hoppscotch-postgresql
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    app: hoppscotch-postgresql
+spec:
+  serviceName: hoppscotch-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hoppscotch-postgresql
+  template:
+    metadata:
+      labels:
+        app: hoppscotch-postgresql
+    spec:
+      containers:
+        - name: postgresql
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgresql
+          env:
+            - name: POSTGRES_DB
+              value: hoppscotch
+            - name: POSTGRES_USER
+              value: hoppscotch
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: hoppscotch-postgresql
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "hoppscotch", "-d", "hoppscotch"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hoppscotch-postgresql
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    app: hoppscotch-postgresql
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgresql
+  selector:
+    app: hoppscotch-postgresql
+{{- end }}

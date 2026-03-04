@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traefik Airlines - Flight Operations</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #334155;
+      --bg-glass: rgba(30, 41, 59, 0.7);
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-amber: #f59e0b;
+      --accent-blue: #3b82f6;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --border-color: rgba(51, 65, 85, 0.6);
+      --border-glass: rgba(148, 163, 184, 0.1);
+      --glow-blue: rgba(59, 130, 246, 0.15);
+      --glow-amber: rgba(245, 158, 11, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Roboto Mono', monospace;
+      min-height: 100vh;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+    /* ============ GLASSMORPHISM ============ */
+    .glass-card {
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: 12px;
+      box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .glass-card-subtle {
+      background: rgba(30, 41, 59, 0.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(148, 163, 184, 0.08);
+      border-radius: 10px;
+    }
+
+    /* ============ ANIMATIONS ============ */
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .row-enter {
+      animation: fadeInRow 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    }
+
+    @keyframes statPulse {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+    .stat-pulse { animation: statPulse 0.8s ease-out; }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.03) 25%,
+        rgba(255,255,255,0.07) 50%,
+        rgba(255,255,255,0.03) 75%
+      );
+      background-size: 200% 100%;
+      animation: shimmer 1.5s ease-in-out infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes modalEnter {
+      from { opacity: 0; transform: scale(0.92) translateY(12px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .modal-enter { animation: modalEnter 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+    @keyframes waveRefresh {
+      0% { opacity: 1; transform: translateX(0); }
+      50% { opacity: 0.6; transform: translateX(2px); }
+      100% { opacity: 1; transform: translateX(0); }
+    }
+    .wave-refresh { animation: waveRefresh 0.5s ease-out; }
+
+    @keyframes slideTab {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .tab-content-enter { animation: slideTab 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
+    @keyframes headerGradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+      50% { box-shadow: 0 0 14px 2px rgba(245, 158, 11, 0.3); }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 0 4px currentColor; }
+      50% { box-shadow: 0 0 12px currentColor; }
+    }
+
+    /* ============ HEADER ============ */
+    .header-gradient {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 40%, #1a2744 70%, #0f172a 100%);
+      background-size: 300% 300%;
+      animation: headerGradient 12s ease infinite;
+      border-bottom: 1px solid var(--border-color);
+      box-shadow: 0 1px 30px rgba(59, 130, 246, 0.06);
+    }
+
+    .logo-badge {
+      animation: logoPulse 3s ease-in-out infinite;
+    }
+
+    /* ============ TABS ============ */
+    .tab-btn {
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-amber), #d97706);
+      transform: scaleX(0);
+      transition: transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      border-radius: 2px 2px 0 0;
+    }
+    .tab-btn.active::after { transform: scaleX(1); }
+    .tab-btn:not(.active):hover {
+      color: var(--text-secondary) !important;
+      background: rgba(255,255,255,0.03);
+    }
+
+    /* ============ TABLE ============ */
+    .ops-row {
+      transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .ops-row:hover {
+      background: rgba(59, 130, 246, 0.06);
+      box-shadow: inset 2px 0 0 var(--accent-blue);
+    }
+    .ops-row:nth-child(even) {
+      background: rgba(255, 255, 255, 0.01);
+    }
+    .ops-row:nth-child(even):hover {
+      background: rgba(59, 130, 246, 0.06);
+    }
+
+    /* ============ STATUS BADGES ============ */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .status-badge-glow {
+      animation: glowPulse 2s ease-in-out infinite;
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn-gradient {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #0f172a;
+      transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    }
+    .btn-gradient:hover {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    }
+    .btn-gradient:active {
+      transform: translateY(0) scale(0.98);
+      box-shadow: 0 1px 4px rgba(245, 158, 11, 0.2);
+    }
+
+    /* ============ INPUTS ============ */
+    .ops-input {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 8px;
+      padding: 0.55rem 0.85rem;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+    .ops-input:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+      outline: none;
+    }
+    .ops-input::placeholder { color: var(--text-muted); }
+
+    /* ============ MODAL ============ */
+    .modal-overlay {
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .modal-glass {
+      background: rgba(30, 41, 59, 0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(148, 163, 184, 0.12);
+      box-shadow:
+        0 24px 48px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    /* ============ COUNTDOWN ============ */
+    .countdown-ring { transform: rotate(-90deg); }
+
+    /* ============ ACCESSIBILITY ============ */
+    input:focus, select:focus, button:focus-visible {
+      outline: 2px solid var(--accent-blue);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header class="header-gradient">
+    <div class="px-6 py-4">
+      <div class="flex items-center justify-between">
+        <!-- Left: Logo + Title -->
+        <div class="flex items-center space-x-4">
+          <div class="logo-badge w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm"
+               style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a;">
+            TK
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-wide" style="color: #e2e8f0;">Flight Operations</h1>
+            <p class="text-xs tracking-widest uppercase" style="color: #64748b;">Traefik Airlines Operations Center</p>
+          </div>
+        </div>
+
+        <!-- Right: Status + Refresh + Time -->
+        <div class="flex items-center space-x-6">
+          <!-- System status -->
+          <div class="flex items-center space-x-2">
+            <div class="relative flex items-center justify-center w-3 h-3">
+              <span class="absolute inline-flex h-full w-full rounded-full opacity-75"
+                    :class="systemOnline ? 'bg-green-400 animate-ping' : 'bg-red-400 animate-ping'"
+                    style="animation-duration: 2s;"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2"
+                    :class="systemOnline ? 'bg-green-400' : 'bg-red-400'"></span>
+            </div>
+            <span class="text-xs" :style="{ color: systemOnline ? '#4ade80' : '#f87171' }">
+              {{ systemOnline ? 'Systems Online' : 'Connection Lost' }}
+            </span>
+          </div>
+
+          <!-- Refresh countdown -->
+          <div class="flex items-center space-x-2" style="color: #64748b;">
+            <svg class="countdown-ring" width="28" height="28" viewBox="0 0 28 28">
+              <circle cx="14" cy="14" r="12" fill="none" stroke="rgba(51,65,85,0.5)" stroke-width="2"/>
+              <circle cx="14" cy="14" r="12" fill="none" stroke="#3b82f6" stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-dasharray="75.4"
+                      :stroke-dashoffset="75.4 - (75.4 * countdown / 60)"
+                      style="transition: stroke-dashoffset 1s linear;"/>
+            </svg>
+            <span class="text-xs font-medium tabular-nums">{{ countdown }}s</span>
+          </div>
+
+          <!-- Current time -->
+          <div class="text-right hidden sm:block">
+            <div class="text-sm font-semibold tabular-nums" style="color: #e2e8f0;">{{ currentTimeStr }}</div>
+            <div class="text-xs" style="color: #64748b;">{{ currentDateStr }}</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="px-6 py-6">
+
+    <!-- ==================== FLIGHTS ==================== -->
+    <div>
+
+      <!-- Stats bar -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div v-for="stat in flightStats" :key="stat.label"
+             class="glass-card p-5 relative overflow-hidden"
+             :class="{ 'stat-pulse': stat.pulsing }">
+          <!-- Subtle gradient accent line -->
+          <div class="absolute top-0 left-0 right-0 h-px" :style="{ background: 'linear-gradient(90deg, transparent, ' + stat.color + '40, transparent)' }"></div>
+          <div class="text-xs font-medium uppercase tracking-wider mb-2" style="color: #64748b;">{{ stat.label }}</div>
+          <div class="text-3xl font-bold tabular-nums" :style="{ color: stat.color }">
+            <span>{{ stat.value }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls bar -->
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-1">
+          <!-- Search -->
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style="color: #64748b;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input v-model="flightSearch" type="text" placeholder="Search flights..."
+                   class="ops-input pl-10 w-64">
+          </div>
+          <!-- Status filter -->
+          <select v-model="flightStatusFilter" class="ops-input">
+            <option value="">All Statuses</option>
+            <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+        <!-- Add flight button -->
+        <button @click="showAddModal = true"
+                class="btn-gradient flex items-center space-x-2 px-5 py-2.5 rounded-lg text-xs font-bold tracking-wider uppercase">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>Add Flight</span>
+        </button>
+      </div>
+
+      <!-- Flights table -->
+      <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr style="background: rgba(15, 23, 42, 0.6); border-bottom: 1px solid rgba(51, 65, 85, 0.5);">
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Flight</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Origin</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Destination</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Departure</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Arrival</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Gate</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Terminal</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider" style="color: #64748b;">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Skeleton loading -->
+              <template v-if="flightsLoading">
+                <tr v-for="i in 8" :key="'skel-'+i">
+                  <td colspan="8" class="px-5 py-3">
+                    <div class="skeleton" :style="{ height: '20px', animationDelay: (i * 0.1) + 's' }"></div>
+                  </td>
+                </tr>
+              </template>
+              <!-- Empty state -->
+              <tr v-else-if="filteredFlights.length === 0">
+                <td colspan="8" class="px-5 py-16 text-center">
+                  <svg class="mx-auto mb-3 opacity-20" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                  </svg>
+                  <div class="text-sm font-medium" style="color: #475569;">No flights match your criteria</div>
+                  <div class="text-xs mt-1" style="color: #334155;">Try adjusting your search or filter</div>
+                </td>
+              </tr>
+              <!-- Data rows -->
+              <tr v-else v-for="(flight, idx) in filteredFlights" :key="flight.flight_id"
+                  class="ops-row row-enter"
+                  :class="{ 'wave-refresh': refreshing }"
+                  :style="{ animationDelay: idx * 30 + 'ms', borderBottom: '1px solid rgba(51, 65, 85, 0.3)' }">
+                <td class="px-5 py-3.5 font-semibold" style="color: #e2e8f0;">{{ flight.flight_number || flight.flight_id }}</td>
+                <td class="px-5 py-3.5" style="color: #94a3b8;">{{ flight.origin || '-' }}</td>
+                <td class="px-5 py-3.5" style="color: #94a3b8;">{{ flight.destination || '-' }}</td>
+                <td class="px-5 py-3.5 tabular-nums" style="color: #94a3b8;">{{ formatDateTime(flight.departure_time) }}</td>
+                <td class="px-5 py-3.5 tabular-nums" style="color: #94a3b8;">{{ formatDateTime(flight.arrival_time) }}</td>
+                <td class="px-5 py-3.5 font-medium" style="color: #e2e8f0;">{{ flight.gate || '-' }}</td>
+                <td class="px-5 py-3.5" style="color: #94a3b8;">{{ flight.terminal || '-' }}</td>
+                <td class="px-5 py-3.5">
+                  <span class="status-badge"
+                        :class="{ 'status-badge-glow': isUrgentStatus(flight.status) }"
+                        :style="statusBadgeStyle(flight.status)">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full mr-1.5" :style="{ background: statusDotColor(flight.status) }"></span>
+                    {{ (flight.status || 'scheduled').replace(/-/g, ' ') }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-auto px-6 py-3 flex items-center justify-between text-xs"
+          style="background: rgba(30, 41, 59, 0.5); border-top: 1px solid rgba(51, 65, 85, 0.4); color: #64748b;">
+    <span>Traefik Airlines Flight Operations</span>
+    <span>Auto-refresh in <span :style="countdown <= 10 ? 'color: #f59e0b;' : ''">{{ countdown }}s</span></span>
+    <span>Powered by <span style="color: #f59e0b;">Traefik Hub</span></span>
+  </footer>
+
+  <!-- ==================== ADD FLIGHT MODAL ==================== -->
+  <teleport to="body">
+    <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay" @click.self="showAddModal = false">
+      <div class="modal-enter modal-glass rounded-xl shadow-2xl w-full max-w-lg mx-4">
+        <!-- Modal header -->
+        <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid rgba(51, 65, 85, 0.5);">
+          <h3 class="text-sm font-bold uppercase tracking-wider" style="color: #f59e0b;">Add New Flight</h3>
+          <button @click="showAddModal = false" class="w-8 h-8 flex items-center justify-center rounded-lg transition-all"
+                  style="color: #64748b; background: rgba(51,65,85,0.3);"
+                  onmouseover="this.style.background='rgba(51,65,85,0.8)'; this.style.color='#e2e8f0'"
+                  onmouseout="this.style.background='rgba(51,65,85,0.3)'; this.style.color='#64748b'">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="px-6 py-5 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Flight Number</label>
+              <input v-model="newFlight.flight_number" type="text" class="ops-input w-full" placeholder="TK-1234">
+            </div>
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Status</label>
+              <select v-model="newFlight.status" class="ops-input w-full">
+                <option v-for="s in statusOptions" :key="s" :value="s">{{ s }}</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Origin</label>
+              <input v-model="newFlight.origin" type="text" class="ops-input w-full" placeholder="SFO">
+            </div>
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Destination</label>
+              <input v-model="newFlight.destination" type="text" class="ops-input w-full" placeholder="JFK">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Departure Time</label>
+              <input v-model="newFlight.departure_time" type="datetime-local" class="ops-input w-full">
+            </div>
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Arrival Time</label>
+              <input v-model="newFlight.arrival_time" type="datetime-local" class="ops-input w-full">
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Gate</label>
+              <input v-model="newFlight.gate" type="text" class="ops-input w-full" placeholder="A12">
+            </div>
+            <div>
+              <label class="block text-xs font-medium uppercase tracking-wider mb-1.5" style="color: #94a3b8;">Terminal</label>
+              <input v-model="newFlight.terminal" type="text" class="ops-input w-full" placeholder="T1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="flex items-center justify-end space-x-3 px-6 py-4" style="border-top: 1px solid rgba(51, 65, 85, 0.5);">
+          <button @click="showAddModal = false"
+                  class="px-4 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all"
+                  style="color: #94a3b8; background: rgba(51,65,85,0.5);"
+                  onmouseover="this.style.background='rgba(71,85,105,0.8)'" onmouseout="this.style.background='rgba(51,65,85,0.5)'">
+            Cancel
+          </button>
+          <button @click="addFlight"
+                  :disabled="!isNewFlightValid"
+                  class="px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+                  :style="{
+                    background: isNewFlightValid ? 'linear-gradient(135deg, #f59e0b, #d97706)' : 'rgba(51,65,85,0.5)',
+                    color: isNewFlightValid ? '#0f172a' : '#64748b',
+                    opacity: isNewFlightValid ? '1' : '0.6',
+                    cursor: isNewFlightValid ? 'pointer' : 'not-allowed',
+                    boxShadow: isNewFlightValid ? '0 2px 8px rgba(245,158,11,0.2)' : 'none'
+                  }">
+            Add Flight
+          </button>
+        </div>
+      </div>
+    </div>
+  </teleport>
+
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } = Vue;
+
+createApp({
+  setup() {
+    // ── State ────────────────────────────────────────────
+    const activeTab = ref('flights');
+    const tabKey = ref(0);
+    const tabs = [
+      { id: 'flights', label: 'Flights' }
+    ];
+
+    function switchTab(id) {
+      activeTab.value = id;
+      tabKey.value++;
+    }
+
+    const systemOnline = ref(true);
+    const refreshing = ref(false);
+
+    // Time
+    const currentTime = ref(new Date());
+    let clockTimer = null;
+
+    const currentTimeStr = computed(() => {
+      const d = currentTime.value;
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    });
+    const currentDateStr = computed(() => {
+      return currentTime.value.toLocaleDateString('en-US', {
+        weekday: 'short', year: 'numeric', month: 'short', day: 'numeric'
+      });
+    });
+
+    // Auto-refresh
+    const countdown = ref(60);
+    let refreshTimer = null;
+
+    // ── Flights ──────────────────────────────────────────
+    const apiFlights = ref([]);
+    const localFlights = ref([]);
+    const flightsLoading = ref(true);
+    const flightSearch = ref('');
+    const flightStatusFilter = ref('');
+    const showAddModal = ref(false);
+    const flightAnimKey = ref(0);
+
+    const statusOptions = ['scheduled', 'boarding', 'departed', 'in-flight', 'delayed', 'cancelled', 'landed'];
+
+    const STORAGE_KEY = 'flightops_flights';
+
+    function loadLocalFlights() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) localFlights.value = JSON.parse(raw);
+      } catch (e) {
+        console.warn('Failed to load local flights:', e);
+        localFlights.value = [];
+      }
+    }
+
+    function saveLocalFlights() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(localFlights.value));
+      } catch (e) {
+        console.warn('Failed to save local flights:', e);
+      }
+    }
+
+    const allFlights = computed(() => {
+      const apiIds = new Set(apiFlights.value.map(f => f.flight_id));
+      const extras = localFlights.value.filter(f => !apiIds.has(f.flight_id));
+      return [...apiFlights.value, ...extras];
+    });
+
+    const filteredFlights = computed(() => {
+      let list = allFlights.value;
+      if (flightSearch.value) {
+        const q = flightSearch.value.toLowerCase();
+        list = list.filter(f =>
+          (f.flight_number || '').toLowerCase().includes(q) ||
+          (f.flight_id || '').toLowerCase().includes(q) ||
+          (f.origin || '').toLowerCase().includes(q) ||
+          (f.destination || '').toLowerCase().includes(q) ||
+          (f.gate || '').toLowerCase().includes(q)
+        );
+      }
+      if (flightStatusFilter.value) {
+        list = list.filter(f => (f.status || '').toLowerCase() === flightStatusFilter.value.toLowerCase());
+      }
+      return list;
+    });
+
+    const prevStats = reactive({ total: 0, scheduled: 0, inflight: 0, delayed: 0 });
+    const pulsingStats = reactive({ total: false, scheduled: false, inflight: false, delayed: false });
+
+    const flightStats = computed(() => {
+      const all = allFlights.value;
+      const total = all.length;
+      const scheduled = all.filter(f => (f.status || '').toLowerCase() === 'scheduled').length;
+      const inflight = all.filter(f => {
+        const s = (f.status || '').toLowerCase();
+        return s === 'in-flight' || s === 'departed';
+      }).length;
+      const delayed = all.filter(f => (f.status || '').toLowerCase() === 'delayed').length;
+
+      return [
+        { label: 'Total Flights', value: total, color: '#e2e8f0', pulsing: pulsingStats.total },
+        { label: 'Scheduled',     value: scheduled, color: '#4ade80', pulsing: pulsingStats.scheduled },
+        { label: 'In Flight',     value: inflight, color: '#60a5fa', pulsing: pulsingStats.inflight },
+        { label: 'Delayed',       value: delayed, color: '#fbbf24', pulsing: pulsingStats.delayed },
+      ];
+    });
+
+    watch(allFlights, () => {
+      const all = allFlights.value;
+      const total = all.length;
+      const scheduled = all.filter(f => (f.status || '').toLowerCase() === 'scheduled').length;
+      const inflight = all.filter(f => {
+        const s = (f.status || '').toLowerCase();
+        return s === 'in-flight' || s === 'departed';
+      }).length;
+      const delayed = all.filter(f => (f.status || '').toLowerCase() === 'delayed').length;
+
+      if (total !== prevStats.total)         { pulsingStats.total = true; setTimeout(() => pulsingStats.total = false, 900); }
+      if (scheduled !== prevStats.scheduled) { pulsingStats.scheduled = true; setTimeout(() => pulsingStats.scheduled = false, 900); }
+      if (inflight !== prevStats.inflight)   { pulsingStats.inflight = true; setTimeout(() => pulsingStats.inflight = false, 900); }
+      if (delayed !== prevStats.delayed)     { pulsingStats.delayed = true; setTimeout(() => pulsingStats.delayed = false, 900); }
+
+      prevStats.total = total;
+      prevStats.scheduled = scheduled;
+      prevStats.inflight = inflight;
+      prevStats.delayed = delayed;
+    }, { deep: true });
+
+    // New flight form
+    const newFlight = reactive({
+      flight_number: '', origin: '', destination: '',
+      departure_time: '', arrival_time: '',
+      gate: '', terminal: '', status: 'scheduled'
+    });
+
+    const isNewFlightValid = computed(() => {
+      return newFlight.flight_number.trim() !== '' &&
+             newFlight.origin.trim() !== '' &&
+             newFlight.destination.trim() !== '';
+    });
+
+    function resetNewFlight() {
+      newFlight.flight_number = '';
+      newFlight.origin = '';
+      newFlight.destination = '';
+      newFlight.departure_time = '';
+      newFlight.arrival_time = '';
+      newFlight.gate = '';
+      newFlight.terminal = '';
+      newFlight.status = 'scheduled';
+    }
+
+    async function addFlight() {
+      if (!isNewFlightValid.value) return;
+      const flight = {
+        flight_id: 'TK-' + Date.now().toString(36).toUpperCase(),
+        flight_number: newFlight.flight_number.trim(),
+        origin: newFlight.origin.trim().toUpperCase(),
+        destination: newFlight.destination.trim().toUpperCase(),
+        departure_time: newFlight.departure_time || null,
+        arrival_time: newFlight.arrival_time || null,
+        gate: newFlight.gate.trim().toUpperCase() || null,
+        terminal: newFlight.terminal.trim().toUpperCase() || null,
+        status: newFlight.status,
+        _local: true
+      };
+
+      try {
+        await fetch('/api/flights/flights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(flight)
+        });
+      } catch (e) { /* best-effort */ }
+
+      // Notify flight board SSE event server
+      try {
+        await fetch('/api/board/flights', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(flight)
+        });
+      } catch (e) { /* best-effort - flight board may not be reachable */ }
+
+      localFlights.value.push(flight);
+      saveLocalFlights();
+      flightAnimKey.value++;
+      showAddModal.value = false;
+      resetNewFlight();
+    }
+
+    // ── Fetch functions ──────────────────────────────────
+    async function fetchFlights() {
+      try {
+        const res = await fetch('/api/flights/flights');
+        if (res.ok) {
+          const data = await res.json();
+          apiFlights.value = Array.isArray(data) ? data : (data.flights || data.data || []);
+          systemOnline.value = true;
+        } else {
+          systemOnline.value = false;
+        }
+      } catch (err) {
+        console.error('Failed to fetch flights:', err);
+        systemOnline.value = false;
+      } finally {
+        flightsLoading.value = false;
+      }
+    }
+
+    async function fetchAll() {
+      refreshing.value = true;
+      await fetchFlights();
+      flightAnimKey.value++;
+      setTimeout(() => { refreshing.value = false; }, 600);
+    }
+
+    // ── Format helpers ───────────────────────────────────
+    function formatDateTime(ts) {
+      if (!ts) return '-';
+      try {
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) {
+          const match = ts.match(/(\d{2}):(\d{2})/);
+          return match ? match[0] : ts;
+        }
+        return d.toLocaleString('en-US', {
+          month: 'short', day: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: false
+        });
+      } catch { return ts; }
+    }
+
+    function isUrgentStatus(status) {
+      const s = (status || '').toLowerCase().replace(/\s+/g, '-');
+      return s === 'boarding' || s === 'delayed' || s === 'cancelled';
+    }
+
+    function statusBadgeStyle(status) {
+      const s = (status || 'scheduled').toLowerCase().replace(/\s+/g, '-');
+      const map = {
+        'scheduled':  { bg: 'rgba(74, 222, 128, 0.12)', color: '#4ade80', border: '1px solid rgba(74, 222, 128, 0.25)' },
+        'boarding':   { bg: 'rgba(251, 191, 36, 0.12)',  color: '#fbbf24', border: '1px solid rgba(251, 191, 36, 0.25)' },
+        'departed':   { bg: 'rgba(96, 165, 250, 0.12)',  color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.25)' },
+        'in-flight':  { bg: 'rgba(96, 165, 250, 0.12)',  color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.25)' },
+        'delayed':    { bg: 'rgba(250, 204, 21, 0.12)',  color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.25)' },
+        'cancelled':  { bg: 'rgba(248, 113, 113, 0.12)', color: '#f87171', border: '1px solid rgba(248, 113, 113, 0.25)' },
+        'landed':     { bg: 'rgba(74, 222, 128, 0.12)',  color: '#4ade80', border: '1px solid rgba(74, 222, 128, 0.25)' },
+      };
+      const style = map[s] || map['scheduled'];
+      return { background: style.bg, color: style.color, border: style.border };
+    }
+
+    function statusDotColor(status) {
+      const s = (status || 'scheduled').toLowerCase().replace(/\s+/g, '-');
+      const map = {
+        'scheduled': '#4ade80', 'boarding': '#fbbf24', 'departed': '#60a5fa',
+        'in-flight': '#60a5fa', 'delayed': '#facc15', 'cancelled': '#f87171', 'landed': '#4ade80'
+      };
+      return map[s] || '#4ade80';
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────
+    onMounted(() => {
+      loadLocalFlights();
+      fetchAll();
+      clockTimer = setInterval(() => { currentTime.value = new Date(); }, 1000);
+      countdown.value = 60;
+      refreshTimer = setInterval(() => {
+        countdown.value--;
+        if (countdown.value <= 0) {
+          fetchAll();
+          countdown.value = 60;
+        }
+      }, 1000);
+    });
+
+    onUnmounted(() => {
+      clearInterval(clockTimer);
+      clearInterval(refreshTimer);
+    });
+
+    // ── Return ────────────────────────────────────────────
+    return {
+      activeTab, tabs, tabKey, switchTab,
+      systemOnline, refreshing, currentTimeStr, currentDateStr, countdown,
+      allFlights, filteredFlights, flightsLoading, flightSearch, flightStatusFilter,
+      flightStats, statusOptions, flightAnimKey,
+      showAddModal, newFlight, isNewFlightValid, addFlight,
+      formatDateTime, isUrgentStatus, statusBadgeStyle, statusDotColor
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
