@@ -1,4 +1,22 @@
 {{- if and .Values.enabled .Values.ingress.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: keycloak-cors
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowMethods:
+      - GET
+      - POST
+      - OPTIONS
+    accessControlAllowHeaders:
+      - "*"
+    accessControlMaxAge: 300
+---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -8,6 +26,7 @@ metadata:
     {{- include "keycloak.labels" . | nindent 4 }}
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: {{ .Values.ingress.entrypoint }}
+    traefik.ingress.kubernetes.io/router.middlewares: traefik-airlines-keycloak-cors@kubernetescrd
     traefik.ingress.kubernetes.io/router.observability.accesslogs: {{ .Values.ingress.observability.accesslogs | quote  }}
     traefik.ingress.kubernetes.io/router.observability.metrics: {{ .Values.ingress.observability.metrics | quote }}
     traefik.ingress.kubernetes.io/router.observability.tracing: {{ .Values.ingress.observability.tracing | quote }}

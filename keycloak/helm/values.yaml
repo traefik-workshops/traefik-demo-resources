@@ -42,8 +42,8 @@ realm:
   advancedUsers: []
   # Example:
   # advancedUsers:
-  #   - username: user-ahv
-  #     email: user-ahv@traefik.io
+  #   - username: user
+  #     email: user@traefik.io
   #     password: topsecretpassword
   #     groups: [platform]
   #     claims: {}
