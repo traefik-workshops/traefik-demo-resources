@@ -1,9 +1,17 @@
 {{- if and .Values.enabled .Values.realm.enabled }}
 {{- $simpleUsersTransformed := list }}
-{{- range .Values.realm.users }}
+{{- range (concat (default list .Values.realm.users) .Values.realm.extraUsers | uniq) }}
 {{- $simpleUsersTransformed = append $simpleUsersTransformed (dict "username" . "email" (printf "%s@traefik.io" .) "password" "topsecretpassword" "groups" (list (printf "%ss" .)) "claims" dict) }}
 {{- end }}
-{{- $allUsers := concat $simpleUsersTransformed .Values.realm.advancedUsers }}
+{{- $allUsersSeen := dict }}
+{{- $allUsers := list }}
+{{- range (concat $simpleUsersTransformed (default list .Values.realm.advancedUsers) .Values.realm.extraAdvancedUsers) }}
+{{- if not (hasKey $allUsersSeen .username) }}
+{{- $allUsers = append $allUsers . }}
+{{- $_ := set $allUsersSeen .username true }}
+{{- end }}
+{{- end }}
+{{- $allRedirectUris := concat (default list .Values.realm.redirectUris) .Values.realm.extraRedirectUris | uniq }}
 {{- $allGroupsRaw := list }}
 {{- range $allUsers }}
 {{- $allGroupsRaw = concat $allGroupsRaw .groups }}
@@ -570,11 +578,11 @@ spec:
         enabled: true
         alwaysDisplayInConsole: false
         clientAuthenticatorType: client-secret
-        secret: 'NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0'
+        secret: {{ .Values.realm.clientSecret | default "NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0" | quote }}
         redirectUris:
           - 'https://oauth.tools/callback/code'
           - /*
-{{- range .Values.realm.redirectUris }}
+{{- range $allRedirectUris }}
           - {{ . | quote }}
 {{- end }}
         webOrigins:
@@ -595,8 +603,8 @@ spec:
           client.secret.creation.time: '1699497518'
           backchannel.logout.session.required: 'true'
           backchannel.logout.revoke.offline.tokens: 'false'
-{{- if .Values.realm.redirectUris }}
-          post.logout.redirect.uris: {{ join "##" .Values.realm.redirectUris | quote }}
+{{- if $allRedirectUris }}
+          post.logout.redirect.uris: {{ join "##" $allRedirectUris | quote }}
 {{- end }}
         authenticationFlowBindingOverrides: { }
         fullScopeAllowed: true

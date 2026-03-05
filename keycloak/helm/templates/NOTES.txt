@@ -28,16 +28,16 @@ OIDC Client Configuration:
   Client ID: traefik
   Client Secret: {{ .Values.realm.clientSecret }}
 
-{{- if .Values.realm.users }}
+{{- if or .Values.realm.users .Values.realm.extraUsers }}
 Configured Simple Users:
-{{- range .Values.realm.users }}
+{{- range (concat (default list .Values.realm.users) .Values.realm.extraUsers | uniq) }}
   - {{ . }}@traefik.io (password: topsecretpassword)
 {{- end }}
 {{- end }}
 
-{{- if .Values.realm.advancedUsers }}
+{{- if or .Values.realm.advancedUsers .Values.realm.extraAdvancedUsers }}
 Configured Advanced Users:
-{{- range .Values.realm.advancedUsers }}
+{{- range (concat (default list .Values.realm.advancedUsers) .Values.realm.extraAdvancedUsers | uniq) }}
   - {{ .email }} (groups: {{ join ", " .groups }})
 {{- end }}
 {{- end }}

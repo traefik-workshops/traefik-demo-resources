@@ -38,6 +38,9 @@ realm:
   #   - admin
   #   - user
 
+  # Extra simple users - appended to users (populated by parent chart, empty for standalone use)
+  extraUsers: []
+
   # Advanced users with detailed configuration
   advancedUsers: []
   # Example:
@@ -48,6 +51,9 @@ realm:
   #     groups: [platform]
   #     claims: {}
 
+  # Extra advanced users - appended to advancedUsers (populated by parent chart, empty for standalone use)
+  extraAdvancedUsers: []
+
   # OIDC client secret for the traefik client
   clientSecret: NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0
 
@@ -56,6 +62,9 @@ realm:
   # Example:
   # redirectUris:
   #   - https://app.example.com
+
+  # Extra redirect URIs - appended to redirectUris (populated by parent chart, empty for standalone use)
+  extraRedirectUris: []
 
 # Validation hook configuration
 validation:
