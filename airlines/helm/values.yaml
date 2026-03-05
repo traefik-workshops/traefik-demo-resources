@@ -9,46 +9,70 @@ tools-access:
     token: ""
     group: "tools"
 
-users-access:
-  - name: "admin"
-    id: ""
-    group: "users"
+users-access: []
 
 eventServer:
   image: python:3.11-slim
 
 hoppscotch:
   enabled: false
+  subdomain: "test"
   image: hoppscotch/hoppscotch:2026.2.0
   jwtSecret: "airlines-demo-jwt-secret-32chars!"
   sessionSecret: "airlines-demo-session-32chars-ok"
   dataEncryptionKey: "airlines-demo-encrypt-32chars-ok"
+  collections:
+    - name: airlines
+      title: "Airlines Demo"
+      configMapName: airlines-hoppscotch-collection
+      configMapKey: collection.json
 
 keycloak:
   enabled: false
   realm:
     enabled: true
     name: traefik
+    # Users always created when keycloak is enabled via this chart
     users:
       - admin
-      - user
     advancedUsers:
-      - username: user-ahv
-        email: user-ahv@traefik.io
+      - username: dispatcher
+        email: dispatcher@traefik-airlines.io
         password: topsecretpassword
         groups:
-          - platform
+          - flight-ops
         claims: {}
-      - username: user-nkp
-        email: user-nkp@traefik.io
+      - username: agent
+        email: agent@traefik-airlines.io
         password: topsecretpassword
         groups:
-          - nkp
+          - passenger-svc
         claims: {}
-    redirectUris: []
+      - username: handler
+        email: handler@traefik-airlines.io
+        password: topsecretpassword
+        groups:
+          - airport-ops
+        claims: {}
+      - username: analyst
+        email: analyst@traefik-airlines.io
+        password: topsecretpassword
+        groups:
+          - demo
+        claims: {}
+      - username: reader
+        email: reader@traefik-airlines.io
+        password: topsecretpassword
+        groups:
+          - reader
+        claims: {}
+    # Extra users appended to defaults (caller-provided)
+    extraUsers: []
+    extraAdvancedUsers: []
+    extraRedirectUris: []
   ingress:
     enabled: true
-    domain: "{{ .Values.global.domain }}"
+    domain: ""
     entrypoint: websecure
   ingressInternal:
     enabled: false
