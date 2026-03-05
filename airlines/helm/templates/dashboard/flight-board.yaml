@@ -1,3 +1,6 @@
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isFlightOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
+{{- $mc := .Values.multicluster -}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -295,6 +298,7 @@ spec:
       name: http
   selector:
     app: flight-board
+{{- if $isFlightOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -303,14 +307,16 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flight-board
+  {{- if and $mc.enabled (eq $mc.mode "child") }}
+  annotations:
+    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
+  {{- end }}
 spec:
   entryPoints:
-    {{- range .Values.entryPoints }}
-    - {{ . }}
-    {{- end }}
+    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 4 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.board.hostMatch" . }}
       services:
-        - name: flight-board
-          port: 80
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flight-board" "port" 80 "group" "flightOps" "haName" "") | nindent 8 }}
+{{- end }}

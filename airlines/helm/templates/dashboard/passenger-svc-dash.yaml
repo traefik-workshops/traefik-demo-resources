@@ -1,3 +1,6 @@
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isPassengerSvc := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
+{{- $mc := .Values.multicluster -}}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -38,6 +41,7 @@ data:
 
 {{ include "airlines.dashboardService" (dict "root" . "name" "passenger-svc-dash") }}
 
+{{- if $isParent }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -68,6 +72,8 @@ spec:
       session:
         expiry: 86400
         refresh: true
+{{- end }}
+{{- if $isPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -78,14 +84,14 @@ metadata:
     component: passenger-svc-dash
 spec:
   entryPoints:
-    {{- range .Values.entryPoints }}
-    - {{ . }}
-    {{- end }}
+    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 4 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.passengerSvcDash.hostMatch" . }}
       services:
-        - name: passenger-svc-dash
-          port: 80
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passenger-svc-dash" "port" 80 "group" "passengerSvc" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       middlewares:
         - name: passenger-svc-dash-oidc
+      {{- end }}
+{{- end }}
