@@ -1,4 +1,13 @@
 {{/*
+Generate a deterministic Keycloak user ID from a username (matches keycloak chart's sha256sum-based UUID).
+Usage: {{ include "airlines.keycloak.userId" "admin" }}
+*/}}
+{{- define "airlines.keycloak.userId" -}}
+{{- $h := . | sha256sum -}}
+{{- printf "%s-%s-%s-%s-%s" ($h | substr 0 8) ($h | substr 8 12) ($h | substr 12 16) ($h | substr 16 20) ($h | substr 20 32) -}}
+{{- end -}}
+
+{{/*
 Expand the name of the chart.
 */}}
 {{- define "airlines.name" -}}
@@ -49,16 +58,17 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-Domain helper
+Domain helper - returns "airlines.{global.domain}" as the service domain.
+Pass global.domain as the base domain (e.g. "mysite.com"); airlines. prefix is added here.
 */}}
 {{- define "airlines.domain" -}}
-{{- $domain := .Values.domain -}}
+{{- $base := .Values.domain -}}
 {{- if .Values.global -}}
   {{- if not (kindIs "invalid" .Values.global.domain) -}}
-    {{- $domain = .Values.global.domain -}}
+    {{- $base = .Values.global.domain -}}
   {{- end -}}
 {{- end -}}
-{{- $domain }}
+{{- printf "airlines.%s" $base }}
 {{- end }}
 
 {{/*
@@ -202,13 +212,25 @@ Host(`airport-ops.{{ include "airlines.domain" . }}`)
 {{- end }}
 
 {{/*
-OIDC URLs
+OIDC URLs - derived from global.domain if not explicitly set.
+Keycloak is at keycloak.{global.domain} (not under the airlines. subdomain).
 */}}
 {{- define "airlines.oidc.issuerUrl" -}}
-{{ .Values.keycloak.oidc.issuerUrl }}
+{{- if .Values.keycloak.oidc.issuerUrl -}}
+{{- .Values.keycloak.oidc.issuerUrl -}}
+{{- else -}}
+{{- $base := .Values.global.domain | default .Values.domain -}}
+{{- printf "https://keycloak.%s/realms/traefik" $base -}}
+{{- end -}}
 {{- end }}
 {{- define "airlines.oidc.jwksUrl" -}}
-{{ .Values.keycloak.oidc.issuerUrl }}/protocol/openid-connect/certs
+{{- include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/certs
+{{- end }}
+{{- define "airlines.oidc.clientId" -}}
+{{- .Values.keycloak.oidc.clientId | default "traefik" -}}
+{{- end }}
+{{- define "airlines.oidc.clientSecret" -}}
+{{- .Values.keycloak.oidc.clientSecret | default .Values.keycloak.realm.clientSecret | default "NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0" -}}
 {{- end }}
 
 {{/*

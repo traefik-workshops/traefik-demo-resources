@@ -47,5 +47,5 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
 type: Opaque
 stringData:
-  clientId: {{ .Values.keycloak.oidc.clientId }}
-  clientSecret: {{ .Values.keycloak.oidc.clientSecret }}
+  clientId: {{ include "airlines.oidc.clientId" . }}
+  clientSecret: {{ include "airlines.oidc.clientSecret" . }}
