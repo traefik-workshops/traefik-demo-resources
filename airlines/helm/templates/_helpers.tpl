@@ -502,3 +502,97 @@ spec:
   selector:
     app: {{ .name }}
 {{- end -}}
+
+{{/*
+Multicluster helpers
+*/}}
+
+{{/*
+airlines.mc.isParentMode: returns "true" if multicluster is disabled OR mode != "child".
+Parent mode is the default — single-cluster deployments are always parent mode.
+Usage: {{ if include "airlines.mc.isParentMode" . }}
+*/}}
+{{- define "airlines.mc.isParentMode" -}}
+{{- $mc := .Values.multicluster -}}
+{{- if not $mc.enabled -}}true{{- else if ne $mc.mode "child" -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.isRemoteGroup: returns "true" when the named group is assigned to a remote provider.
+Requires parent mode AND a non-empty provider name in multicluster.groups[group].
+Usage: {{ include "airlines.mc.isRemoteGroup" (dict "root" . "group" "flightOps") }}
+*/}}
+{{- define "airlines.mc.isRemoteGroup" -}}
+{{- if include "airlines.mc.isParentMode" .root -}}
+  {{- if .root.Values.multicluster.enabled -}}
+    {{- $provider := index .root.Values.multicluster.groups .group -}}
+    {{- if $provider -}}true{{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.isChildDeploy: returns "true" when running in child mode and the named group is enabled.
+Usage: {{ include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOpsMcp") }}
+*/}}
+{{- define "airlines.mc.isChildDeploy" -}}
+{{- $mc := .root.Values.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+  {{- if index $mc.child.groups .group -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.uplinkAnnotation: emits the router.uplinks annotation line in child mode.
+Returns empty string in parent mode. Use with nindent to append to existing annotations.
+Usage: {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
+*/}}
+{{- define "airlines.mc.uplinkAnnotation" -}}
+{{- $mc := .root.Values.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+  {{- $ep := index $mc.child.uplinkEntryPoints .group -}}
+  {{- if $ep -}}hub.traefik.io/router.uplinks: {{ $ep | quote }}{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.entryPoints: returns IngressRoute entryPoints list items.
+In child mode returns the group's uplink entry point name.
+In parent mode returns .Values.entryPoints.
+Usage: {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 4 }}
+*/}}
+{{- define "airlines.mc.entryPoints" -}}
+{{- $mc := .root.Values.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+  {{- printf "- %s" (index $mc.child.uplinkEntryPoints .group) -}}
+{{- else -}}
+  {{- $eps := list -}}
+  {{- range .root.Values.entryPoints -}}
+    {{- $eps = append $eps (printf "- %s" .) -}}
+  {{- end -}}
+  {{- join "\n" $eps -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.serviceSpec: returns the services list entry for an IngressRoute.
+  - Parent + remote group + haName set: references the WRR TraefikService
+  - Parent + remote group + haName empty: references the remote uplink directly
+  - All other cases (local or child): references the local Kubernetes service
+Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha") | nindent 8 }}
+*/}}
+{{- define "airlines.mc.serviceSpec" -}}
+{{- $isRemote := include "airlines.mc.isRemoteGroup" (dict "root" .root "group" .group) -}}
+{{- if and $isRemote .haName -}}
+- kind: TraefikService
+  name: {{ .haName }}
+{{- else if $isRemote -}}
+  {{- $ep := index .root.Values.multicluster.child.uplinkEntryPoints .group -}}
+  {{- $provider := index .root.Values.multicluster.groups .group -}}
+- name: {{ $ep }}@{{ $provider }}
+{{- else -}}
+- name: {{ .svcName }}
+  port: {{ .port }}
+  passHostHeader: true
+{{- end -}}
+{{- end -}}

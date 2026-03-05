@@ -80,3 +80,53 @@ keycloak:
     clientId: ""
     clientSecret: ""
     issuerUrl: ""
+
+multicluster:
+  enabled: false
+  mode: "parent"          # parent | child
+
+  # Parent mode: cluster provider name per group ("" = deploy locally)
+  groups:
+    flightOps: ""
+    flightOpsMcp: ""
+    passengerSvc: ""
+    passengerSvcMcp: ""
+    airportOps: ""
+    airportOpsMcp: ""
+
+  child:
+    # Uplink entry point name per group configured on the child cluster.
+    # These defaults are shared: parent uses them to construct uplink references
+    # (e.g. "flight-ops@nkp-flight-ops"); child uses them for Uplink CRD and
+    # router.uplinks annotation.
+    uplinkEntryPoints:
+      flightOps: "flight-ops"
+      flightOpsMcp: "flight-ops-mcp"
+      passengerSvc: "passenger-svc"
+      passengerSvcMcp: "passenger-svc-mcp"
+      airportOps: "airport-ops"
+      airportOpsMcp: "airport-ops-mcp"
+
+    # Which groups to deploy on this child cluster (child mode only)
+    groups:
+      flightOps: false
+      flightOpsMcp: false
+      passengerSvc: false
+      passengerSvcMcp: false
+      airportOps: false
+      airportOpsMcp: false
+
+    mcp:
+      # When true: MCP servers call APIs via internalApiBase rather than
+      # in-cluster service names (used when APIs are on a different cluster).
+      useInternalApiRouting: false
+      internalApiBase: ""    # e.g. "http://traefik.traefik.svc.cluster.local"
+
+    internalApiRouting:
+      enabled: false
+      entryPoint: "web"
+      # Provider names as seen from THIS child's multicluster config
+      groups:
+        flightOps: ""
+        passengerSvc: ""
+        airportOps: ""
