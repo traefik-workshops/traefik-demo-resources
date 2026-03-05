@@ -1,3 +1,17 @@
+{{/*
+  Flight Operations MCP Server.
+
+  Multicluster:
+  - Python ConfigMap + mcpService Deployment: child mode with flightOpsMcp enabled
+  - Hub API CRD + MCP policy Middleware + IngressRoute: parent mode only
+    (Hub manages MCP gateway on the parent cluster)
+  - When child.mcp.useInternalApiRouting=true: API dict overridden to use internalApiBase
+    so MCPs can reach APIs on a remote cluster via internal routing
+*/}}
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isMcpDeploy := include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOpsMcp") -}}
+{{- $mc := .Values.multicluster -}}
+{{- if or $isParent $isMcpDeploy }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,11 +36,20 @@ data:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("flight-ops-mcp")
 
+    {{- if and $isMcpDeploy $mc.child.mcp.useInternalApiRouting }}
+    _base = "{{ $mc.child.mcp.internalApiBase }}"
+    API = {
+        "flights":  _base,
+        "pricing":  _base,
+        "crew":     _base,
+    }
+    {{- else }}
     API = {
         "flights":  "http://flights-app:3000",
         "pricing":  "http://pricing-app:3000",
         "crew":     "http://crew-app:3000",
     }
+    {{- end }}
 
     mcp = FastMCP(
         "Flight Operations",
@@ -147,7 +170,8 @@ data:
         uvicorn.run(app, host="0.0.0.0", port=8080)
 
 {{ include "airlines.mcpService" (dict "root" . "name" "flight-ops") }}
-
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -206,14 +230,12 @@ metadata:
     hub.traefik.io/api: flight-ops-mcp-api
 spec:
   entryPoints:
-    {{- range .Values.entryPoints }}
-    - {{ . }}
-    {{- end }}
+    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOpsMcp") | nindent 4 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.flightOpsMcp.hostMatch" . }}
       services:
-        - name: flight-ops-mcp
-          port: 8080
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flight-ops-mcp" "port" 8080 "group" "flightOpsMcp" "haName" "") | nindent 8 }}
       middlewares:
         - name: flight-ops-mcp-policy
+{{- end }}

@@ -1,3 +1,15 @@
+{{/*
+  Passenger Services MCP Server.
+
+  Multicluster:
+  - Python ConfigMap + mcpService Deployment: child mode with passengerSvcMcp enabled
+  - Hub API CRD + MCP policy Middleware + IngressRoute: parent mode only
+  - When child.mcp.useInternalApiRouting=true: API dict overridden to use internalApiBase
+*/}}
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isMcpDeploy := include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvcMcp") -}}
+{{- $mc := .Values.multicluster -}}
+{{- if or $isParent $isMcpDeploy }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,11 +34,20 @@ data:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("passenger-svc-mcp")
 
+    {{- if and $isMcpDeploy $mc.child.mcp.useInternalApiRouting }}
+    _base = "{{ $mc.child.mcp.internalApiBase }}"
+    API = {
+        "bookings":      _base,
+        "passengers":    _base,
+        "notifications": _base,
+    }
+    {{- else }}
     API = {
         "bookings":      "http://bookings-app:3000",
         "passengers":    "http://passengers-app:3000",
         "notifications": "http://notifications-app:3000",
     }
+    {{- end }}
 
     mcp = FastMCP(
         "Passenger Services",
@@ -144,7 +165,8 @@ data:
         uvicorn.run(app, host="0.0.0.0", port=8080)
 
 {{ include "airlines.mcpService" (dict "root" . "name" "passenger-svc") }}
-
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -206,14 +228,12 @@ metadata:
     hub.traefik.io/api: passenger-svc-mcp-api
 spec:
   entryPoints:
-    {{- range .Values.entryPoints }}
-    - {{ . }}
-    {{- end }}
+    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvcMcp") | nindent 4 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.passengerSvcMcp.hostMatch" . }}
       services:
-        - name: passenger-svc-mcp
-          port: 8080
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passenger-svc-mcp" "port" 8080 "group" "passengerSvcMcp" "haName" "") | nindent 8 }}
       middlewares:
         - name: passenger-svc-mcp-policy
+{{- end }}

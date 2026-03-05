@@ -1,3 +1,15 @@
+{{/*
+  Airport Operations MCP Server.
+
+  Multicluster:
+  - Python ConfigMap + mcpService Deployment: child mode with airportOpsMcp enabled
+  - Hub API CRD + MCP policy Middleware + IngressRoute: parent mode only
+  - When child.mcp.useInternalApiRouting=true: API dict overridden to use internalApiBase
+*/}}
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isMcpDeploy := include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOpsMcp") -}}
+{{- $mc := .Values.multicluster -}}
+{{- if or $isParent $isMcpDeploy }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -22,11 +34,20 @@ data:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("airport-ops-mcp")
 
+    {{- if and $isMcpDeploy $mc.child.mcp.useInternalApiRouting }}
+    _base = "{{ $mc.child.mcp.internalApiBase }}"
+    API = {
+        "checkin":  _base,
+        "baggage":  _base,
+        "gates":    _base,
+    }
+    {{- else }}
     API = {
         "checkin":  "http://checkin-app:3000",
         "baggage":  "http://baggage-app:3000",
         "gates":    "http://gates-app:3000",
     }
+    {{- end }}
 
     mcp = FastMCP(
         "Airport Operations",
@@ -134,7 +155,8 @@ data:
         uvicorn.run(app, host="0.0.0.0", port=8080)
 
 {{ include "airlines.mcpService" (dict "root" . "name" "airport-ops") }}
-
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -193,14 +215,12 @@ metadata:
     hub.traefik.io/api: airport-ops-mcp-api
 spec:
   entryPoints:
-    {{- range .Values.entryPoints }}
-    - {{ . }}
-    {{- end }}
+    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOpsMcp") | nindent 4 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.airportOpsMcp.hostMatch" . }}
       services:
-        - name: airport-ops-mcp
-          port: 8080
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "airport-ops-mcp" "port" 8080 "group" "airportOpsMcp" "haName" "") | nindent 8 }}
       middlewares:
         - name: airport-ops-mcp-policy
+{{- end }}
