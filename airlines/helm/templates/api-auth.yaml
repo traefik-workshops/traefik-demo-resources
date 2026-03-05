@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIAuth
@@ -49,3 +50,4 @@ type: Opaque
 stringData:
   clientId: {{ include "airlines.oidc.clientId" . }}
   clientSecret: {{ include "airlines.oidc.clientSecret" . }}
+{{- end }}

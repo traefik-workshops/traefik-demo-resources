@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPlan
@@ -39,3 +40,4 @@ spec:
   apiPlan:
     name: airlines-demo-access
   weight: 50
+{{- end }}

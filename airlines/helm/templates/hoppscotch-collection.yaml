@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 {{- if .Values.hoppscotch.enabled }}
 {{- $domain := include "airlines.domain" . }}
 apiVersion: v1
@@ -2779,4 +2780,5 @@ data:
       },
       "headers": []
     }
+{{- end }}
 {{- end }}

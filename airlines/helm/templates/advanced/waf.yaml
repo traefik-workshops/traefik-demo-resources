@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -16,3 +17,4 @@ spec:
         - SecRule ARGS "@detectXSS" "id:941100,phase:2,deny,status:403,msg:'XSS Attack Detected',log,tag:attack-xss"
         - SecRule REQUEST_HEADERS:User-Agent "@contains sqlmap" "id:913100,phase:1,deny,status:403,msg:'Automated Scanner Blocked',log,tag:attack-scanner"
       responseCheck: false
+{{- end }}

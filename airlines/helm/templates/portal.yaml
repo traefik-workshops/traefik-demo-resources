@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPortal
@@ -66,3 +67,4 @@ spec:
     - name: airport-ops-bundle
   apiPlan:
     name: airlines-admins-access
+{{- end }}

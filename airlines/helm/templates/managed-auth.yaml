@@ -1,3 +1,4 @@
+{{- if include "airlines.mc.isParentMode" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIPlan
@@ -432,3 +433,4 @@ spec:
       - read-gates
       - write-gates
   weight: 20
+{{- end }}
