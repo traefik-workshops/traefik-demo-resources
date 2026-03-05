@@ -154,7 +154,6 @@ spec:
       - "*"
     allowMethodsList:
       - "*"
-    allowCredentials: true
     allowOriginListRegex:
       - ".*"
     maxAge: 86400
