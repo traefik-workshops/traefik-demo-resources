@@ -1,3 +1,23 @@
+{{/*
+  Per-API versioning for Passenger Services APIs.
+  v1 = deprecated (deprecation headers, no operationSets enforcement)
+  v2 = current (operationSets on APIVersion, enforced via subscriptions)
+*/}}
+
+# ── Bookings ──────────────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: bookings-v1-deprecation
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  headers:
+    customResponseHeaders:
+      Deprecation: "true"
+      Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
+      Link: '<{{ include "airlines.bookings.apiUrl" . }}/v2/bookings>; rel="successor-version"'
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -9,12 +29,21 @@ metadata:
     bundle: passenger-svc
 spec:
   title: "Bookings API"
-  description: "Flight reservation management for Traefik Airlines"
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: {{ include "airlines.bookings.apiUrl" . }}
+  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
+  versions:
+    - name: bookings-v1
+    - name: bookings-v2
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: bookings-v1
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "1.0.0"
+  title: "Bookings API v1"
+  description: "Legacy — deprecated, migrate to v2 before sunset Jan 2028"
   cors:
     allowHeadersList:
       - "Authorization"
@@ -27,18 +56,71 @@ spec:
       - "PUT"
       - "DELETE"
       - "OPTIONS"
-    allowCredentials: true
     maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-bookings
+        matchers:
+          - methods: ["GET"]
+      - name: write-bookings
+        matchers:
+          - methods: ["POST", "PUT"]
+      - name: delete-bookings
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.bookings.apiUrl" . }}/v1
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: bookings-v2
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "2.0.0"
+  title: "Bookings API v2"
+  description: "Current stable — enforces operation sets"
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-bookings
+        matchers:
+          - methods: ["GET"]
+      - name: write-bookings
+        matchers:
+          - methods: ["POST", "PUT"]
+      - name: delete-bookings
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.bookings.apiUrl" . }}/v2
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: bookings-route
+  name: bookings-v1-route
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: bookings
   annotations:
-    hub.traefik.io/api: bookings-api
+    hub.traefik.io/api-version: bookings-v1
 spec:
   entryPoints:
     {{- range .Values.entryPoints }}
@@ -46,13 +128,57 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.bookings.hostMatch" . }}
+      match: {{ include "airlines.bookings.hostMatch" . }} && PathPrefix(`/v1`)
+      middlewares:
+        - name: strip-version-v1
+        - name: bookings-v1-deprecation
       services:
         - name: bookings-app
           port: 3000
           passHostHeader: true
       observability:
         traceVerbosity: detailed
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bookings-v2-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+  annotations:
+    hub.traefik.io/api-version: bookings-v2
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.bookings.hostMatch" . }} && PathPrefix(`/v2`)
+      middlewares:
+        - name: strip-version-v2
+      services:
+        - name: bookings-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+
+# ── Passengers ────────────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: passengers-v1-deprecation
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  headers:
+    customResponseHeaders:
+      Deprecation: "true"
+      Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
+      Link: '<{{ include "airlines.passengers.apiUrl" . }}/v2/passengers>; rel="successor-version"'
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -64,12 +190,21 @@ metadata:
     bundle: passenger-svc
 spec:
   title: "Passengers API"
-  description: "Traveler profiles and preferences for Traefik Airlines"
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: {{ include "airlines.passengers.apiUrl" . }}
+  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
+  versions:
+    - name: passengers-v1
+    - name: passengers-v2
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: passengers-v1
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "1.0.0"
+  title: "Passengers API v1"
+  description: "Legacy — deprecated, migrate to v2 before sunset Jan 2028"
   cors:
     allowHeadersList:
       - "Authorization"
@@ -82,18 +217,71 @@ spec:
       - "PATCH"
       - "DELETE"
       - "OPTIONS"
-    allowCredentials: true
     maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-passengers
+        matchers:
+          - methods: ["GET"]
+      - name: write-passengers
+        matchers:
+          - methods: ["POST", "PATCH"]
+      - name: delete-passengers
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.passengers.apiUrl" . }}/v1
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: passengers-v2
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "2.0.0"
+  title: "Passengers API v2"
+  description: "Current stable — enforces operation sets"
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "PATCH"
+      - "DELETE"
+      - "OPTIONS"
+    maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-passengers
+        matchers:
+          - methods: ["GET"]
+      - name: write-passengers
+        matchers:
+          - methods: ["POST", "PATCH"]
+      - name: delete-passengers
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.passengers.apiUrl" . }}/v2
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: passengers-route
+  name: passengers-v1-route
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: passengers
   annotations:
-    hub.traefik.io/api: passengers-api
+    hub.traefik.io/api-version: passengers-v1
 spec:
   entryPoints:
     {{- range .Values.entryPoints }}
@@ -101,13 +289,57 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.passengers.hostMatch" . }}
+      match: {{ include "airlines.passengers.hostMatch" . }} && PathPrefix(`/v1`)
+      middlewares:
+        - name: strip-version-v1
+        - name: passengers-v1-deprecation
       services:
         - name: passengers-app
           port: 3000
           passHostHeader: true
       observability:
         traceVerbosity: detailed
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: passengers-v2-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+  annotations:
+    hub.traefik.io/api-version: passengers-v2
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.passengers.hostMatch" . }} && PathPrefix(`/v2`)
+      middlewares:
+        - name: strip-version-v2
+      services:
+        - name: passengers-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+
+# ── Notifications ─────────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: notifications-v1-deprecation
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  headers:
+    customResponseHeaders:
+      Deprecation: "true"
+      Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
+      Link: '<{{ include "airlines.notifications.apiUrl" . }}/v2/notifications>; rel="successor-version"'
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -119,12 +351,21 @@ metadata:
     bundle: passenger-svc
 spec:
   title: "Notifications API"
-  description: "Passenger notifications, alerts, and communications for Traefik Airlines"
-  openApiSpec:
-    path: /openapi.yaml
-    override:
-      servers:
-        - url: {{ include "airlines.notifications.apiUrl" . }}
+  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
+  versions:
+    - name: notifications-v1
+    - name: notifications-v2
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: notifications-v1
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "1.0.0"
+  title: "Notifications API v1"
+  description: "Legacy — deprecated, migrate to v2 before sunset Jan 2028"
   cors:
     allowHeadersList:
       - "Authorization"
@@ -135,19 +376,73 @@ spec:
       - "GET"
       - "POST"
       - "PUT"
+      - "DELETE"
       - "OPTIONS"
-    allowCredentials: true
     maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-notifications
+        matchers:
+          - methods: ["GET"]
+      - name: write-notifications
+        matchers:
+          - methods: ["POST", "PUT"]
+      - name: delete-notifications
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.notifications.apiUrl" . }}/v1
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: APIVersion
+metadata:
+  name: notifications-v2
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  release: "2.0.0"
+  title: "Notifications API v2"
+  description: "Current stable — enforces operation sets"
+  cors:
+    allowHeadersList:
+      - "Authorization"
+      - "Content-Type"
+    allowOriginsList:
+      - "*"
+    allowMethodsList:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    maxAge: 86400
+  openApiSpec:
+    path: /openapi.yaml
+    operationSets:
+      - name: read-notifications
+        matchers:
+          - methods: ["GET"]
+      - name: write-notifications
+        matchers:
+          - methods: ["POST", "PUT"]
+      - name: delete-notifications
+        matchers:
+          - methods: ["DELETE"]
+    override:
+      servers:
+        - url: {{ include "airlines.notifications.apiUrl" . }}/v2
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: notifications-route
+  name: notifications-v1-route
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: notifications
   annotations:
-    hub.traefik.io/api: notifications-api
+    hub.traefik.io/api-version: notifications-v1
 spec:
   entryPoints:
     {{- range .Values.entryPoints }}
@@ -155,7 +450,36 @@ spec:
     {{- end }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.notifications.hostMatch" . }}
+      match: {{ include "airlines.notifications.hostMatch" . }} && PathPrefix(`/v1`)
+      middlewares:
+        - name: strip-version-v1
+        - name: notifications-v1-deprecation
+      services:
+        - name: notifications-app
+          port: 3000
+          passHostHeader: true
+      observability:
+        traceVerbosity: detailed
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: notifications-v2-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+  annotations:
+    hub.traefik.io/api-version: notifications-v2
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      match: {{ include "airlines.notifications.hostMatch" . }} && PathPrefix(`/v2`)
+      middlewares:
+        - name: strip-version-v2
       services:
         - name: notifications-app
           port: 3000
