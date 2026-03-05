@@ -1,0 +1,2809 @@
+{{- if .Values.hoppscotch.enabled }}
+{{- $domain := include "airlines.domain" . }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: airlines-hoppscotch-collection
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+data:
+  collection.json: |
+    {
+      "v": 5,
+      "name": "Airlines API",
+      "folders": [
+        {
+          "v": 5,
+          "name": "Flight Operations",
+          "folders": [
+            {
+              "v": 5,
+              "name": "Flights",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-flights-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-list",
+                  "name": "List All Flights",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-search",
+                  "name": "Search Flights",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights/search",
+                  "params": [
+                    {
+                      "key": "origin",
+                      "value": "IST",
+                      "active": true
+                    },
+                    {
+                      "key": "destination",
+                      "value": "JFK",
+                      "active": true
+                    }
+                  ],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-get",
+                  "name": "Get Flight TK-1001",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights/TK-1001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-create",
+                  "name": "Create Flight",
+                  "method": "POST",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"new_flight_id\", pw.response.body.flight_number);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"flight_id\":\"TK-9001\",\"flight_number\":\"TK-9001\",\"origin\":\"SFO\",\"destination\":\"NRT\",\"departure_time\":\"2026-06-01T10:00:00Z\",\"arrival_time\":\"2026-06-01T18:00:00Z\",\"status\":\"scheduled\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-v1",
+                  "name": "Get Flights v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v1/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-delete-blocked",
+                  "name": "Cancel Flight - Dispatcher Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights/TK-9001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for dispatcher role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-flights-delete-admin",
+                  "name": "Cancel Flight - Admin Allowed (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights/TK-9001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Crew",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-crew-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-get",
+                  "name": "Get Crew CR-001",
+                  "method": "GET",
+                  "endpoint": "https://crew.{{ $domain }}/v2/crew/CR-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-assign",
+                  "name": "Assign Crew Member",
+                  "method": "POST",
+                  "endpoint": "https://crew.{{ $domain }}/v2/crew",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"new_crew_id\", pw.response.body.crew_id || \"CR-NEW\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"employee_id\":\"EMP-101\",\"role\":\"pilot\",\"flight_id\":\"TK-1042\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-v1",
+                  "name": "Get Crew v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://crew.{{ $domain }}/v1/crew/CR-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-delete-blocked",
+                  "name": "Remove Crew - Dispatcher Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://crew.{{ $domain }}/v2/crew/<<new_crew_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for dispatcher role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-crew-delete-admin",
+                  "name": "Remove Crew - Admin Allowed (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://crew.{{ $domain }}/v2/crew/<<new_crew_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Pricing",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-pricing-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-pricing-get",
+                  "name": "Get Pricing TK-1002",
+                  "method": "GET",
+                  "endpoint": "https://pricing.{{ $domain }}/v2/pricing/TK-1002",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-pricing-v1",
+                  "name": "Get Pricing v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://pricing.{{ $domain }}/v1/pricing/TK-1002",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-pricing-delete-blocked",
+                  "name": "Delete Fare Rule - Dispatcher Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://pricing.{{ $domain }}/v2/pricing/TK-1002",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for dispatcher role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-pricing-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-pricing-delete-admin",
+                  "name": "Delete Fare Rule - Admin Allowed (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://pricing.{{ $domain }}/v2/pricing/TK-1002",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            }
+          ],
+          "requests": [],
+          "auth": {
+            "authType": "none",
+            "authActive": false
+          },
+          "headers": []
+        },
+        {
+          "v": 5,
+          "name": "Passenger Services",
+          "folders": [
+            {
+              "v": 5,
+              "name": "Bookings",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-bookings-token",
+                  "name": "Get Agent Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=agent&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-list",
+                  "name": "List All Bookings",
+                  "method": "GET",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-create",
+                  "name": "Create Booking",
+                  "method": "POST",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"new_booking_id\", pw.response.body.booking_id);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"passenger_id\":\"PAX-001\",\"flight_id\":\"TK-9001\",\"cabin\":\"economy\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-v1",
+                  "name": "Get Bookings v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://bookings.{{ $domain }}/v1/bookings",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-cancel-blocked",
+                  "name": "Cancel Booking - Agent Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings/<<new_booking_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for agent role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-bookings-cancel-admin",
+                  "name": "Cancel Booking - Admin Allowed (Expect 200)",
+                  "method": "DELETE",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings/<<new_booking_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admins group\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Passengers",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-passengers-token",
+                  "name": "Get Agent Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=agent&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-list",
+                  "name": "List All Passengers",
+                  "method": "GET",
+                  "endpoint": "https://passengers.{{ $domain }}/v2/passengers",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-get",
+                  "name": "Get Passenger PAX-001",
+                  "method": "GET",
+                  "endpoint": "https://passengers.{{ $domain }}/v2/passengers/PAX-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-v1",
+                  "name": "Get Passengers v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://passengers.{{ $domain }}/v1/passengers",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-delete-blocked",
+                  "name": "Delete Passenger - Agent Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://passengers.{{ $domain }}/v2/passengers/PAX-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for agent role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-passengers-delete-admin",
+                  "name": "Delete Passenger - Admin Allowed (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://passengers.{{ $domain }}/v2/passengers/PAX-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Notifications",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-notifications-token",
+                  "name": "Get Agent Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=agent&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-list",
+                  "name": "List All Notifications",
+                  "method": "GET",
+                  "endpoint": "https://notifications.{{ $domain }}/v2/notifications",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-send",
+                  "name": "Send Gate Change",
+                  "method": "POST",
+                  "endpoint": "https://notifications.{{ $domain }}/v2/notifications",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"new_notif_id\", pw.response.body.notification_id || \"NOTIF-NEW\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"passenger_id\":\"PAX-001\",\"type\":\"gate-change\",\"title\":\"Gate Change - TK1001\",\"message\":\"Your gate has changed to B25\",\"channel\":\"push\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-v1",
+                  "name": "Get Notifications v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://notifications.{{ $domain }}/v1/notifications",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-delete-blocked",
+                  "name": "Delete Notification - Agent Blocked (Expect 403)",
+                  "method": "DELETE",
+                  "endpoint": "https://notifications.{{ $domain }}/v2/notifications/NOTIF-NEW",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE blocked for agent role\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-notifications-delete-admin",
+                  "name": "Delete Notification - Admin Allowed (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://notifications.{{ $domain }}/v2/notifications/NOTIF-NEW",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            }
+          ],
+          "requests": [],
+          "auth": {
+            "authType": "none",
+            "authActive": false
+          },
+          "headers": []
+        },
+        {
+          "v": 5,
+          "name": "Airport Operations",
+          "folders": [
+            {
+              "v": 5,
+              "name": "Check-in",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-checkin-token",
+                  "name": "Get Handler Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=handler&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-checkin-process",
+                  "name": "Process Check-in",
+                  "method": "POST",
+                  "endpoint": "https://checkin.{{ $domain }}/v2/checkin",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"booking_id\":\"<<new_booking_id>>\",\"seat_preference\":\"window\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-checkin-boarding",
+                  "name": "Get Boarding Pass",
+                  "method": "GET",
+                  "endpoint": "https://checkin.{{ $domain }}/v2/checkin/<<new_booking_id>>/boarding-pass",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-checkin-v1",
+                  "name": "Get Check-in v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://checkin.{{ $domain }}/v1/checkin/<<new_booking_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-checkin-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-checkin-delete-admin",
+                  "name": "Delete Check-in Record - Admin Only (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://checkin.{{ $domain }}/v2/checkin/<<new_booking_id>>",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Baggage",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-baggage-token",
+                  "name": "Get Handler Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=handler&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-baggage-checkin",
+                  "name": "Check In Bag",
+                  "method": "POST",
+                  "endpoint": "https://baggage.{{ $domain }}/v2/baggage",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"booking_id\":\"<<new_booking_id>>\",\"weight_kg\":22.5,\"type\":\"checked\"}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-baggage-track",
+                  "name": "Track Bag",
+                  "method": "GET",
+                  "endpoint": "https://baggage.{{ $domain }}/v2/baggage/track/BT-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-baggage-v1",
+                  "name": "Track Bag v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://baggage.{{ $domain }}/v1/baggage/track/BT-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-baggage-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-baggage-delete-admin",
+                  "name": "Remove Baggage Record - Admin Only (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://baggage.{{ $domain }}/v2/baggage/BT-001",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Gates",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-gates-token",
+                  "name": "Get Handler Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=handler&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-gates-list",
+                  "name": "List All Gates",
+                  "method": "GET",
+                  "endpoint": "https://gates.{{ $domain }}/v2/gates",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-gates-get",
+                  "name": "Get Gate A12",
+                  "method": "GET",
+                  "endpoint": "https://gates.{{ $domain }}/v2/gates/A12",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-gates-v1",
+                  "name": "List Gates v1 (Deprecated \u2014 check headers)",
+                  "method": "GET",
+                  "endpoint": "https://gates.{{ $domain }}/v1/gates",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const dep = pw.response.headers[\"deprecation\"];\nconst sunset = pw.response.headers[\"sunset\"];\nconsole.log(\"Deprecation: \" + dep + \" | Sunset: \" + sunset);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-gates-admin-token",
+                  "name": "Get Admin Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=admin&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-gates-delete-admin",
+                  "name": "Release Gate - Admin Only (Expect 204)",
+                  "method": "DELETE",
+                  "endpoint": "https://gates.{{ $domain }}/v2/gates/A12",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 DELETE allowed for admin\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            }
+          ],
+          "requests": [],
+          "auth": {
+            "authType": "none",
+            "authActive": false
+          },
+          "headers": []
+        },
+        {
+          "v": 5,
+          "name": "MCP",
+          "folders": [
+            {
+              "v": 5,
+              "name": "Flight Ops",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-mcp-flight-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-flight-init",
+                  "name": "Initialize",
+                  "method": "POST",
+                  "endpoint": "https://flight-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"hoppscotch-airlines\",\"version\":\"1.0\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-flight-tools",
+                  "name": "List Tools",
+                  "method": "POST",
+                  "endpoint": "https://flight-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<flight_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-flight-search",
+                  "name": "Search Flights",
+                  "method": "POST",
+                  "endpoint": "https://flight-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<flight_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search_flights\",\"arguments\":{\"origin\":\"JFK\",\"destination\":\"CDG\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-flight-status",
+                  "name": "Get Flight Status",
+                  "method": "POST",
+                  "endpoint": "https://flight-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<flight_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"get_flight_status\",\"arguments\":{\"flight_id\":\"TK-1001\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Passenger Svc",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-mcp-pax-token",
+                  "name": "Get Agent Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=agent&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-pax-init",
+                  "name": "Initialize",
+                  "method": "POST",
+                  "endpoint": "https://passenger-svc-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"hoppscotch-airlines\",\"version\":\"1.0\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-pax-tools",
+                  "name": "List Tools",
+                  "method": "POST",
+                  "endpoint": "https://passenger-svc-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<passenger_svc_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-pax-lookup",
+                  "name": "Lookup Booking",
+                  "method": "POST",
+                  "endpoint": "https://passenger-svc-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<passenger_svc_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"lookup_booking\",\"arguments\":{\"booking_id\":\"BK-100201\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-pax-create",
+                  "name": "Create Booking",
+                  "method": "POST",
+                  "endpoint": "https://passenger-svc-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<passenger_svc_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"create_booking\",\"arguments\":{\"passenger_id\":\"PAX-001\",\"flight_id\":\"TK-1001\",\"cabin\":\"business\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Airport Ops",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-mcp-airport-token",
+                  "name": "Get Handler Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=handler&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-airport-init",
+                  "name": "Initialize",
+                  "method": "POST",
+                  "endpoint": "https://airport-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-03-26\",\"capabilities\":{},\"clientInfo\":{\"name\":\"hoppscotch-airlines\",\"version\":\"1.0\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-airport-tools",
+                  "name": "List Tools",
+                  "method": "POST",
+                  "endpoint": "https://airport-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<airport_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-airport-checkin",
+                  "name": "Check In Passenger",
+                  "method": "POST",
+                  "endpoint": "https://airport-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<airport_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"check_in_passenger\",\"arguments\":{\"booking_id\":\"BK-100201\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-mcp-airport-gate",
+                  "name": "Get Gate Info",
+                  "method": "POST",
+                  "endpoint": "https://airport-ops-mcp.{{ $domain }}/mcp",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json",
+                      "active": true
+                    },
+                    {
+                      "key": "Accept",
+                      "value": "application/json, text/event-stream",
+                      "active": true
+                    },
+                    {
+                      "key": "Mcp-Session-Id",
+                      "value": "<<airport_ops_mcp_session>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "application/json",
+                    "body": "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"get_gate_info\",\"arguments\":{\"flight_id\":\"TK-1001\"}}}"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            }
+          ],
+          "requests": [],
+          "auth": {
+            "authType": "none",
+            "authActive": false
+          },
+          "headers": []
+        },
+        {
+          "v": 5,
+          "name": "Advanced Use Cases",
+          "folders": [
+            {
+              "v": 5,
+              "name": "Access Control",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-acl-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-acl-flights-ok",
+                  "name": "Flights API (Should Succeed)",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-acl-gates-403",
+                  "name": "Gates API (Should 403)",
+                  "method": "GET",
+                  "endpoint": "https://gates.{{ $domain }}/v2/gates",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Plans & Quotas",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-adv-a-token",
+                  "name": "Get Analyst Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"analyst_token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=analyst&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-a-quota-check",
+                  "name": "List Flights - Check Quota (Run Multiple Times)",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<analyst_token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const remaining = pw.response.headers[\"x-quota-remaining\"];\nconst limit = pw.response.headers[\"x-quota-limit\"];\nconsole.log(\"Quota: \" + remaining + \" / \" + limit + \" remaining\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-a-quota-exhausted",
+                  "name": "List Flights - Quota Exhausted (Expect 429)",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<analyst_token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "Request Transformation",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-adv-d-token",
+                  "name": "Get Dispatcher Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=dispatcher&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-d-headers",
+                  "name": "List Flights - Observe Injected Headers",
+                  "method": "GET",
+                  "endpoint": "https://flights.{{ $domain }}/v2/flights",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "const served = pw.response.headers[\"x-served-by\"];\nconsole.log(\"X-Served-By: \" + served);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            },
+            {
+              "v": 5,
+              "name": "WAF",
+              "folders": [],
+              "requests": [
+                {
+                  "v": "5",
+                  "id": "req-adv-f-token",
+                  "name": "Get Agent Token",
+                  "method": "POST",
+                  "endpoint": "{{ include "airlines.oidc.issuerUrl" . }}/protocol/openid-connect/token",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/x-www-form-urlencoded",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "hopp.env.global.set(\"token\", pw.response.body.access_token);",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": "text/plain",
+                    "body": "grant_type=password&client_id=traefik&client_secret=NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0&username=agent&password=topsecretpassword&scope=openid+group"
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-f-clean",
+                  "name": "List Bookings - Clean Request (200)",
+                  "method": "GET",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings",
+                  "params": [],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 WAF allows clean traffic\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-f-sqli",
+                  "name": "SQL Injection Attack (Expect 403)",
+                  "method": "GET",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings/search",
+                  "params": [
+                    {
+                      "key": "passenger_id",
+                      "value": "1' UNION SELECT username,password FROM users--",
+                      "active": true
+                    }
+                  ],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 SQL injection blocked by WAF\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                },
+                {
+                  "v": "5",
+                  "id": "req-adv-f-xss",
+                  "name": "XSS Attack (Expect 403)",
+                  "method": "GET",
+                  "endpoint": "https://bookings.{{ $domain }}/v2/bookings/search",
+                  "params": [
+                    {
+                      "key": "passenger_id",
+                      "value": "<script>alert(document.cookie)</script>",
+                      "active": true
+                    }
+                  ],
+                  "headers": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer <<token>>",
+                      "active": true
+                    }
+                  ],
+                  "preRequestScript": "",
+                  "testScript": "console.log(\"Status: \" + pw.response.status + \" \u2014 XSS blocked by WAF\");",
+                  "auth": {
+                    "authType": "none",
+                    "authActive": false
+                  },
+                  "body": {
+                    "contentType": null,
+                    "body": null
+                  },
+                  "requestVariables": [],
+                  "responses": {}
+                }
+              ],
+              "auth": {
+                "authType": "none",
+                "authActive": false
+              },
+              "headers": []
+            }
+          ],
+          "requests": [],
+          "auth": {
+            "authType": "none",
+            "authActive": false
+          },
+          "headers": []
+        }
+      ],
+      "requests": [],
+      "auth": {
+        "authType": "none",
+        "authActive": false
+      },
+      "headers": []
+    }
+{{- end }}

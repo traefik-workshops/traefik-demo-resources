@@ -1,42 +1,31 @@
-{{- if .Values.hoppscotch.enabled }}
 apiVersion: v1
 kind: Secret
 metadata:
-  name: hoppscotch-postgresql
+  name: {{ .Release.Name }}-hoppscotch-postgresql
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "hoppscotch.labels" . | nindent 4 }}
 type: Opaque
 stringData:
-  DATABASE_URL: "postgresql://hoppscotch:hoppscotch@hoppscotch-postgresql:5432/hoppscotch?sslmode=disable"
+  DATABASE_URL: "postgresql://hoppscotch:hoppscotch@{{ .Release.Name }}-hoppscotch-postgresql:5432/hoppscotch?sslmode=disable"
   POSTGRES_PASSWORD: "hoppscotch"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: hoppscotch-postgresql-init
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-data:
-  init.sql: |
-    CREATE DATABASE hoppscotch;
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: hoppscotch-postgresql
+  name: {{ .Release.Name }}-hoppscotch-postgresql
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    app: hoppscotch-postgresql
+    {{- include "hoppscotch.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}-hoppscotch-postgresql
 spec:
-  serviceName: hoppscotch-postgresql
+  serviceName: {{ .Release.Name }}-hoppscotch-postgresql
   replicas: 1
   selector:
     matchLabels:
-      app: hoppscotch-postgresql
+      app: {{ .Release.Name }}-hoppscotch-postgresql
   template:
     metadata:
       labels:
-        app: hoppscotch-postgresql
+        app: {{ .Release.Name }}-hoppscotch-postgresql
     spec:
       containers:
         - name: postgresql
@@ -52,7 +41,7 @@ spec:
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: hoppscotch-postgresql
+                  name: {{ .Release.Name }}-hoppscotch-postgresql
                   key: POSTGRES_PASSWORD
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
@@ -83,10 +72,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hoppscotch-postgresql
+  name: {{ .Release.Name }}-hoppscotch-postgresql
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    app: hoppscotch-postgresql
+    {{- include "hoppscotch.labels" . | nindent 4 }}
+    app: {{ .Release.Name }}-hoppscotch-postgresql
 spec:
   type: ClusterIP
   ports:
@@ -94,5 +83,4 @@ spec:
       targetPort: 5432
       name: postgresql
   selector:
-    app: hoppscotch-postgresql
-{{- end }}
+    app: {{ .Release.Name }}-hoppscotch-postgresql

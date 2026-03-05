@@ -29,15 +29,12 @@ Dashboards:
 
 Portal: https://portal.{{ include "airlines.domain" . }}
 {{- if .Values.hoppscotch.enabled }}
+{{- $testHost := .Values.hoppscotch.host | default (printf "test.%s" .Values.global.domain) }}
 
-API Testing: https://test.{{ include "airlines.domain" . }}
-  Collection URL: https://test.{{ include "airlines.domain" . }}/collection.json
-
-  To load the collection:
-    Hoppscotch → Collections → Import → From URL
-    Paste: https://test.{{ include "airlines.domain" . }}/collection.json
-
-  Then run Auth / Get Admin Token to authenticate all requests.
+API Testing: https://{{ $testHost }}
+{{- range .Values.hoppscotch.collections }}
+  Import {{ .title }}: https://{{ $testHost }}/import?type=hoppscotch&url=/{{ .name }}/collection.json
+{{- end }}
 {{- end }}
 
 Dashboard Logins:

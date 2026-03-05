@@ -2,5 +2,8 @@ dependencies:
 - name: keycloak
   repository: file://../../keycloak/helm
   version: 0.2.3
-digest: sha256:0fb301e96aa78e1ae3ca72d53778086e1fbaee32b2c565b8081a2a3f2a394a69
-generated: "2026-02-27T08:05:54.799169-05:00"
+- name: hoppscotch
+  repository: file://../../hoppscotch/helm
+  version: 0.1.3
+digest: sha256:76ce81ab0e3c33e5bc3ee8d63e59c3e287b8bec422ad6e09d2b7458bed2fbe3c
+generated: "2026-03-05T07:13:48.531895-05:00"

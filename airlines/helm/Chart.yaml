@@ -10,3 +10,7 @@ dependencies:
     version: 0.2.3
     repository: "file://../../keycloak/helm"
     condition: keycloak.enabled
+  - name: hoppscotch
+    version: 0.1.3
+    repository: "file://../../hoppscotch/helm"
+    condition: hoppscotch.enabled
