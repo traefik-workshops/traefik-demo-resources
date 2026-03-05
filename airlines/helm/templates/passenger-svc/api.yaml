@@ -1,6 +1,6 @@
 {{/*
   Per-API versioning for Passenger Services APIs.
-  v1 = deprecated (deprecation headers, no operationSets enforcement)
+  v1 = deprecated (deprecation headers, operationSets enforced)
   v2 = current (operationSets on APIVersion, enforced via subscriptions)
 */}}
 
@@ -158,6 +158,7 @@ spec:
       match: {{ include "airlines.bookings.hostMatch" . }} && PathPrefix(`/v2`)
       middlewares:
         - name: strip-version-v2
+        - name: coraza-waf
       services:
         - name: bookings-app
           port: 3000

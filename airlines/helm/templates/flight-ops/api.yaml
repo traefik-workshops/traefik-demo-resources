@@ -1,6 +1,6 @@
 {{/*
   Per-API versioning for Flight Operations APIs.
-  v1 = deprecated (deprecation headers, no operationSets enforcement)
+  v1 = deprecated (deprecation headers, operationSets enforced)
   v2 = current (operationSets on APIVersion, enforced via subscriptions)
 
   Correct Hub structure:
@@ -222,6 +222,7 @@ spec:
     allowMethodsList:
       - "GET"
       - "POST"
+      - "PUT"
       - "DELETE"
       - "OPTIONS"
     maxAge: 86400
@@ -260,6 +261,7 @@ spec:
     allowMethodsList:
       - "GET"
       - "POST"
+      - "PUT"
       - "DELETE"
       - "OPTIONS"
     maxAge: 86400
@@ -381,6 +383,8 @@ spec:
     allowMethodsList:
       - "GET"
       - "POST"
+      - "PUT"
+      - "PATCH"
       - "DELETE"
       - "OPTIONS"
     maxAge: 86400
@@ -419,6 +423,8 @@ spec:
     allowMethodsList:
       - "GET"
       - "POST"
+      - "PUT"
+      - "PATCH"
       - "DELETE"
       - "OPTIONS"
     maxAge: 86400

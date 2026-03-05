@@ -358,3 +358,77 @@ spec:
       - write-notifications
       - delete-notifications
   weight: 20
+
+# ── Airport Operations — handler subscriptions ────────────────────────────────
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: ManagedSubscription
+metadata:
+  name: handler-airport-ops-subscription
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  managedApplications:
+    - name: handler-application
+  apiBundles:
+    - name: airport-ops-bundle
+  apiPlan:
+    name: airlines-access
+  weight: 10
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: ManagedSubscription
+metadata:
+  name: handler-checkin-subscription
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  managedApplications:
+    - name: handler-application
+  apis:
+    - name: checkin-api
+  apiPlan:
+    name: airlines-access
+  operationFilter:
+    include:
+      - read-checkin
+      - write-checkin
+  weight: 20
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: ManagedSubscription
+metadata:
+  name: handler-baggage-subscription
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  managedApplications:
+    - name: handler-application
+  apis:
+    - name: baggage-api
+  apiPlan:
+    name: airlines-access
+  operationFilter:
+    include:
+      - read-baggage
+      - write-baggage
+  weight: 20
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: ManagedSubscription
+metadata:
+  name: handler-gates-subscription
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  managedApplications:
+    - name: handler-application
+  apis:
+    - name: gates-api
+  apiPlan:
+    name: airlines-access
+  operationFilter:
+    include:
+      - read-gates
+      - write-gates
+  weight: 20

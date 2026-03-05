@@ -4,6 +4,8 @@ A comprehensive airlines platform demonstrating Traefik Hub's API Gateway, MCP G
 
 ## Architecture
 
+### Single Cluster (Default)
+
 ```text
                                     Internet
                                        │
@@ -42,6 +44,57 @@ A comprehensive airlines platform demonstrating Traefik Hub's API Gateway, MCP G
                    │  (OIDC SSO) │          │  (Identity)  │
                    └─────────────┘          └──────────────┘
 ```
+
+### Multicluster
+
+When `multicluster.enabled=true`, service groups are distributed across clusters. The chart
+contains zero cluster-specific names — all assignments are values passed at install time.
+
+```text
++------------------------------------------------------------------------+
+|                         Transit (Parent)                               |
+|                                                                        |
+|  Management: API/APIVersion CRDs, Bundles, Auth, Portal                |
+|  IngressRoutes -> <svc>@<provider>  (provider names from values)       |
+|  WRR TraefikService: local(w=3) + remote(w=1) for flights/bookings/    |
+|                       checkin                                          |
++----------+--------+----------+--------+----------+--------+-----------+
+           |        |          |        |          |        |
+         :9444    :9445      :9446    :9447      :9448    :9449
+     flight-ops  pass-svc  airport  fo-mcp    ps-mcp   ao-mcp
+           |        |          |        |          |        |
+     +-----+--------+----------+    +---+----------+--------+--+
+     |        Ops Cluster (NKP)  |  |        MCP Cluster (NAI)  |
+     |                           |  |                            |
+     |  Uplinks (per group):     |  |  Uplinks (per group):      |
+     |  - flight-ops    :9444    |  |  - flight-ops-mcp  :9447   |
+     |  - passenger-svc :9445    |  |  - passenger-svc-mcp:9448  |
+     |  - airport-ops   :9446    |  |  - airport-ops-mcp :9449   |
+     |                           |  |                            |
+     |  Deploys:                 |  |  Deploys: MCPs only        |
+     |  APIs (v1+v2) +           |  |                            |
+     |  Dashboards               |  |  Internal routes (web EP): |
+     +---------------------------+  |  /flights  -> @9444        |
+              ^                     |  /pricing  -> @9444        |
+              | polls :9444-9446    |  /bookings -> @9445  etc.  |
+              +---------------------+  (NAI Traefik routes MCPs  |
+                                    |   to NKP services)         |
+                                    +----------------------------+
+```
+
+**6 groups**, each independently assignable to a cluster via `multicluster.groups.<key>`:
+
+| Group key        | Contents                                       | WRR HA target  |
+|------------------|------------------------------------------------|----------------|
+| `flightOps`      | flights + pricing + crew APIs (v1+v2) + dashes | `flights-app`  |
+| `flightOpsMcp`   | flight-ops MCP server                          | --             |
+| `passengerSvc`   | bookings + passengers + notifications + dash   | `bookings-app` |
+| `passengerSvcMcp`| passenger-svc MCP server                       | --             |
+| `airportOps`     | checkin + baggage + gates APIs (v1+v2) + dash  | `checkin-app`  |
+| `airportOpsMcp`  | airport-ops MCP server                         | --             |
+
+When a group is assigned to a remote cluster, a WRR `TraefikService` is automatically
+created with weights local=3, remote=1 (75%/25%). No toggle required.
 
 ## Components
 
