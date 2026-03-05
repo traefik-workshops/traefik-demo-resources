@@ -1,0 +1,221 @@
+{{/*
+  OPTIONS preflight IngressRoutes — no Hub annotation so Hub auth is bypassed.
+  priority: 1000 ensures these win over the default-priority Hub-annotated versioned routes.
+*/}}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: cors-preflight-headers
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  headers:
+    accessControlAllowOriginList:
+      - "*"
+    accessControlAllowMethods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "PATCH"
+      - "DELETE"
+      - "OPTIONS"
+    accessControlAllowHeaders:
+      - "Authorization"
+      - "Content-Type"
+    accessControlMaxAge: 86400
+
+# ── Flight Operations ──────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flights-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.flights.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: flights-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: crew-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.crew.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: crew-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: pricing-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.pricing.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: pricing-app
+          port: 3000
+
+# ── Passenger Services ─────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bookings-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.bookings.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: bookings-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: passengers-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.passengers.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: passengers-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: notifications-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.notifications.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: notifications-app
+          port: 3000
+
+# ── Airport Operations ─────────────────────────────────────────────────────────
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: checkin-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.checkin.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: checkin-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: baggage-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.baggage.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: baggage-app
+          port: 3000
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gates-options-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - kind: Rule
+      priority: 1000
+      match: {{ include "airlines.gates.hostMatch" . }} && Method(`OPTIONS`)
+      middlewares:
+        - name: cors-preflight-headers
+      services:
+        - name: gates-app
+          port: 3000
