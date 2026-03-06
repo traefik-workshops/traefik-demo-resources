@@ -4,6 +4,7 @@ apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
   name: keycloak-cors
+  namespace: {{ include "keycloak.namespace" . }}
   labels:
     {{- include "keycloak.labels" . | nindent 4 }}
 spec:
