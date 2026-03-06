@@ -1,6 +1,7 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isPassengerSvc := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
 {{- $mc := .Values.multicluster -}}
+{{- if $isPassengerSvc }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -93,4 +94,5 @@ spec:
       middlewares:
         - name: passenger-svc-dash-oidc
       {{- end }}
+{{- end }}
 {{- end }}

@@ -1,6 +1,7 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isAirportOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
 {{- $mc := .Values.multicluster -}}
+{{- if $isAirportOps }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -93,4 +94,5 @@ spec:
       middlewares:
         - name: airport-ops-dash-oidc
       {{- end }}
+{{- end }}
 {{- end }}
