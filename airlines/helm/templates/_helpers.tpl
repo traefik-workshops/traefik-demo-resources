@@ -587,7 +587,7 @@ Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-a
 {{- else if $isRemote -}}
   {{- $ep := index .root.Values.multicluster.child.uplinkEntryPoints .group -}}
   {{- $provider := index .root.Values.multicluster.groups .group -}}
-- name: {{ $ep }}@{{ $provider }}
+- name: {{ $ep }}@multicluster
 {{- else -}}
 - name: {{ .svcName }}
   port: {{ .port }}
