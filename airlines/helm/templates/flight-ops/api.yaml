@@ -154,8 +154,10 @@ spec:
         - name: flights-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -179,8 +181,10 @@ spec:
         - name: strip-version-v2
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}
 
 # ── Pricing ───────────────────────────────────────────────────────────────────
@@ -317,8 +321,10 @@ spec:
         - name: pricing-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "pricing-app" "port" 3000 "group" "flightOps" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -342,8 +348,10 @@ spec:
         - name: strip-version-v2
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "pricing-app" "port" 3000 "group" "flightOps" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}
 
 # ── Crew ──────────────────────────────────────────────────────────────────────
@@ -482,8 +490,10 @@ spec:
         - name: crew-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "crew-app" "port" 3000 "group" "flightOps" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -507,6 +517,8 @@ spec:
         - name: strip-version-v2
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "crew-app" "port" 3000 "group" "flightOps" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}

@@ -147,8 +147,10 @@ spec:
         - name: bookings-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "bookings-app" "port" 3000 "group" "passengerSvc" "haName" "bookings-ha") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -175,8 +177,10 @@ spec:
         {{- end }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "bookings-app" "port" 3000 "group" "passengerSvc" "haName" "bookings-ha") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}
 
 # ── Passengers ────────────────────────────────────────────────────────────────
@@ -313,8 +317,10 @@ spec:
         - name: passengers-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -338,8 +344,10 @@ spec:
         - name: strip-version-v2
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}
 
 # ── Notifications ─────────────────────────────────────────────────────────────
@@ -476,8 +484,10 @@ spec:
         - name: notifications-v1-deprecation
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "notifications-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -501,6 +511,8 @@ spec:
         - name: strip-version-v2
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "notifications-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+      {{- if $isParent }}
       observability:
         traceVerbosity: detailed
+      {{- end }}
 {{- end }}
