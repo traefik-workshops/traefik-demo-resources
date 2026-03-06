@@ -214,8 +214,7 @@ metadata:
   annotations:
     hub.traefik.io/api: airport-ops-mcp-api
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOpsMcp") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOpsMcp") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.airportOpsMcp.hostMatch" . }}

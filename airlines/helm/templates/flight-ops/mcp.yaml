@@ -229,8 +229,7 @@ metadata:
   annotations:
     hub.traefik.io/api: flight-ops-mcp-api
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOpsMcp") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOpsMcp") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.flightOpsMcp.hostMatch" . }}

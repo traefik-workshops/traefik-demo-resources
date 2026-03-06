@@ -227,8 +227,7 @@ metadata:
   annotations:
     hub.traefik.io/api: passenger-svc-mcp-api
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvcMcp") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvcMcp") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.passengerSvcMcp.hostMatch" . }}

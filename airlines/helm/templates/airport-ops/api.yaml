@@ -134,8 +134,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.checkin.hostMatch" . }} && PathPrefix(`/v1`)
@@ -162,8 +161,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.checkin.hostMatch" . }} && PathPrefix(`/v2`)
@@ -301,8 +299,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.baggage.hostMatch" . }} && PathPrefix(`/v1`)
@@ -329,8 +326,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.baggage.hostMatch" . }} && PathPrefix(`/v2`)
@@ -468,8 +464,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.gates.hostMatch" . }} && PathPrefix(`/v1`)
@@ -496,8 +491,7 @@ metadata:
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.gates.hostMatch" . }} && PathPrefix(`/v2`)

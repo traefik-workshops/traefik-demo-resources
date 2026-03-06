@@ -83,8 +83,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
     component: passenger-svc-dash
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.passengerSvcDash.hostMatch" . }}

@@ -556,21 +556,19 @@ Usage: {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flight
 {{- end -}}
 
 {{/*
-airlines.mc.entryPoints: returns IngressRoute entryPoints list items.
-In child mode returns the group's uplink entry point name.
-In parent mode returns .Values.entryPoints.
-Usage: {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 4 }}
+airlines.mc.entryPoints: returns the full entryPoints: YAML block, or empty in child mode.
+Non-root uplink routers (child mode) cannot have entryPoints configuration in Traefik Hub.
+In parent mode returns the full block using .Values.entryPoints.
+Usage: {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 2 }}
 */}}
 {{- define "airlines.mc.entryPoints" -}}
 {{- $mc := .root.Values.multicluster -}}
-{{- if and $mc.enabled (eq $mc.mode "child") -}}
-  {{- printf "- %s" (index $mc.child.uplinkEntryPoints .group) -}}
-{{- else -}}
+{{- if not (and $mc.enabled (eq $mc.mode "child")) -}}
   {{- $eps := list -}}
   {{- range .root.Values.entryPoints -}}
-    {{- $eps = append $eps (printf "- %s" .) -}}
+    {{- $eps = append $eps (printf "  - %s" .) -}}
   {{- end -}}
-  {{- join "\n" $eps -}}
+  {{- printf "entryPoints:\n%s" (join "\n" $eps) -}}
 {{- end -}}
 {{- end -}}
 

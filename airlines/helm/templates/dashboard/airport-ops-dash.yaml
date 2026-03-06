@@ -83,8 +83,7 @@ metadata:
     {{- include "airlines.labels" . | nindent 4 }}
     component: airport-ops-dash
 spec:
-  entryPoints:
-    {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 4 }}
+  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.airportOpsDash.hostMatch" . }}
