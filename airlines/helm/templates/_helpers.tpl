@@ -79,13 +79,26 @@ Domain Match helper
 {{- end }}
 
 {{/*
+Internal host-match helper: returns Host() in parent mode, HostRegexp() in child mode.
+Usage: {{ include "airlines.hostMatch" (dict "root" . "prefix" "flights") }}
+*/}}
+{{- define "airlines.hostMatch" -}}
+{{- $mc := .root.Values.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+HostRegexp(`^{{ .prefix }}\.airlines\..+$`)
+{{- else -}}
+Host(`{{ .prefix }}.{{ include "airlines.domain" .root }}`)
+{{- end -}}
+{{- end -}}
+
+{{/*
 Flights API
 */}}
 {{- define "airlines.flights.apiUrl" -}}
 https://flights.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.flights.hostMatch" -}}
-Host(`flights.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "flights") }}
 {{- end }}
 
 {{/*
@@ -95,7 +108,7 @@ Pricing API
 https://pricing.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.pricing.hostMatch" -}}
-Host(`pricing.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "pricing") }}
 {{- end }}
 
 {{/*
@@ -105,7 +118,7 @@ Bookings API
 https://bookings.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.bookings.hostMatch" -}}
-Host(`bookings.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "bookings") }}
 {{- end }}
 
 {{/*
@@ -115,7 +128,7 @@ Passengers API
 https://passengers.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.passengers.hostMatch" -}}
-Host(`passengers.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "passengers") }}
 {{- end }}
 
 {{/*
@@ -125,7 +138,7 @@ Check-in API
 https://checkin.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.checkin.hostMatch" -}}
-Host(`checkin.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin") }}
 {{- end }}
 
 {{/*
@@ -135,7 +148,7 @@ Baggage API
 https://baggage.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.baggage.hostMatch" -}}
-Host(`baggage.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage") }}
 {{- end }}
 
 {{/*
@@ -145,7 +158,7 @@ Crew API
 https://crew.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.crew.hostMatch" -}}
-Host(`crew.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "crew") }}
 {{- end }}
 
 {{/*
@@ -155,7 +168,7 @@ Notifications API
 https://notifications.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.notifications.hostMatch" -}}
-Host(`notifications.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "notifications") }}
 {{- end }}
 
 {{/*
@@ -165,50 +178,50 @@ Gates API
 https://gates.{{ include "airlines.domain" . }}
 {{- end }}
 {{- define "airlines.gates.hostMatch" -}}
-Host(`gates.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "gates") }}
 {{- end }}
 
 {{/*
 MCP Server Host Matches
 */}}
 {{- define "airlines.flightOpsMcp.hostMatch" -}}
-Host(`flight-ops-mcp.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "flight-ops-mcp") }}
 {{- end }}
 {{- define "airlines.passengerSvcMcp.hostMatch" -}}
-Host(`passenger-svc-mcp.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "passenger-svc-mcp") }}
 {{- end }}
 {{- define "airlines.airportOpsMcp.hostMatch" -}}
-Host(`airport-ops-mcp.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "airport-ops-mcp") }}
 {{- end }}
 
 {{/*
 Test (Hoppscotch) Host Match
 */}}
 {{- define "airlines.test.hostMatch" -}}
-Host(`test.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "test") }}
 {{- end }}
 
 {{/*
 Portal Host Match
 */}}
 {{- define "airlines.portal.hostMatch" -}}
-Host(`portal.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "portal") }}
 {{- end }}
 
 {{/*
 Dashboard Host Matches
 */}}
 {{- define "airlines.board.hostMatch" -}}
-Host(`board.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "board") }}
 {{- end }}
 {{- define "airlines.flightOpsDash.hostMatch" -}}
-Host(`flight-ops.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "flight-ops") }}
 {{- end }}
 {{- define "airlines.passengerSvcDash.hostMatch" -}}
-Host(`passenger-svc.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "passenger-svc") }}
 {{- end }}
 {{- define "airlines.airportOpsDash.hostMatch" -}}
-Host(`airport-ops.{{ include "airlines.domain" . }}`)
+{{ include "airlines.hostMatch" (dict "root" . "prefix" "airport-ops") }}
 {{- end }}
 
 {{/*
