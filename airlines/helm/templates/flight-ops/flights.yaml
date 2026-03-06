@@ -1,3 +1,6 @@
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
+{{- if $isDeploy }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -446,3 +449,5 @@ data:
               type: string
 
 {{ include "airlines.flaskService" (dict "root" . "name" "flights") }}
+
+{{- end }}

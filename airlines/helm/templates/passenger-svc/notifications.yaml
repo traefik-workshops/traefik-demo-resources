@@ -1,3 +1,6 @@
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
+{{- if $isDeploy }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -249,3 +252,5 @@ data:
               enum: [email, push, sms]
 
 {{ include "airlines.flaskService" (dict "root" . "name" "notifications") }}
+
+{{- end }}

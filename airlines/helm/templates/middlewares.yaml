@@ -1,3 +1,9 @@
+{{- $isParent := include "airlines.mc.isParentMode" . -}}
+{{- $hasOpsGroup := or
+  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps"))
+  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc"))
+  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- if or $isParent $hasOpsGroup }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -20,3 +26,5 @@ spec:
   stripPrefix:
     prefixes:
       - /v2
+
+{{- end }}
