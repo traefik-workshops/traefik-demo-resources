@@ -57,51 +57,6 @@ data:
                     type: array
                     items:
                       $ref: '#/components/schemas/FlightPricing'
-      /pricing/{flightId}:
-        get:
-          summary: Get pricing for a flight
-          description: Returns fare breakdown by cabin class for a specific flight
-          operationId: getFlightPricing
-          tags: [pricing]
-          parameters:
-            - name: flightId
-              in: path
-              required: true
-              schema:
-                type: string
-                example: "TK-1001"
-          responses:
-            "200":
-              description: Fare breakdown
-              content:
-                application/json:
-                  schema:
-                    $ref: '#/components/schemas/FlightPricing'
-            "404":
-              description: Flight not found
-        delete:
-          summary: Remove flight pricing record
-          operationId: deleteFlightPricing
-          tags: [pricing]
-          parameters:
-            - name: flightId
-              in: path
-              required: true
-              schema:
-                type: string
-              example: "TK-1001"
-          responses:
-            "200":
-              description: Pricing record removed
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      status:
-                        type: string
-            "404":
-              description: Flight not found
       /pricing/calculate:
         post:
           summary: Calculate total fare
@@ -137,40 +92,6 @@ data:
                       extra_baggage_fee: 75.00
                     total: 2027.70
                     currency: "USD"
-      /pricing/classes:
-        get:
-          summary: List cabin classes
-          description: Returns all available cabin classes and their standard amenities
-          operationId: listCabinClasses
-          tags: [classes]
-          responses:
-            "200":
-              description: Cabin classes
-              content:
-                application/json:
-                  schema:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/CabinClass'
-                  example:
-                    - cabin: "economy"
-                      display_name: "Economy"
-                      baggage_allowance: "1x23kg"
-                      seat_pitch: "31 inches"
-                      meal_included: false
-                      priority_boarding: false
-                    - cabin: "premium-economy"
-                      display_name: "Premium Economy"
-                      baggage_allowance: "2x23kg"
-                      seat_pitch: "38 inches"
-                      meal_included: true
-                      priority_boarding: false
-                    - cabin: "business"
-                      display_name: "Business"
-                      baggage_allowance: "2x32kg"
-                      seat_pitch: "lie-flat"
-                      meal_included: true
-                      priority_boarding: true
     components:
       schemas:
         FlightPricing:

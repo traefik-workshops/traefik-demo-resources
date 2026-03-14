@@ -227,33 +227,6 @@ data:
                         type: string
             "404":
               description: Gate not found
-      /gates/terminal/{terminal}:
-        get:
-          summary: Get gates by terminal
-          operationId: getGatesByTerminal
-          tags: [terminals]
-          parameters:
-            - name: terminal
-              in: path
-              required: true
-              schema:
-                type: string
-              example: "1"
-            - name: airport
-              in: query
-              required: true
-              schema:
-                type: string
-              example: "JFK"
-          responses:
-            "200":
-              description: Gates in the terminal
-              content:
-                application/json:
-                  schema:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Gate'
     components:
       schemas:
         Gate:
