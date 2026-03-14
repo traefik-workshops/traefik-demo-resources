@@ -2,15 +2,20 @@ apiVersion: v2
 name: airlines
 description: Airlines Demo - Scalar Mock Server APIs with Traefik Hub API Management
 type: application
-version: 0.3.9
+version: 0.4.2
 appVersion: "2.0.0"
 
 dependencies:
   - name: keycloak
-    version: 0.2.3
+    version: 0.2.5
     repository: "file://../../keycloak/helm"
     condition: keycloak.enabled
   - name: hoppscotch
     version: 0.1.3
     repository: "file://../../hoppscotch/helm"
     condition: hoppscotch.enabled
+  - name: ai-gateway
+    alias: aiGateway
+    version: 0.3.3
+    repository: "file://../../ai-gateway/helm"
+    condition: aiGateway.enabled

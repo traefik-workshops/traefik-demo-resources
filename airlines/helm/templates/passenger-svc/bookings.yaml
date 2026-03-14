@@ -149,7 +149,16 @@ data:
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/BookingInput'
+                  type: object
+                  required: [passenger_id, flight_id, cabin]
+                  properties:
+                    passenger_id:
+                      type: string
+                    flight_id:
+                      type: string
+                    cabin:
+                      type: string
+                      enum: [economy, premium-economy, business]
                 example:
                   passenger_id: "PAX-001"
                   flight_id: "TK-2187"

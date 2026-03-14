@@ -11,7 +11,22 @@
 {{- $_ := set $allUsersSeen .username true }}
 {{- end }}
 {{- end }}
-{{- $allRedirectUris := concat (default list .Values.realm.redirectUris) .Values.realm.extraRedirectUris | uniq }}
+{{- $rawRedirectUris := concat (default list .Values.realm.redirectUris) .Values.realm.extraRedirectUris | uniq }}
+{{- $domain := ((.Values.global).domain) }}
+{{- $allRedirectUris := list }}
+{{- $allLogoutRedirectUris := list }}
+{{- range $rawRedirectUris }}
+{{- if hasPrefix "https://" . }}
+{{- $allRedirectUris = append $allRedirectUris . }}
+{{- $allLogoutRedirectUris = append $allLogoutRedirectUris . }}
+{{- else if $domain }}
+{{- $allRedirectUris = append $allRedirectUris (printf "https://%s.%s/callback" . $domain) }}
+{{- $allLogoutRedirectUris = append $allLogoutRedirectUris (printf "https://%s.%s" . $domain) }}
+{{- else }}
+{{- $allRedirectUris = append $allRedirectUris . }}
+{{- $allLogoutRedirectUris = append $allLogoutRedirectUris . }}
+{{- end }}
+{{- end }}
 {{- $allGroupsRaw := list }}
 {{- range $allUsers }}
 {{- $allGroupsRaw = concat $allGroupsRaw .groups }}
@@ -603,8 +618,8 @@ spec:
           client.secret.creation.time: '1699497518'
           backchannel.logout.session.required: 'true'
           backchannel.logout.revoke.offline.tokens: 'false'
-{{- if $allRedirectUris }}
-          post.logout.redirect.uris: {{ join "##" $allRedirectUris | quote }}
+{{- if $allLogoutRedirectUris }}
+          post.logout.redirect.uris: {{ join "##" $allLogoutRedirectUris | quote }}
 {{- end }}
         authenticationFlowBindingOverrides: { }
         fullScopeAllowed: true

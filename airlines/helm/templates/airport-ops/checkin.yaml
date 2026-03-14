@@ -145,6 +145,29 @@ data:
                     $ref: '#/components/schemas/Checkin'
             "404":
               description: Booking not found
+        delete:
+          summary: Cancel check-in record
+          operationId: cancelCheckin
+          tags: [checkin]
+          parameters:
+            - name: bookingId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "BK-100201"
+          responses:
+            "200":
+              description: Check-in cancelled
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+            "404":
+              description: Booking not found
       /checkin/{bookingId}/boarding-pass:
         get:
           summary: Get boarding pass

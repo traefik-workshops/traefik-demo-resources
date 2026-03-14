@@ -10,7 +10,7 @@
 */}}
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isAirportOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
-{{- $mc := .Values.multicluster -}}
+{{- $mc := .Values.global.multicluster -}}
 
 # ── Check-in ──────────────────────────────────────────────────────────────────
 ---
@@ -25,7 +25,6 @@ spec:
     customResponseHeaders:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
-      Link: '<{{ include "airlines.checkin.apiUrl" . }}/v2/checkin>; rel="successor-version"'
 {{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
@@ -38,7 +37,7 @@ metadata:
     bundle: airport-ops
 spec:
   title: "Check-in API"
-  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
+  description: "v1 (deprecated) and v2"
   versions:
     - name: checkin-v1
     - name: checkin-v2
@@ -105,6 +104,8 @@ spec:
     maxAge: 86400
   openApiSpec:
     path: /openapi.yaml
+    validateRequestMethodAndPath: true
+    validateRequestBodySchema: true
     operationSets:
       - name: read-checkin
         matchers:
@@ -137,7 +138,7 @@ spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.checkin.hostMatch" . }} && PathPrefix(`/v1`)
+      match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v1") }}
       middlewares:
         - name: strip-version-v1
         - name: checkin-v1-deprecation
@@ -164,7 +165,7 @@ spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.checkin.hostMatch" . }} && PathPrefix(`/v2`)
+      match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v2") }}
       middlewares:
         - name: strip-version-v2
       services:
@@ -188,7 +189,6 @@ spec:
     customResponseHeaders:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
-      Link: '<{{ include "airlines.baggage.apiUrl" . }}/v2/baggage>; rel="successor-version"'
 {{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
@@ -201,7 +201,7 @@ metadata:
     bundle: airport-ops
 spec:
   title: "Baggage API"
-  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
+  description: "v1 (deprecated) and v2"
   versions:
     - name: baggage-v1
     - name: baggage-v2
@@ -270,6 +270,8 @@ spec:
     maxAge: 86400
   openApiSpec:
     path: /openapi.yaml
+    validateRequestMethodAndPath: true
+    validateRequestBodySchema: true
     operationSets:
       - name: read-baggage
         matchers:
@@ -302,7 +304,7 @@ spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.baggage.hostMatch" . }} && PathPrefix(`/v1`)
+      match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v1") }}
       middlewares:
         - name: strip-version-v1
         - name: baggage-v1-deprecation
@@ -329,7 +331,7 @@ spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.baggage.hostMatch" . }} && PathPrefix(`/v2`)
+      match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v2") }}
       middlewares:
         - name: strip-version-v2
       services:
@@ -341,19 +343,6 @@ spec:
 {{- end }}
 
 # ── Gates ─────────────────────────────────────────────────────────────────────
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: gates-v1-deprecation
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  headers:
-    customResponseHeaders:
-      Deprecation: "true"
-      Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
-      Link: '<{{ include "airlines.gates.apiUrl" . }}/v2/gates>; rel="successor-version"'
 {{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
@@ -366,21 +355,7 @@ metadata:
     bundle: airport-ops
 spec:
   title: "Gates API"
-  description: "v1 (deprecated) and v2 (current, enforces operation sets)"
-  versions:
-    - name: gates-v1
-    - name: gates-v2
----
-apiVersion: hub.traefik.io/v1alpha1
-kind: APIVersion
-metadata:
-  name: gates-v1
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  release: "1.0.0"
-  title: "Gates API v1"
-  description: "Legacy — deprecated, migrate to v2 before sunset Jan 2028"
+  description: "Current stable"
   cors:
     allowHeadersList:
       - "Authorization"
@@ -396,6 +371,8 @@ spec:
     maxAge: 86400
   openApiSpec:
     path: /openapi.yaml
+    validateRequestMethodAndPath: true
+    validateRequestBodySchema: true
     operationSets:
       - name: read-gates
         matchers:
@@ -408,58 +385,21 @@ spec:
           - methods: ["DELETE"]
     override:
       servers:
-        - url: {{ include "airlines.gates.apiUrl" . }}/v1
----
-apiVersion: hub.traefik.io/v1alpha1
-kind: APIVersion
-metadata:
-  name: gates-v2
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  release: "2.0.0"
-  title: "Gates API v2"
-  description: "Current stable — enforces operation sets"
-  cors:
-    allowHeadersList:
-      - "Authorization"
-      - "Content-Type"
-    allowOriginsList:
-      - "*"
-    allowMethodsList:
-      - "GET"
-      - "POST"
-      - "PUT"
-      - "DELETE"
-      - "OPTIONS"
-    maxAge: 86400
-  openApiSpec:
-    path: /openapi.yaml
-    operationSets:
-      - name: read-gates
-        matchers:
-          - methods: ["GET"]
-      - name: write-gates
-        matchers:
-          - methods: ["POST", "PUT"]
-      - name: delete-gates
-        matchers:
-          - methods: ["DELETE"]
-    override:
-      servers:
-        - url: {{ include "airlines.gates.apiUrl" . }}/v2
+        - url: {{ include "airlines.gates.apiUrl" . }}
 {{- end }}
 {{- if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: gates-v1-route
+  name: gates-route
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: gates
   annotations:
-    hub.traefik.io/api-version: gates-v1
+    {{- if $isParent }}
+    hub.traefik.io/api: gates-api
+    {{- end }}
     {{- if and $mc.enabled (eq $mc.mode "child") }}
     hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
     {{- end }}
@@ -467,36 +407,7 @@ spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
-      match: {{ include "airlines.gates.hostMatch" . }} && PathPrefix(`/v1`)
-      middlewares:
-        - name: strip-version-v1
-        - name: gates-v1-deprecation
-      services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
-      {{- if $isParent }}
-      observability:
-        traceVerbosity: detailed
-      {{- end }}
----
-apiVersion: traefik.io/v1alpha1
-kind: IngressRoute
-metadata:
-  name: gates-v2-route
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-    component: gates
-  annotations:
-    hub.traefik.io/api-version: gates-v2
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
-spec:
-  {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
-  routes:
-    - kind: Rule
-      match: {{ include "airlines.gates.hostMatch" . }} && PathPrefix(`/v2`)
-      middlewares:
-        - name: strip-version-v2
+      match: {{ include "airlines.gates.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
       {{- if $isParent }}

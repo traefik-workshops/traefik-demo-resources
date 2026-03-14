@@ -22,6 +22,17 @@ def setup_flights_routes():
 
         return jsonify(results), 200
 
+    @app.route('/flights/internal-status', methods=['GET'])
+    def internal_status():
+        """Internal ops endpoint — not exposed in the OpenAPI spec."""
+        if not base_service.store:
+            return jsonify({"error": "Service not initialized"}), 500
+
+        return jsonify({
+            "status": "ok",
+            "total_flights": len(base_service.store.data)
+        }), 200
+
 if __name__ == '__main__':
     # Initialize the store
     init_store('/api/api.json', 'flight_id', 'Flights')

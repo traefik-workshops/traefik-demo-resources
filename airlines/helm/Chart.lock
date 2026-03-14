@@ -1,9 +1,12 @@
 dependencies:
 - name: keycloak
   repository: file://../../keycloak/helm
-  version: 0.2.3
+  version: 0.2.5
 - name: hoppscotch
   repository: file://../../hoppscotch/helm
   version: 0.1.3
-digest: sha256:76ce81ab0e3c33e5bc3ee8d63e59c3e287b8bec422ad6e09d2b7458bed2fbe3c
-generated: "2026-03-05T07:13:48.531895-05:00"
+- name: ai-gateway
+  repository: file://../../ai-gateway/helm
+  version: 0.3.3
+digest: sha256:864edbc14271b2a532bbeb77e513adb168b848db050ce1fdd4d04d11fb3a127a
+generated: "2026-03-12T18:34:18.390182-04:00"

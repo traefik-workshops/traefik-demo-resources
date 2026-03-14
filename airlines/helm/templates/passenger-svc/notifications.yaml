@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc") -}}
 {{- if $isDeploy }}
 apiVersion: v1
 kind: ConfigMap
@@ -156,29 +156,50 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/Notification'
-      /notifications/{passengerId}:
+      /notifications/{notificationId}:
         get:
-          summary: Get notifications for a passenger
-          operationId: getPassengerNotifications
+          summary: Get notification by ID
+          operationId: getNotification
           tags: [notifications]
           parameters:
-            - name: passengerId
+            - name: notificationId
               in: path
               required: true
               schema:
                 type: string
-              example: "PAX-001"
+              example: "NTF-3001"
           responses:
             "200":
-              description: Passenger notifications
+              description: Notification details
               content:
                 application/json:
                   schema:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Notification'
+                    $ref: '#/components/schemas/Notification'
             "404":
-              description: Passenger not found
+              description: Notification not found
+        delete:
+          summary: Delete a notification
+          operationId: deleteNotification
+          tags: [notifications]
+          parameters:
+            - name: notificationId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "NTF-3001"
+          responses:
+            "200":
+              description: Notification deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+            "404":
+              description: Notification not found
       /notifications/{notificationId}/read:
         put:
           summary: Mark notification as read

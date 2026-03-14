@@ -10,8 +10,8 @@
   Other APIs in each group route directly to the uplink (no WRR).
 */}}
 {{- if include "airlines.mc.isRemoteGroup" (dict "root" . "group" "flightOps") }}
-{{- $ep := index .Values.multicluster.child.uplinkEntryPoints "flightOps" }}
-{{- $provider := index .Values.multicluster.groups "flightOps" }}
+{{- $ep := index .Values.global.multicluster.child.uplinkEntryPoints "flightOps" }}
+{{- $provider := index .Values.global.multicluster.parent.groups "flightOps" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: TraefikService
@@ -33,8 +33,8 @@ spec:
 {{- end }}
 
 {{- if include "airlines.mc.isRemoteGroup" (dict "root" . "group" "passengerSvc") }}
-{{- $ep := index .Values.multicluster.child.uplinkEntryPoints "passengerSvc" }}
-{{- $provider := index .Values.multicluster.groups "passengerSvc" }}
+{{- $ep := index .Values.global.multicluster.child.uplinkEntryPoints "passengerSvc" }}
+{{- $provider := index .Values.global.multicluster.parent.groups "passengerSvc" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: TraefikService
@@ -56,8 +56,8 @@ spec:
 {{- end }}
 
 {{- if include "airlines.mc.isRemoteGroup" (dict "root" . "group" "airportOps") }}
-{{- $ep := index .Values.multicluster.child.uplinkEntryPoints "airportOps" }}
-{{- $provider := index .Values.multicluster.groups "airportOps" }}
+{{- $ep := index .Values.global.multicluster.child.uplinkEntryPoints "airportOps" }}
+{{- $provider := index .Values.global.multicluster.parent.groups "airportOps" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: TraefikService

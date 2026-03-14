@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc") -}}
 {{- if $isDeploy }}
 ---
 apiVersion: v1

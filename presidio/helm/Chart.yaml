@@ -2,5 +2,5 @@ apiVersion: v2
 name: presidio
 description: A Helm chart for Microsoft Presidio Analyzer
 type: application
-version: 0.2.2
+version: 0.2.3
 appVersion: "2.2.358"

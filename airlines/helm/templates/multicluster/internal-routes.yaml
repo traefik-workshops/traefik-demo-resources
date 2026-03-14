@@ -7,12 +7,12 @@
   MCPs call http://{internalApiBase}/{service-path}/... and this Traefik routes
   to the remote provider via multicluster uplink.
 */}}
-{{- $mc := .Values.multicluster -}}
-{{- if and $mc.enabled (eq $mc.mode "child") $mc.child.internalApiRouting.enabled -}}
-{{- $ep := $mc.child.internalApiRouting.entryPoint -}}
+{{- $mc := .Values.global.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+{{- $ep := $mc.child.mcp.entryPoint -}}
 
-{{- if index $mc.child.internalApiRouting.groups "flightOps" }}
-{{- $provider := index $mc.child.internalApiRouting.groups "flightOps" }}
+{{- if index $mc.child.mcp.groups "flightOps" }}
+{{- $provider := index $mc.child.mcp.groups "flightOps" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -39,8 +39,8 @@ spec:
         - name: {{ $provider }}
 {{- end }}
 
-{{- if index $mc.child.internalApiRouting.groups "passengerSvc" }}
-{{- $provider := index $mc.child.internalApiRouting.groups "passengerSvc" }}
+{{- if index $mc.child.mcp.groups "passengerSvc" }}
+{{- $provider := index $mc.child.mcp.groups "passengerSvc" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -67,8 +67,8 @@ spec:
         - name: {{ $provider }}
 {{- end }}
 
-{{- if index $mc.child.internalApiRouting.groups "airportOps" }}
-{{- $provider := index $mc.child.internalApiRouting.groups "airportOps" }}
+{{- if index $mc.child.mcp.groups "airportOps" }}
+{{- $provider := index $mc.child.mcp.groups "airportOps" }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute

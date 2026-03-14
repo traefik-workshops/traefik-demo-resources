@@ -1,4 +1,6 @@
 {{- if .Values.enabled }}
+{{- $isParent := include "ai-gateway.mc.isParentMode" . -}}
+{{- $isChild := include "ai-gateway.mc.isChildDeploy" . -}}
 {{- range .Values.endpoints }}
 {{- if (default true .enabled) }}
 {{- $endpointName := .name }}
@@ -39,14 +41,17 @@ spec:
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ $fullName }}-auth
+  name: {{ $fullName }}-headers
   labels:
     {{- include "ai-gateway.labels" $ | nindent 4 }}
     endpoint: {{ $endpointName }}
 spec:
   headers:
     customRequestHeaders:
-      {{ .auth.header }}: {{ .auth.value | quote }}
+      {{- range $k, $v := .headers }}
+      {{ $k }}: {{ $v | quote }}
+      {{- end }}
+{{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -62,7 +67,8 @@ spec:
     url: {{ .api.oasUrl }}
     override:
       servers:
-        - url: https://{{ $routing.host }}.{{ $.Values.domain }}
+        - url: https://{{ $routing.host }}.{{ ($.Values.global).domain | default $.Values.domain }}
+{{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -71,33 +77,43 @@ metadata:
   labels:
     {{- include "ai-gateway.labels" $ | nindent 4 }}
     endpoint: {{ $endpointName }}
+  {{- $uplinkAnnotation := include "ai-gateway.mc.uplinkAnnotation" $ }}
+  {{- if or $isParent $uplinkAnnotation }}
   annotations:
+    {{- if $isParent }}
     hub.traefik.io/api: {{ $fullName }}-api
+    {{- end }}
+    {{- if $uplinkAnnotation }}
+    {{ $uplinkAnnotation }}
+    {{- end }}
+  {{- end }}
 spec:
-  entryPoints:
-    {{- toYaml $.Values.entryPoints | nindent 4 }}
+  {{- $entryPoints := include "ai-gateway.mc.entryPoints" $ }}
+  {{- if $entryPoints }}
+  {{- $entryPoints | nindent 2 }}
+  {{- end }}
   routes:
     - kind: Rule
-      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`) && PathPrefix(`/v1/chat/completions`)
+      match: {{ include "ai-gateway.mc.routeMatch" (dict "root" $ "host" $routing.host "endpointName" $endpointName "path" "/v1/chat/completions") }}
       services:
         - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
           port: 443
           scheme: https
           passHostHeader: false
       middlewares:
-        - name: {{ $fullName }}-auth
+        - name: {{ $fullName }}-headers
         {{- range $endpointMiddlewares }}
         - name: {{ if (has . (keys $.Values.sharedMiddlewares)) }}{{ include "ai-gateway.fullname" $ }}-{{ . | kebabcase }}{{ else }}{{ include "ai-gateway.fullname" $ }}-{{ $endpointName }}-{{ . | kebabcase }}{{ end }}
         {{- end }}
     - kind: Rule
-      match: Host(`{{ $routing.host }}.{{ $.Values.domain }}`)
+      match: {{ include "ai-gateway.mc.routeMatch" (dict "root" $ "host" $routing.host "endpointName" $endpointName "path" "") }}
       services:
         - name: {{ if $isExternal }}{{ $fullName }}{{ else }}{{ $backendUrl }}{{ end }}
           port: 443
           scheme: https
           passHostHeader: false
       middlewares:
-        - name: {{ $fullName }}-auth
+        - name: {{ $fullName }}-headers
 {{- end }}
 {{- end }}
 {{- end }}

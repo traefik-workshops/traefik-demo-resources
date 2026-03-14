@@ -79,15 +79,26 @@ Domain Match helper
 {{- end }}
 
 {{/*
-Internal host-match helper: returns Host() in parent mode, HostRegexp() in child mode.
+Internal host-match helper.
+In parent mode: returns Host(`{prefix}.airlines.{domain}`) with optional && PathPrefix(`/{version}`).
+In child mode: returns PathPrefix(`/{prefix}/{version}`) or PathPrefix(`/{prefix}`).
 Usage: {{ include "airlines.hostMatch" (dict "root" . "prefix" "flights") }}
+       {{ include "airlines.hostMatch" (dict "root" . "prefix" "flights" "version" "v1") }}
 */}}
 {{- define "airlines.hostMatch" -}}
-{{- $mc := .root.Values.multicluster -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- if and $mc.enabled (eq $mc.mode "child") -}}
-HostRegexp(`^{{ .prefix }}\.airlines\..+$`)
+  {{- if .version -}}
+PathPrefix(`/{{ .prefix }}/{{ .version }}`)
+  {{- else -}}
+PathPrefix(`/{{ .prefix }}`)
+  {{- end -}}
 {{- else -}}
+  {{- if .version -}}
+Host(`{{ .prefix }}.{{ include "airlines.domain" .root }}`) && PathPrefix(`/{{ .version }}`)
+  {{- else -}}
 Host(`{{ .prefix }}.{{ include "airlines.domain" .root }}`)
+  {{- end -}}
 {{- end -}}
 {{- end -}}
 
@@ -458,6 +469,7 @@ spec:
 Dashboard deployment template.
 Creates: Deployment + Service for an nginx dashboard instance.
 Expects ConfigMaps created separately: {name}-nginx-conf, {name}-html.
+Mounts the shared dashboard-shared-assets ConfigMap for JS/CSS.
 
 Usage: {{ include "airlines.dashboardService" (dict "root" . "name" "flight-board") }}
 */}}
@@ -481,6 +493,28 @@ spec:
         app: {{ .name }}
         component: dashboard
     spec:
+      initContainers:
+        - name: build
+          image: node:20-alpine
+          env:
+            - name: DASHBOARD
+              value: {{ .name | trimSuffix "-dash" }}
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /workspace && \
+              tar -xzf /src/src.tar.gz -C /workspace && \
+              cd /workspace && \
+              npm ci --prefer-offline && \
+              npx vite build --outDir /tmp/dist && \
+              cp /tmp/dist/assets/index.js /tmp/dist/assets/index.css /assets/
+          volumeMounts:
+            - name: build-src
+              mountPath: /src
+              readOnly: true
+            - name: assets
+              mountPath: /assets
       containers:
         - name: nginx
           image: nginx:alpine
@@ -489,12 +523,19 @@ spec:
           volumeMounts:
             - name: html
               mountPath: /usr/share/nginx/html
+            - name: assets
+              mountPath: /usr/share/nginx/html/assets
             - name: nginx-conf
               mountPath: /etc/nginx/conf.d
       volumes:
         - name: html
           configMap:
             name: {{ .name }}-html
+        - name: assets
+          emptyDir: {}
+        - name: build-src
+          configMap:
+            name: dashboard-build-src
         - name: nginx-conf
           configMap:
             name: {{ .name }}-nginx-conf
@@ -526,7 +567,7 @@ Parent mode is the default — single-cluster deployments are always parent mode
 Usage: {{ if include "airlines.mc.isParentMode" . }}
 */}}
 {{- define "airlines.mc.isParentMode" -}}
-{{- $mc := .Values.multicluster -}}
+{{- $mc := .Values.global.multicluster -}}
 {{- if not $mc.enabled -}}true{{- else if ne $mc.mode "child" -}}true{{- end -}}
 {{- end -}}
 
@@ -536,11 +577,25 @@ Requires parent mode AND a non-empty provider name in multicluster.groups[group]
 Usage: {{ include "airlines.mc.isRemoteGroup" (dict "root" . "group" "flightOps") }}
 */}}
 {{- define "airlines.mc.isRemoteGroup" -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- if include "airlines.mc.isParentMode" .root -}}
-  {{- if .root.Values.multicluster.enabled -}}
-    {{- $provider := index .root.Values.multicluster.groups .group -}}
+  {{- if $mc.enabled -}}
+    {{- $provider := index $mc.parent.groups .group -}}
     {{- if $provider -}}true{{- end -}}
   {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+airlines.mc.isLocalDeploy: returns "true" when workloads should be deployed locally.
+True when: (parent mode AND group is NOT remote) OR (child mode AND group is enabled).
+Usage: {{ include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") }}
+*/}}
+{{- define "airlines.mc.isLocalDeploy" -}}
+{{- if include "airlines.mc.isParentMode" .root -}}
+  {{- if not (include "airlines.mc.isRemoteGroup" (dict "root" .root "group" .group)) -}}true{{- end -}}
+{{- else -}}
+  {{- include "airlines.mc.isChildDeploy" (dict "root" .root "group" .group) -}}
 {{- end -}}
 {{- end -}}
 
@@ -549,7 +604,7 @@ airlines.mc.isChildDeploy: returns "true" when running in child mode and the nam
 Usage: {{ include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOpsMcp") }}
 */}}
 {{- define "airlines.mc.isChildDeploy" -}}
-{{- $mc := .root.Values.multicluster -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- if and $mc.enabled (eq $mc.mode "child") -}}
   {{- if index $mc.child.groups .group -}}true{{- end -}}
 {{- end -}}
@@ -561,7 +616,7 @@ Returns empty string in parent mode. Use with nindent to append to existing anno
 Usage: {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
 */}}
 {{- define "airlines.mc.uplinkAnnotation" -}}
-{{- $mc := .root.Values.multicluster -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- if and $mc.enabled (eq $mc.mode "child") -}}
   {{- $ep := index $mc.child.uplinkEntryPoints .group -}}
   {{- if $ep -}}hub.traefik.io/router.uplinks: {{ $ep | quote }}{{- end -}}
@@ -575,7 +630,7 @@ In parent mode returns the full block using .Values.entryPoints.
 Usage: {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 2 }}
 */}}
 {{- define "airlines.mc.entryPoints" -}}
-{{- $mc := .root.Values.multicluster -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- if not (and $mc.enabled (eq $mc.mode "child")) -}}
   {{- $eps := list -}}
   {{- range .root.Values.entryPoints -}}
@@ -593,14 +648,15 @@ airlines.mc.serviceSpec: returns the services list entry for an IngressRoute.
 Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha") | nindent 8 }}
 */}}
 {{- define "airlines.mc.serviceSpec" -}}
+{{- $mc := .root.Values.global.multicluster -}}
 {{- $isRemote := include "airlines.mc.isRemoteGroup" (dict "root" .root "group" .group) -}}
 {{- if and $isRemote .haName -}}
 - kind: TraefikService
   name: {{ .haName }}
 {{- else if $isRemote -}}
-  {{- $ep := index .root.Values.multicluster.child.uplinkEntryPoints .group -}}
-  {{- $provider := index .root.Values.multicluster.groups .group -}}
-- name: {{ $ep }}@multicluster
+  {{- $ep := index $mc.child.uplinkEntryPoints .group -}}
+- kind: TraefikService
+  name: {{ $ep }}@multicluster
 {{- else -}}
 - name: {{ .svcName }}
   port: {{ .port }}

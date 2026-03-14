@@ -10,13 +10,13 @@ Create a default fully qualified app name.
 */}}
 {{- define "ai-gateway.fullname" -}}
 {{- if .Values.fullnameOverride }}
-{{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
+{{- .Values.fullnameOverride | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- $name := default .Chart.Name .Values.nameOverride }}
-{{- if contains $name .Release.Name }}
-{{- .Release.Name | trunc 63 | trimSuffix "-" }}
+{{- $name := default .Chart.Name .Values.nameOverride | lower }}
+{{- if contains $name (.Release.Name | lower) }}
+{{- .Release.Name | lower | trunc 63 | trimSuffix "-" }}
 {{- else }}
-{{- printf "%s-%s" .Release.Name $name | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-%s" .Release.Name $name | lower | trunc 63 | trimSuffix "-" }}
 {{- end }}
 {{- end }}
 {{- end }}
@@ -40,3 +40,70 @@ Selector labels
 app.kubernetes.io/name: {{ include "ai-gateway.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Multicluster helpers.
+Mode is read from global.multicluster (passed by parent chart) or .Values.multicluster.
+Uplink entry point is always read from .Values.multicluster.child.uplinkEntryPoint (local config).
+*/}}
+
+{{/*
+ai-gateway.mc.isParentMode: true when multicluster is disabled or mode != "child".
+*/}}
+{{- define "ai-gateway.mc.isParentMode" -}}
+{{- $mc := default .Values.multicluster ((.Values.global).multicluster) -}}
+{{- if not $mc.enabled -}}true{{- else if ne $mc.mode "child" -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.isChildDeploy: true when in child mode.
+*/}}
+{{- define "ai-gateway.mc.isChildDeploy" -}}
+{{- $mc := default .Values.multicluster ((.Values.global).multicluster) -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}true{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.uplinkAnnotation: emits hub.traefik.io/router.uplinks annotation in child mode.
+*/}}
+{{- define "ai-gateway.mc.uplinkAnnotation" -}}
+{{- if include "ai-gateway.mc.isChildDeploy" . -}}
+  {{- $ep := .Values.multicluster.child.uplinkEntryPoint -}}
+  {{- if $ep -}}hub.traefik.io/router.uplinks: {{ $ep | quote }}{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.routeMatch: returns the IngressRoute match expression.
+Parent: Host(`{host}.{domain}`) && PathPrefix(`{path}`)
+Child:  PathPrefix(`/{endpointName}{path}`)
+Usage: {{ include "ai-gateway.mc.routeMatch" (dict "root" $ "host" "gemini" "endpointName" "gemini" "path" "/v1/chat/completions") }}
+*/}}
+{{- define "ai-gateway.mc.routeMatch" -}}
+{{- if include "ai-gateway.mc.isChildDeploy" .root -}}
+  {{- if .path -}}
+PathPrefix(`/{{ .endpointName }}{{ .path }}`)
+  {{- else -}}
+PathPrefix(`/{{ .endpointName }}`)
+  {{- end -}}
+{{- else -}}
+  {{- if .path -}}
+Host(`{{ .host }}.{{ (.root.Values.global).domain | default .root.Values.domain }}`) && PathPrefix(`{{ .path }}`)
+  {{- else -}}
+Host(`{{ .host }}.{{ (.root.Values.global).domain | default .root.Values.domain }}`)
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.entryPoints: returns entryPoints block, or empty in child mode.
+*/}}
+{{- define "ai-gateway.mc.entryPoints" -}}
+{{- if not (include "ai-gateway.mc.isChildDeploy" .) -}}
+  {{- $eps := list -}}
+  {{- range .Values.entryPoints -}}
+    {{- $eps = append $eps (printf "  - %s" .) -}}
+  {{- end -}}
+  {{- printf "entryPoints:\n%s" (join "\n" $eps) -}}
+{{- end -}}
+{{- end -}}

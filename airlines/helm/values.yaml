@@ -4,6 +4,51 @@ entryPoints:
 global:
   domain: demo.traefik.ai
 
+  multicluster:
+    enabled: false
+    mode: "parent"          # parent | child
+
+    parent:
+      # Cluster provider name per group ("" = deploy locally on parent)
+      groups:
+        flightOps: ""
+        flightOpsMcp: ""
+        passengerSvc: ""
+        passengerSvcMcp: ""
+        airportOps: ""
+        airportOpsMcp: ""
+        aiGateway: ""
+
+    child:
+      # Uplink entry point name per group (child uses for Uplink CRD + router.uplinks annotation)
+      uplinkEntryPoints:
+        flightOps: "flight-ops"
+        flightOpsMcp: "flight-ops-mcp"
+        passengerSvc: "passenger-svc"
+        passengerSvcMcp: "passenger-svc-mcp"
+        airportOps: "airport-ops"
+        airportOpsMcp: "airport-ops-mcp"
+        aiGateway: "ai-gateway"
+
+      # Which groups to deploy on this child cluster (child mode only)
+      groups:
+        flightOps: false
+        flightOpsMcp: false
+        passengerSvc: false
+        passengerSvcMcp: false
+        airportOps: false
+        airportOpsMcp: false
+        aiGateway: false
+
+      mcp:
+        base: "http://traefik.traefik.svc.cluster.local"
+        entryPoint: "web"
+        # Provider names as seen from THIS child's multicluster config
+        groups:
+          flightOps: ""
+          passengerSvc: ""
+          airportOps: ""
+
 tools-access:
   dashboard:
     token: ""
@@ -14,8 +59,38 @@ users-access: []
 eventServer:
   image: python:3.11-slim
 
-hoppscotch:
+aiGateway:
   enabled: false
+  url: ""         # e.g. https://ai.airlines.example.com
+  token: ""       # bearer token for the AI gateway (optional)
+  mcpServers: []  # list of MCP servers available to toggle in the chat widget
+  # Example:
+  # mcpServers:
+  #   - id: flight-ops-mcp
+  #     label: Flight Ops MCP
+  #     url: https://mcp.airlines.example.com/flight-ops
+  #     tools: [get_flights, create_flight, cancel_flight]
+  multicluster:
+    child:
+      uplinkEntryPoint: "ai-gateway"
+  sharedMiddlewares:
+    topicControl:
+      enabled: true
+    contentSafety:
+      enabled: true
+    jailbreakDetection:
+      enabled: true
+    graniteGuardian:
+      enabled: true
+    contentGuardPresidio:
+      enabled: true
+    contentGuardRegex:
+      enabled: true
+    semanticCache:
+      enabled: false
+
+hoppscotch:
+  enabled: true
   subdomain: "test"
   image: hoppscotch/hoppscotch:2026.2.0
   jwtSecret: "airlines-demo-jwt-secret-32chars!"
@@ -28,11 +103,10 @@ hoppscotch:
       configMapKey: collection.json
 
 keycloak:
-  enabled: false
+  enabled: true
   realm:
     enabled: true
     name: traefik
-    # Users always created when keycloak is enabled via this chart
     users:
       - admin
     advancedUsers:
@@ -66,9 +140,13 @@ keycloak:
         groups:
           - reader
         claims: {}
-    # Extra users appended to defaults (caller-provided)
     extraUsers: []
     extraAdvancedUsers: []
+    redirectUris:
+      - flight-ops.airlines
+      - passenger-svc.airlines
+      - airport-ops.airlines
+      - portal.airlines
     extraRedirectUris: []
   ingress:
     enabled: true
@@ -80,53 +158,3 @@ keycloak:
     clientId: ""
     clientSecret: ""
     issuerUrl: ""
-
-multicluster:
-  enabled: false
-  mode: "parent"          # parent | child
-
-  # Parent mode: cluster provider name per group ("" = deploy locally)
-  groups:
-    flightOps: ""
-    flightOpsMcp: ""
-    passengerSvc: ""
-    passengerSvcMcp: ""
-    airportOps: ""
-    airportOpsMcp: ""
-
-  child:
-    # Uplink entry point name per group configured on the child cluster.
-    # These defaults are shared: parent uses them to construct uplink references
-    # (e.g. "flight-ops@nkp-flight-ops"); child uses them for Uplink CRD and
-    # router.uplinks annotation.
-    uplinkEntryPoints:
-      flightOps: "flight-ops"
-      flightOpsMcp: "flight-ops-mcp"
-      passengerSvc: "passenger-svc"
-      passengerSvcMcp: "passenger-svc-mcp"
-      airportOps: "airport-ops"
-      airportOpsMcp: "airport-ops-mcp"
-
-    # Which groups to deploy on this child cluster (child mode only)
-    groups:
-      flightOps: false
-      flightOpsMcp: false
-      passengerSvc: false
-      passengerSvcMcp: false
-      airportOps: false
-      airportOpsMcp: false
-
-    mcp:
-      # When true: MCP servers call APIs via internalApiBase rather than
-      # in-cluster service names (used when APIs are on a different cluster).
-      useInternalApiRouting: false
-      internalApiBase: ""    # e.g. "http://traefik.traefik.svc.cluster.local"
-
-    internalApiRouting:
-      enabled: false
-      entryPoint: "web"
-      # Provider names as seen from THIS child's multicluster config
-      groups:
-        flightOps: ""
-        passengerSvc: ""
-        airportOps: ""

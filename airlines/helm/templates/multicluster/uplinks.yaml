@@ -3,7 +3,7 @@
   Rendered in child mode only. Each exposes a named uplink that the parent
   cluster references as <exposeName>@<providerName>.
 */}}
-{{- $mc := .Values.multicluster -}}
+{{- $mc := .Values.global.multicluster -}}
 {{- if and $mc.enabled (eq $mc.mode "child") -}}
 
 {{- if index $mc.child.groups "flightOps" }}

@@ -10,8 +10,9 @@
 */}}
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isMcpDeploy := include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOpsMcp") -}}
-{{- $mc := .Values.multicluster -}}
-{{- if or $isParent $isMcpDeploy }}
+{{- $isLocalMcpDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOpsMcp") -}}
+{{- $mc := .Values.global.multicluster -}}
+{{- if $isLocalMcpDeploy }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -36,8 +37,8 @@ data:
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("flight-ops-mcp")
 
-    {{- if and $isMcpDeploy $mc.child.mcp.useInternalApiRouting }}
-    _base = "{{ $mc.child.mcp.internalApiBase }}"
+    {{- if $isMcpDeploy }}
+    _base = "{{ $mc.child.mcp.base }}"
     API = {
         "flights":  _base,
         "pricing":  _base,

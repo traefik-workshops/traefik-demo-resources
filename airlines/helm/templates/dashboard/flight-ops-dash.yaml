@@ -1,7 +1,8 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isFlightOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
-{{- $mc := .Values.multicluster -}}
-{{- if $isFlightOps }}
+{{- $isLocalFlightOps := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") -}}
+{{- $mc := .Values.global.multicluster -}}
+{{- if $isLocalFlightOps }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -41,10 +42,30 @@ metadata:
     component: flight-ops-dash
 data:
   index.html: |
-{{ .Files.Get "files/dashboard/flight-ops.html" | indent 4 }}
+    <!doctype html>
+    <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Traefik Airlines - Flight Operations</title>
+        <link rel="stylesheet" href="/assets/index.css">
+        <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <script>
+          window.AI_GATEWAY_ENABLED = {{ .Values.aiGateway.enabled | toString | lower }};
+          window.AI_GATEWAY_URL = "{{ .Values.aiGateway.url }}";
+          window.AI_GATEWAY_TOKEN = "{{ .Values.aiGateway.token }}";
+          window.MCP_SERVERS = {{ .Values.aiGateway.mcpServers | toJson }};
+          window.__DASHBOARD_ROUTE__ = "/flight-ops";
+        </script>
+        <script type="module" src="/assets/index.js"></script>
+      </head>
+      <body>
+        <div id="root"></div>
+      </body>
+    </html>
 
 {{ include "airlines.dashboardService" (dict "root" . "name" "flight-ops-dash") }}
-
+{{- end }}
 {{- if $isParent }}
 ---
 apiVersion: traefik.io/v1alpha1
@@ -60,7 +81,7 @@ spec:
       issuer: {{ include "airlines.oidc.issuerUrl" . }}
       clientId: "urn:k8s:secret:oidc-credentials:clientId"
       clientSecret: "urn:k8s:secret:oidc-credentials:clientSecret"
-      redirectUrl: /oidc/callback
+      redirectUrl: /callback
       scopes:
         - openid
         - profile
@@ -86,6 +107,10 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flight-ops-dash
+  {{- if and $mc.enabled (eq $mc.mode "child") }}
+  annotations:
+    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
+  {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 2 }}
   routes:
@@ -97,5 +122,4 @@ spec:
       middlewares:
         - name: flight-ops-dash-oidc
       {{- end }}
-{{- end }}
 {{- end }}

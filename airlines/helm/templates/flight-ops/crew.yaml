@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") -}}
 {{- if $isDeploy }}
 apiVersion: v1
 kind: ConfigMap
@@ -124,62 +124,50 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/CrewAssignment'
-      /crew/{flightId}:
+      /crew/{crewId}:
         get:
-          summary: Get crew for a specific flight
-          operationId: getFlightCrew
+          summary: Get crew assignment by ID
+          operationId: getCrewAssignment
           tags: [assignments]
           parameters:
-            - name: flightId
+            - name: crewId
               in: path
               required: true
               schema:
                 type: string
-              example: "TK-1042"
+              example: "CA-001"
           responses:
             "200":
-              description: Crew assigned to the flight
+              description: Crew assignment details
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/CrewAssignment'
+            "404":
+              description: Assignment not found
+        delete:
+          summary: Remove crew assignment
+          operationId: removeCrewAssignment
+          tags: [assignments]
+          parameters:
+            - name: crewId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "CA-001"
+          responses:
+            "200":
+              description: Assignment removed
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
-                      flight_id:
+                      status:
                         type: string
-                      cockpit:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CrewAssignment'
-                      cabin:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CrewAssignment'
-                  example:
-                    flight_id: "TK-1042"
-                    cockpit:
-                      - assignment_id: "CA-001"
-                        crew_member_id: "CM-101"
-                        name: "Captain James Harlow"
-                        role: "captain"
-                        status: "on-duty"
-                      - assignment_id: "CA-002"
-                        crew_member_id: "CM-102"
-                        name: "First Officer Mia Chen"
-                        role: "first-officer"
-                        status: "on-duty"
-                    cabin:
-                      - assignment_id: "CA-003"
-                        crew_member_id: "CM-201"
-                        name: "Yuki Sato"
-                        role: "purser"
-                        status: "on-duty"
-                      - assignment_id: "CA-004"
-                        crew_member_id: "CM-202"
-                        name: "David Okafor"
-                        role: "cabin-crew"
-                        status: "on-duty"
             "404":
-              description: Flight not found
+              description: Assignment not found
       /crew/members:
         get:
           summary: List all crew members

@@ -11,6 +11,8 @@ spec:
   additionalOptions:
     - name: http-relative-path
       value: /
+    - name: cache
+      value: local
   unsupported:
     podTemplate:
       metadata:

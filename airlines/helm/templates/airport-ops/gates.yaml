@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps") -}}
 {{- if $isDeploy }}
 apiVersion: v1
 kind: ConfigMap
@@ -204,6 +204,29 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/Gate'
+        delete:
+          summary: Release gate assignment
+          operationId: releaseGate
+          tags: [gates]
+          parameters:
+            - name: gateId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "JFK-T1-B22"
+          responses:
+            "200":
+              description: Gate assignment removed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+            "404":
+              description: Gate not found
       /gates/terminal/{terminal}:
         get:
           summary: Get gates by terminal

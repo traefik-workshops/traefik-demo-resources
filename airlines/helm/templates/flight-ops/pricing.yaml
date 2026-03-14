@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") -}}
 {{- if $isDeploy }}
 ---
 apiVersion: v1
@@ -69,7 +69,7 @@ data:
               required: true
               schema:
                 type: string
-                example: "TK-1042"
+                example: "TK-1001"
           responses:
             "200":
               description: Fare breakdown
@@ -77,31 +77,29 @@ data:
                 application/json:
                   schema:
                     $ref: '#/components/schemas/FlightPricing'
-                  example:
-                    flight_id: "TK-1042"
-                    route: "JFK → CDG"
-                    currency: "USD"
-                    cabins:
-                      - cabin: "economy"
-                        base_fare: 849.00
-                        taxes: 127.35
-                        total: 976.35
-                        seats_available: 120
-                      - cabin: "premium-economy"
-                        base_fare: 1450.00
-                        taxes: 217.50
-                        total: 1667.50
-                        seats_available: 18
-                      - cabin: "business"
-                        base_fare: 3200.00
-                        taxes: 480.00
-                        total: 3680.00
-                        seats_available: 4
-                    fare_rules:
-                      changeable: true
-                      change_fee: 150.00
-                      refundable: false
-                      baggage_included: 1
+            "404":
+              description: Flight not found
+        delete:
+          summary: Remove flight pricing record
+          operationId: deleteFlightPricing
+          tags: [pricing]
+          parameters:
+            - name: flightId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "TK-1001"
+          responses:
+            "200":
+              description: Pricing record removed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
             "404":
               description: Flight not found
       /pricing/calculate:

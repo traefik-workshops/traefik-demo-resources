@@ -1,5 +1,5 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps") -}}
 {{- if $isDeploy }}
 ---
 apiVersion: v1
@@ -129,6 +129,30 @@ data:
                     status: "checked-in"
                     location: "CDG Terminal 2 - Check-in Counter"
                     last_scan: "2026-03-15T12:00:00Z"
+      /baggage/{tagId}:
+        delete:
+          summary: Remove baggage record
+          operationId: removeBaggage
+          tags: [baggage]
+          parameters:
+            - name: tagId
+              in: path
+              required: true
+              schema:
+                type: string
+              example: "TK-BAG-90001"
+          responses:
+            "200":
+              description: Baggage record removed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+            "404":
+              description: Bag not found
       /baggage/track/{tagId}:
         get:
           summary: Track a bag

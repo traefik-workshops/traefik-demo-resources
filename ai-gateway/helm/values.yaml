@@ -1,8 +1,22 @@
 # Default values for ai-gateway.
 
+enabled: true
+
 domain: demo.traefik.ai
 entryPoints:
   - websecure
+
+multicluster:
+  enabled: false
+  mode: "parent"          # parent | child
+  parent:
+    groups:
+      aiGateway: ""
+  child:
+    uplinkEntryPoints:
+      aiGateway: "ai-gateway"
+    groups:
+      aiGateway: false
 
 # Shared Middlewares configuration
 sharedMiddlewares:
@@ -34,28 +48,54 @@ sharedMiddlewares:
     enabled: true
     host: granite-guardian
 
-  contentGuard:
+  contentGuardPresidio:
     enabled: true
-    presidio:
-      host: presidio
-    rules:
-      - mask:
-          char: "#"
-          unmaskFromRight: 3
-        entities:
-          - EMAIL_ADDRESS
-          - PHONE_NUMBER
+    request:
+      rules: []
+    response:
+      rules:
+        - mask:
+            char: "#"
+            unmaskFromRight: 4
+          entities:
+            - CREDIT_CARD
+            - US_SSN
+            - US_BANK_NUMBER
+            - IBAN_CODE
+            - US_PASSPORT
+            - US_DRIVER_LICENSE
+            - MEDICAL_LICENSE
+            - PERSON
+            - LOCATION
+
+  contentGuardRegex:
+    enabled: false
+    request:
+      rules: []
+      # Example — block prompt injection attempts:
+      # - name: prompt-injection
+      #   regex: '(?i)ignore (all )?previous instructions'
+      #   action: block
+      #   reason: "prompt injection detected"
+    response:
+      rules: []
+      # Example — mask email addresses and phone numbers:
+      # - name: email
+      #   regex: '[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}'
+      #   action: mask
+      #   maskChar: "#"
+      # - name: phone
+      #   regex: '\b(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b'
+      #   action: mask
+      #   maskChar: "#"
+
+  parallelGuard:
+    enabled: false
+    # Runs multiple guards concurrently; blocks if any guard blocks
 
   semanticCache:
     enabled: false
-    tokenizer:
-      host: ollama:11434
-      model: nomic-embed-text
-    vectorDB:
-      weaviate:
-        host: weaviate:8080
-        scheme: http
-        collectionName: ai-gateway
+    collectionName: ai-gateway
 
 # List of AI endpoints
 endpoints:
@@ -68,9 +108,8 @@ endpoints:
       params:
         temperature: 1
         maxTokens: 2048
-    auth:
-      header: Authorization
-      value: "Bearer YOUR_GEMINI_API_KEY"
+    headers:
+      Authorization: "Bearer YOUR_GEMINI_API_KEY"
     routing:
       host: gemini
     api:
@@ -79,7 +118,7 @@ endpoints:
       oasUrl: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
     middlewares:
       - topicControl
-      - contentGuard
+      - contentGuardPresidio
 
   - name: openai
     backend:
@@ -89,9 +128,8 @@ endpoints:
       model: gpt-4
       params:
         temperature: 0.7
-    auth:
-      header: Authorization
-      value: "Bearer YOUR_OPENAI_API_KEY"
+    headers:
+      Authorization: "Bearer YOUR_OPENAI_API_KEY"
     routing:
       host: openai
     api:
@@ -102,10 +140,41 @@ endpoints:
       - topicControl
       - contentSafety
 
+  - name: claude
+    backend:
+      url: api.anthropic.com
+      isExternal: true
+    chatCompletion:
+      model: claude-opus-4-6
+      params:
+        temperature: 0.7
+        maxTokens: 4096
+    headers:
+      x-api-key: "YOUR_CLAUDE_API_KEY"
+      anthropic-version: "2023-06-01"
+    routing:
+      host: claude
+    api:
+      title: "Claude API"
+      description: "Anthropic Claude AI Gateway"
+      oasUrl: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
+    middlewares:
+      - topicControl
+      - contentGuardPresidio
+
 # Presidio subchart configuration
-presidio:
-  enabled: false
-  host: presidio
+presidio: {}
+
+# Weaviate subchart configuration (official chart)
+weaviate:
+  service:
+    type: ClusterIP
+  grpcService:
+    enabled: false
+
+# Embeddings subchart configuration (Infinity)
+embeddings:
+  model: nomic-embed-text
 
 # Local NIM configurations
 nims:
