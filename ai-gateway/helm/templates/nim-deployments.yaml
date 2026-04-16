@@ -1,5 +1,5 @@
 {{- if .Values.enabled }}
-{{- if include "ai-gateway.mc.isParentMode" . }}
+{{- if include "ai-gateway.mc.isLocalDeploy" . }}
 {{- if .Values.nims.enabled }}
 {{- range .Values.nims.types }}
 ---

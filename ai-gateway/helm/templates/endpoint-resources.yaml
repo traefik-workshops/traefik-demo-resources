@@ -9,9 +9,8 @@
 {{- $endpointMiddlewares := .middlewares }}
 {{- $isExternal := .backend.isExternal }}
 {{- $backendUrl := .backend.url }}
-{{- $mc := ($.Values.global).multicluster | default dict }}
-{{- $mcEnabled := $mc.enabled | default false }}
-{{- if not (and $mcEnabled $isParent) }}
+{{- $isLocal := include "ai-gateway.mc.isLocalDeploy" $ }}
+{{- if $isLocal }}
 {{- if $isExternal }}
 ---
 apiVersion: v1

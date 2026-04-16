@@ -56,11 +56,37 @@ ai-gateway.mc.isParentMode: true when multicluster is disabled or mode != "child
 {{- end -}}
 
 {{/*
-ai-gateway.mc.isChildDeploy: true when in child mode.
+ai-gateway.mc.isChildDeploy: true when in child mode and aiGateway group is enabled.
 */}}
 {{- define "ai-gateway.mc.isChildDeploy" -}}
 {{- $mc := default .Values.multicluster ((.Values.global).multicluster) -}}
-{{- if and $mc.enabled (eq $mc.mode "child") -}}true{{- end -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+  {{- if (index ($mc.child).groups "aiGateway") -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.isRemoteGroup: true when in parent multicluster mode and aiGateway group
+has a non-empty provider name (meaning the ai-gateway runs on a remote child cluster).
+*/}}
+{{- define "ai-gateway.mc.isRemoteGroup" -}}
+{{- $mc := default .Values.multicluster ((.Values.global).multicluster) -}}
+{{- if and $mc.enabled (include "ai-gateway.mc.isParentMode" .) -}}
+  {{- $provider := index ($mc.parent).groups "aiGateway" -}}
+  {{- if $provider -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+ai-gateway.mc.isLocalDeploy: true when ai-gateway workloads should deploy on this cluster.
+True when: (parent mode AND NOT remote) OR (child mode AND group enabled).
+*/}}
+{{- define "ai-gateway.mc.isLocalDeploy" -}}
+{{- if include "ai-gateway.mc.isParentMode" . -}}
+  {{- if not (include "ai-gateway.mc.isRemoteGroup" .) -}}true{{- end -}}
+{{- else -}}
+  {{- include "ai-gateway.mc.isChildDeploy" . -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
