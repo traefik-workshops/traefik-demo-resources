@@ -63,7 +63,7 @@ data:
 
 {{ include "airlines.dashboardService" (dict "root" . "name" "airport-ops-dash") }}
 {{- end }}
-{{- if $isParent }}
+{{- if $isLocalAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -78,7 +78,7 @@ spec:
       issuer: {{ include "airlines.oidc.issuerUrl" . }}
       clientId: "urn:k8s:secret:oidc-credentials:clientId"
       clientSecret: "urn:k8s:secret:oidc-credentials:clientSecret"
-      redirectUrl: /callback
+      redirectUrl: https://airport-ops.{{ include "airlines.domain" . }}{{ include "airlines.portSuffix" . }}/callback
       scopes:
         - openid
         - profile
@@ -115,7 +115,7 @@ spec:
       match: {{ include "airlines.airportOpsDash.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "airport-ops-dash" "port" 80 "group" "airportOps" "haName" "") | nindent 8 }}
-      {{- if $isParent }}
+      {{- if $isLocalAirportOps }}
       middlewares:
         - name: airport-ops-dash-oidc
       {{- end }}

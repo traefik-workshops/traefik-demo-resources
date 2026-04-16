@@ -180,6 +180,8 @@ spec:
     allowOriginListRegex:
       - ".*"
     maxAge: 86400
+{{- end }}
+{{- if $isLocalMcpDeploy }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

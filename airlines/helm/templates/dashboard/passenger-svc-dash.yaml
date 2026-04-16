@@ -63,7 +63,7 @@ data:
 
 {{ include "airlines.dashboardService" (dict "root" . "name" "passenger-svc-dash") }}
 {{- end }}
-{{- if $isParent }}
+{{- if $isLocalPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -78,7 +78,7 @@ spec:
       issuer: {{ include "airlines.oidc.issuerUrl" . }}
       clientId: "urn:k8s:secret:oidc-credentials:clientId"
       clientSecret: "urn:k8s:secret:oidc-credentials:clientSecret"
-      redirectUrl: /callback
+      redirectUrl: https://passenger-svc.{{ include "airlines.domain" . }}{{ include "airlines.portSuffix" . }}/callback
       scopes:
         - openid
         - profile
@@ -115,7 +115,7 @@ spec:
       match: {{ include "airlines.passengerSvcDash.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passenger-svc-dash" "port" 80 "group" "passengerSvc" "haName" "") | nindent 8 }}
-      {{- if $isParent }}
+      {{- if $isLocalPassengerSvc }}
       middlewares:
         - name: passenger-svc-dash-oidc
       {{- end }}

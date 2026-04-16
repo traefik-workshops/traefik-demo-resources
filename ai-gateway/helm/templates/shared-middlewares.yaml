@@ -1,5 +1,6 @@
 {{- if .Values.enabled }}
-{{- if include "ai-gateway.mc.isParentMode" . }}
+{{- $mc := (.Values.global).multicluster | default dict }}
+{{- if not (and ($mc.enabled | default false) (include "ai-gateway.mc.isParentMode" .)) }}
 {{- if .Values.sharedMiddlewares.topicControl.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
