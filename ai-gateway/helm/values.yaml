@@ -140,28 +140,6 @@ endpoints:
       - topicControl
       - contentSafety
 
-  - name: claude
-    backend:
-      url: api.anthropic.com
-      isExternal: true
-    chatCompletion:
-      model: claude-opus-4-6
-      params:
-        temperature: 0.7
-        maxTokens: 4096
-    headers:
-      x-api-key: "YOUR_CLAUDE_API_KEY"
-      anthropic-version: "2023-06-01"
-    routing:
-      host: claude
-    api:
-      title: "Claude API"
-      description: "Anthropic Claude AI Gateway"
-      oasUrl: https://raw.githubusercontent.com/traefik-workshops/traefik-airlines/refs/heads/main/oas/openapi.yaml
-    middlewares:
-      - topicControl
-      - contentGuardPresidio
-
 # Presidio subchart configuration
 presidio: {}
 
