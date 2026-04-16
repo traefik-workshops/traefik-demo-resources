@@ -9,6 +9,7 @@
 {{- $endpointMiddlewares := .middlewares }}
 {{- $isExternal := .backend.isExternal }}
 {{- $backendUrl := .backend.url }}
+{{- if $isParent }}
 {{- if $isExternal }}
 ---
 apiVersion: v1
@@ -51,7 +52,6 @@ spec:
       {{- range $k, $v := .headers }}
       {{ $k }}: {{ $v | quote }}
       {{- end }}
-{{- if $isParent }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API

@@ -13,6 +13,7 @@
 {{- $mc := .Values.global.multicluster -}}
 
 # ── Check-in ──────────────────────────────────────────────────────────────────
+{{- if and $isAirportOps (not (and $mc.enabled $isParent)) }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -25,6 +26,7 @@ spec:
     customResponseHeaders:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
+{{- end }}
 {{- if $isParent }}
 {{- if $mc.enabled }}
 ---
@@ -234,6 +236,7 @@ spec:
 {{- end }}
 
 # ── Baggage ───────────────────────────────────────────────────────────────────
+{{- if and $isAirportOps (not (and $mc.enabled $isParent)) }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -246,6 +249,7 @@ spec:
     customResponseHeaders:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
+{{- end }}
 {{- if $isParent }}
 {{- if $mc.enabled }}
 ---

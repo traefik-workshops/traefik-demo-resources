@@ -1,4 +1,5 @@
 {{- if .Values.enabled }}
+{{- if include "ai-gateway.mc.isParentMode" . }}
 {{- if .Values.sharedMiddlewares.topicControl.enabled }}
 ---
 apiVersion: traefik.io/v1alpha1
@@ -201,4 +202,5 @@ spec:
       readOnly: false
       includeCachedUsage: true
 {{- end }}
+{{- end }}{{/* isParentMode */}}
 {{- end }}
