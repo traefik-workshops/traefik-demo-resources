@@ -13,6 +13,11 @@
 {{- end }}
 {{- $rawRedirectUris := concat (default list .Values.realm.redirectUris) .Values.realm.extraRedirectUris | uniq }}
 {{- $domain := ((.Values.global).domain) }}
+{{- $port := ((.Values.global).port) }}
+{{- $portSuffix := "" }}
+{{- if $port }}
+{{- $portSuffix = printf ":%v" $port }}
+{{- end }}
 {{- $allRedirectUris := list }}
 {{- $allLogoutRedirectUris := list }}
 {{- range $rawRedirectUris }}
@@ -20,8 +25,8 @@
 {{- $allRedirectUris = append $allRedirectUris . }}
 {{- $allLogoutRedirectUris = append $allLogoutRedirectUris . }}
 {{- else if $domain }}
-{{- $allRedirectUris = append $allRedirectUris (printf "https://%s.%s/callback" . $domain) }}
-{{- $allLogoutRedirectUris = append $allLogoutRedirectUris (printf "https://%s.%s" . $domain) }}
+{{- $allRedirectUris = append $allRedirectUris (printf "https://%s.%s%s/callback" . $domain $portSuffix) }}
+{{- $allLogoutRedirectUris = append $allLogoutRedirectUris (printf "https://%s.%s%s" . $domain $portSuffix) }}
 {{- else }}
 {{- $allRedirectUris = append $allRedirectUris . }}
 {{- $allLogoutRedirectUris = append $allLogoutRedirectUris . }}
