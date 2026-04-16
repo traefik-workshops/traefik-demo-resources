@@ -27,6 +27,18 @@ spec:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-bookings
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /bookings
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -67,7 +79,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "bookings" "version" "v1") }}
     operationSets:
       - name: read-bookings
         matchers:
@@ -106,7 +118,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "bookings" "version" "v2") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -123,7 +135,54 @@ spec:
       servers:
         - url: {{ include "airlines.bookings.apiUrl" . }}/v2
 {{- end }}
-{{- if $isPassengerSvc }}
+{{- if and $mc.enabled (not $isParent) $isPassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-passenger-svc
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /bookings
+      - /passengers
+      - /notifications
+{{- end }}
+{{- if and $mc.enabled (not $isParent) $isPassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: bookings-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: bookings
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/bookings/v1`)
+      middlewares:
+        - name: stripprefix-passenger-svc
+        - name: strip-version-v1
+        - name: bookings-v1-deprecation
+      services:
+        - name: bookings-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/bookings/v2`)
+      middlewares:
+        - name: stripprefix-passenger-svc
+        - name: strip-version-v2
+      services:
+        - name: bookings-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -134,17 +193,16 @@ metadata:
     component: bookings
   annotations:
     hub.traefik.io/api-version: bookings-v1
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "bookings" "version" "v1") }}
       middlewares:
+        {{- if not (and $mc.enabled $isParent) }}
         - name: strip-version-v1
         - name: bookings-v1-deprecation
+        {{- end }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "bookings-app" "port" 3000 "group" "passengerSvc" "haName" "bookings-ha") | nindent 8 }}
       {{- if $isParent }}
@@ -161,16 +219,15 @@ metadata:
     component: bookings
   annotations:
     hub.traefik.io/api-version: bookings-v2
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "bookings" "version" "v2") }}
       middlewares:
+        {{- if not (and $mc.enabled $isParent) }}
         - name: strip-version-v2
+        {{- end }}
         {{- if $isParent }}
         - name: coraza-waf
         {{- end }}
@@ -196,6 +253,18 @@ spec:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-passengers
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /passengers
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -236,7 +305,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "passengers" "version" "v1") }}
     operationSets:
       - name: read-passengers
         matchers:
@@ -275,7 +344,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "passengers" "version" "v2") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -292,7 +361,39 @@ spec:
       servers:
         - url: {{ include "airlines.passengers.apiUrl" . }}/v2
 {{- end }}
-{{- if $isPassengerSvc }}
+{{- if and $mc.enabled (not $isParent) $isPassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: passengers-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passengers
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/passengers/v1`)
+      middlewares:
+        - name: stripprefix-passenger-svc
+        - name: strip-version-v1
+        - name: passengers-v1-deprecation
+      services:
+        - name: passengers-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/passengers/v2`)
+      middlewares:
+        - name: stripprefix-passenger-svc
+        - name: strip-version-v2
+      services:
+        - name: passengers-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -303,19 +404,18 @@ metadata:
     component: passengers
   annotations:
     hub.traefik.io/api-version: passengers-v1
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "passengers" "version" "v1") }}
       middlewares:
+        {{- if not (and $mc.enabled $isParent) }}
         - name: strip-version-v1
         - name: passengers-v1-deprecation
+        {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "" "prefix" "passengers") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -330,18 +430,17 @@ metadata:
     component: passengers
   annotations:
     hub.traefik.io/api-version: passengers-v2
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "passengers" "version" "v2") }}
+      {{- if not (and $mc.enabled $isParent) }}
       middlewares:
         - name: strip-version-v2
+      {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passengers-app" "port" 3000 "group" "passengerSvc" "haName" "" "prefix" "passengers") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -350,6 +449,18 @@ spec:
 
 # ── Notifications ─────────────────────────────────────────────────────────────
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-notifications
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /notifications
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -376,7 +487,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "notifications") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -393,7 +504,28 @@ spec:
       servers:
         - url: {{ include "airlines.notifications.apiUrl" . }}
 {{- end }}
-{{- if $isPassengerSvc }}
+{{- if and $mc.enabled (not $isParent) $isPassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: notifications-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: notifications
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/notifications`)
+      middlewares:
+        - name: stripprefix-passenger-svc
+      services:
+        - name: notifications-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -406,16 +538,13 @@ metadata:
     {{- if $isParent }}
     hub.traefik.io/api: notifications-api
     {{- end }}
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.notifications.hostMatch" . }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "notifications-app" "port" 3000 "group" "passengerSvc" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "notifications-app" "port" 3000 "group" "passengerSvc" "haName" "" "prefix" "notifications") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed

@@ -7,6 +7,6 @@ dependencies:
   version: 0.1.3
 - name: ai-gateway
   repository: file://../../ai-gateway/helm
-  version: 0.3.3
-digest: sha256:864edbc14271b2a532bbeb77e513adb168b848db050ce1fdd4d04d11fb3a127a
-generated: "2026-03-12T18:34:18.390182-04:00"
+  version: 0.3.4
+digest: sha256:af7de9023b19855693d2a1906d7b57e41c0ad0692ca346c4f7c24620cc9653aa
+generated: "2026-03-19T13:45:33.523836-04:00"

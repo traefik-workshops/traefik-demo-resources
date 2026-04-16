@@ -72,6 +72,17 @@ Pass global.domain as the base domain (e.g. "mysite.com"); airlines. prefix is a
 {{- end }}
 
 {{/*
+Port suffix helper - returns ":PORT" if global.port is set, else empty string.
+*/}}
+{{- define "airlines.portSuffix" -}}
+{{- if .Values.global -}}
+  {{- if .Values.global.port -}}
+    {{- printf ":%v" .Values.global.port -}}
+  {{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
 Domain Match helper
 */}}
 {{- define "airlines.domainMatch" -}}
@@ -244,7 +255,8 @@ Keycloak is at keycloak.{global.domain} (not under the airlines. subdomain).
 {{- .Values.keycloak.oidc.issuerUrl -}}
 {{- else -}}
 {{- $base := .Values.global.domain | default .Values.domain -}}
-{{- printf "https://keycloak.%s/realms/traefik" $base -}}
+{{- $port := include "airlines.portSuffix" . -}}
+{{- printf "https://keycloak.%s%s/realms/traefik" $base $port -}}
 {{- end -}}
 {{- end }}
 {{- define "airlines.oidc.jwksUrl" -}}
@@ -562,6 +574,24 @@ Multicluster helpers
 */}}
 
 {{/*
+airlines.mc.openApiPath: returns the openApiSpec path for an API/APIVersion.
+In single-cluster mode (multicluster disabled): /openapi.yaml
+In multicluster mode: /{prefix}/openapi.yaml
+Usage: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "flights") }}
+*/}}
+{{- define "airlines.mc.openApiPath" -}}
+{{- if .root.Values.global.multicluster.enabled -}}
+  {{- if .version -}}
+/{{ .prefix }}/{{ .version }}/openapi.yaml
+  {{- else -}}
+/{{ .prefix }}/openapi.yaml
+  {{- end -}}
+{{- else -}}
+/openapi.yaml
+{{- end -}}
+{{- end -}}
+
+{{/*
 airlines.mc.isParentMode: returns "true" if multicluster is disabled OR mode != "child".
 Parent mode is the default — single-cluster deployments are always parent mode.
 Usage: {{ if include "airlines.mc.isParentMode" . }}
@@ -641,11 +671,25 @@ Usage: {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps")
 {{- end -}}
 
 {{/*
+airlines.mc.parentRefs: emits parentRefs block for child MC multi-layer routing.
+Usage: {{- include "airlines.mc.parentRefs" (dict "root" . "name" "flights-prefix-router") | nindent 2 }}
+*/}}
+{{- define "airlines.mc.parentRefs" -}}
+{{- $mc := .root.Values.global.multicluster -}}
+{{- if and $mc.enabled (eq $mc.mode "child") -}}
+parentRefs:
+  - name: {{ .name }}
+    namespace: {{ .root.Release.Namespace }}
+{{- end -}}
+{{- end -}}
+
+{{/*
 airlines.mc.serviceSpec: returns the services list entry for an IngressRoute.
-  - Parent + remote group + haName set: references the WRR TraefikService
-  - Parent + remote group + haName empty: references the remote uplink directly
+  - Parent + remote group + haName set: references the WRR TraefikService (addprefix on WRR leg)
+  - Parent + remote group + haName empty: references the remote uplink directly with addprefix middleware
   - All other cases (local or child): references the local Kubernetes service
-Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha") | nindent 8 }}
+Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha" "prefix" "flights") | nindent 8 }}
+  prefix is required when haName is empty and the group may be remote (used to name the addprefix middleware).
 */}}
 {{- define "airlines.mc.serviceSpec" -}}
 {{- $mc := .root.Values.global.multicluster -}}
@@ -657,6 +701,8 @@ Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-a
   {{- $ep := index $mc.child.uplinkEntryPoints .group -}}
 - kind: TraefikService
   name: {{ $ep }}@multicluster
+  middlewares:
+    - name: addprefix-{{ .prefix }}
 {{- else -}}
 - name: {{ .svcName }}
   port: {{ .port }}

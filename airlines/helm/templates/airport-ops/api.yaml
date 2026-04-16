@@ -26,6 +26,18 @@ spec:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-checkin
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /checkin
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -65,7 +77,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "checkin" "version" "v1") }}
     operationSets:
       - name: read-checkin
         matchers:
@@ -103,7 +115,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "checkin" "version" "v2") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -120,7 +132,54 @@ spec:
       servers:
         - url: {{ include "airlines.checkin.apiUrl" . }}/v2
 {{- end }}
-{{- if $isAirportOps }}
+{{- if and $mc.enabled (not $isParent) $isAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-airport-ops
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /checkin
+      - /baggage
+      - /gates
+{{- end }}
+{{- if and $mc.enabled (not $isParent) $isAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: checkin-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: checkin
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/checkin/v1`)
+      middlewares:
+        - name: stripprefix-airport-ops
+        - name: strip-version-v1
+        - name: checkin-v1-deprecation
+      services:
+        - name: checkin-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/checkin/v2`)
+      middlewares:
+        - name: stripprefix-airport-ops
+        - name: strip-version-v2
+      services:
+        - name: checkin-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -131,17 +190,16 @@ metadata:
     component: checkin
   annotations:
     hub.traefik.io/api-version: checkin-v1
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v1") }}
       middlewares:
+        {{- if not (and $mc.enabled $isParent) }}
         - name: strip-version-v1
         - name: checkin-v1-deprecation
+        {{- end }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha") | nindent 8 }}
       {{- if $isParent }}
@@ -158,16 +216,15 @@ metadata:
     component: checkin
   annotations:
     hub.traefik.io/api-version: checkin-v2
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v2") }}
+      {{- if not (and $mc.enabled $isParent) }}
       middlewares:
         - name: strip-version-v2
+      {{- end }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha") | nindent 8 }}
       {{- if $isParent }}
@@ -190,6 +247,18 @@ spec:
       Deprecation: "true"
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-baggage
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /baggage
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -230,7 +299,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "baggage" "version" "v1") }}
     operationSets:
       - name: read-baggage
         matchers:
@@ -269,7 +338,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "baggage" "version" "v2") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -286,7 +355,39 @@ spec:
       servers:
         - url: {{ include "airlines.baggage.apiUrl" . }}/v2
 {{- end }}
-{{- if $isAirportOps }}
+{{- if and $mc.enabled (not $isParent) $isAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: baggage-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: baggage
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/baggage/v1`)
+      middlewares:
+        - name: stripprefix-airport-ops
+        - name: strip-version-v1
+        - name: baggage-v1-deprecation
+      services:
+        - name: baggage-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/baggage/v2`)
+      middlewares:
+        - name: stripprefix-airport-ops
+        - name: strip-version-v2
+      services:
+        - name: baggage-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -297,19 +398,18 @@ metadata:
     component: baggage
   annotations:
     hub.traefik.io/api-version: baggage-v1
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v1") }}
       middlewares:
+        {{- if not (and $mc.enabled $isParent) }}
         - name: strip-version-v1
         - name: baggage-v1-deprecation
+        {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "baggage") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -324,18 +424,17 @@ metadata:
     component: baggage
   annotations:
     hub.traefik.io/api-version: baggage-v2
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v2") }}
+      {{- if not (and $mc.enabled $isParent) }}
       middlewares:
         - name: strip-version-v2
+      {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "baggage") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -344,6 +443,18 @@ spec:
 
 # ── Gates ─────────────────────────────────────────────────────────────────────
 {{- if $isParent }}
+{{- if $mc.enabled }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-gates
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+spec:
+  addPrefix:
+    prefix: /gates
+{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -370,7 +481,7 @@ spec:
       - "OPTIONS"
     maxAge: 86400
   openApiSpec:
-    path: /openapi.yaml
+    path: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "gates") }}
     validateRequestMethodAndPath: true
     validateRequestBodySchema: true
     operationSets:
@@ -387,7 +498,28 @@ spec:
       servers:
         - url: {{ include "airlines.gates.apiUrl" . }}
 {{- end }}
-{{- if $isAirportOps }}
+{{- if and $mc.enabled (not $isParent) $isAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: gates-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: gates
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/gates`)
+      middlewares:
+        - name: stripprefix-airport-ops
+      services:
+        - name: gates-app
+          port: 3000
+          passHostHeader: true
+{{- else if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -400,16 +532,13 @@ metadata:
     {{- if $isParent }}
     hub.traefik.io/api: gates-api
     {{- end }}
-    {{- if and $mc.enabled (eq $mc.mode "child") }}
-    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
-    {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.gates.hostMatch" . }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "gates") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
