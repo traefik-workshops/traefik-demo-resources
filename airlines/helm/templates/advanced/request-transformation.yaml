@@ -1,5 +1,8 @@
-{{- $mc := .Values.global.multicluster -}}
-{{- if not (and $mc.enabled (include "airlines.mc.isParentMode" .)) }}
+{{- $hasLocalGroup := or
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps"))
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc"))
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- if $hasLocalGroup }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

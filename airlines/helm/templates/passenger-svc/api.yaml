@@ -11,10 +11,11 @@
 */}}
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isPassengerSvc := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
+{{- $isLocalPassengerSvc := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc") -}}
 {{- $mc := .Values.global.multicluster -}}
 
 # ── Bookings ──────────────────────────────────────────────────────────────────
-{{- if and $isPassengerSvc (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -201,7 +202,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "bookings" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalPassengerSvc }}
         - name: strip-version-v1
         - name: bookings-v1-deprecation
         {{- end }}
@@ -227,7 +228,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "bookings" "version" "v2") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalPassengerSvc }}
         - name: strip-version-v2
         {{- end }}
         {{- if $isParent }}
@@ -242,7 +243,7 @@ spec:
 {{- end }}
 
 # ── Passengers ────────────────────────────────────────────────────────────────
-{{- if and $isPassengerSvc (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalPassengerSvc }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -414,7 +415,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "passengers" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalPassengerSvc }}
         - name: strip-version-v1
         - name: passengers-v1-deprecation
         {{- end }}
@@ -439,7 +440,7 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "passengers" "version" "v2") }}
-      {{- if not (and $mc.enabled $isParent) }}
+      {{- if $isLocalPassengerSvc }}
       middlewares:
         - name: strip-version-v2
       {{- end }}

@@ -1,10 +1,8 @@
-{{- $isParent := include "airlines.mc.isParentMode" . -}}
-{{- $mc := .Values.global.multicluster -}}
-{{- $hasOpsGroup := or
-  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps"))
-  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc"))
-  (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
-{{- if and (or $isParent $hasOpsGroup) (not (and $mc.enabled $isParent)) }}
+{{- $hasLocalOpsGroup := or
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps"))
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc"))
+  (include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- if $hasLocalOpsGroup }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

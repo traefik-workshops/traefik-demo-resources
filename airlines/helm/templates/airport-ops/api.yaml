@@ -10,10 +10,11 @@
 */}}
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isAirportOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
+{{- $isLocalAirportOps := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps") -}}
 {{- $mc := .Values.global.multicluster -}}
 
 # ── Check-in ──────────────────────────────────────────────────────────────────
-{{- if and $isAirportOps (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -198,7 +199,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalAirportOps }}
         - name: strip-version-v1
         - name: checkin-v1-deprecation
         {{- end }}
@@ -223,7 +224,7 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v2") }}
-      {{- if not (and $mc.enabled $isParent) }}
+      {{- if $isLocalAirportOps }}
       middlewares:
         - name: strip-version-v2
       {{- end }}
@@ -236,7 +237,7 @@ spec:
 {{- end }}
 
 # ── Baggage ───────────────────────────────────────────────────────────────────
-{{- if and $isAirportOps (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -408,7 +409,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalAirportOps }}
         - name: strip-version-v1
         - name: baggage-v1-deprecation
         {{- end }}
@@ -433,7 +434,7 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v2") }}
-      {{- if not (and $mc.enabled $isParent) }}
+      {{- if $isLocalAirportOps }}
       middlewares:
         - name: strip-version-v2
       {{- end }}

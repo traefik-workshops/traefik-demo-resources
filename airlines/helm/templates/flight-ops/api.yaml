@@ -16,10 +16,11 @@
 */}}
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isFlightOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps")) -}}
+{{- $isLocalFlightOps := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") -}}
 {{- $mc := .Values.global.multicluster -}}
 
 # ── Flights ──────────────────────────────────────────────────────────────────
-{{- if and $isFlightOps (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalFlightOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -220,7 +221,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "flights" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalFlightOps }}
         - name: strip-version-v1
         - name: flights-v1-deprecation
         {{- end }}
@@ -246,7 +247,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "flights" "version" "v2") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalFlightOps }}
         - name: strip-version-v2
         - name: flights-inject-headers
         {{- end }}
@@ -259,7 +260,7 @@ spec:
 {{- end }}
 
 # ── Pricing ───────────────────────────────────────────────────────────────────
-{{- if and $isFlightOps (not (and $mc.enabled $isParent)) }}
+{{- if $isLocalFlightOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -431,7 +432,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "pricing" "version" "v1") }}
       middlewares:
-        {{- if not (and $mc.enabled $isParent) }}
+        {{- if $isLocalFlightOps }}
         - name: strip-version-v1
         - name: pricing-v1-deprecation
         {{- end }}
@@ -456,7 +457,7 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "pricing" "version" "v2") }}
-      {{- if not (and $mc.enabled $isParent) }}
+      {{- if $isLocalFlightOps }}
       middlewares:
         - name: strip-version-v2
       {{- end }}
