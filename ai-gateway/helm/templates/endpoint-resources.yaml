@@ -9,7 +9,9 @@
 {{- $endpointMiddlewares := .middlewares }}
 {{- $isExternal := .backend.isExternal }}
 {{- $backendUrl := .backend.url }}
-{{- if $isParent }}
+{{- $mc := ($.Values.global).multicluster | default dict }}
+{{- $mcEnabled := $mc.enabled | default false }}
+{{- if not (and $mcEnabled $isParent) }}
 {{- if $isExternal }}
 ---
 apiVersion: v1
@@ -53,23 +55,6 @@ spec:
       {{ $k }}: {{ $v | quote }}
       {{- end }}
 ---
-apiVersion: hub.traefik.io/v1alpha1
-kind: API
-metadata:
-  name: {{ $fullName }}-api
-  labels:
-    {{- include "ai-gateway.labels" $ | nindent 4 }}
-    endpoint: {{ $endpointName }}
-spec:
-  title: {{ .api.title | quote }}
-  description: {{ .api.description | quote }}
-  openApiSpec:
-    url: {{ .api.oasUrl }}
-    override:
-      servers:
-        - url: https://{{ $routing.host }}.{{ ($.Values.global).domain | default $.Values.domain }}
-{{- end }}
----
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
@@ -78,20 +63,11 @@ metadata:
     {{- include "ai-gateway.labels" $ | nindent 4 }}
     endpoint: {{ $endpointName }}
   {{- $uplinkAnnotation := include "ai-gateway.mc.uplinkAnnotation" $ }}
-  {{- if or $isParent $uplinkAnnotation }}
+  {{- if $uplinkAnnotation }}
   annotations:
-    {{- if $isParent }}
-    hub.traefik.io/api: {{ $fullName }}-api
-    {{- end }}
-    {{- if $uplinkAnnotation }}
     {{ $uplinkAnnotation }}
-    {{- end }}
   {{- end }}
 spec:
-  {{- $entryPoints := include "ai-gateway.mc.entryPoints" $ }}
-  {{- if $entryPoints }}
-  {{- $entryPoints | nindent 2 }}
-  {{- end }}
   routes:
     - kind: Rule
       match: {{ include "ai-gateway.mc.routeMatch" (dict "root" $ "host" $routing.host "endpointName" $endpointName "path" "/v1/chat/completions") }}
@@ -114,6 +90,25 @@ spec:
           passHostHeader: false
       middlewares:
         - name: {{ $fullName }}-headers
+{{- end }}{{/* not multicluster parent */}}
+{{- if $isParent }}
+---
+apiVersion: hub.traefik.io/v1alpha1
+kind: API
+metadata:
+  name: {{ $fullName }}-api
+  labels:
+    {{- include "ai-gateway.labels" $ | nindent 4 }}
+    endpoint: {{ $endpointName }}
+spec:
+  title: {{ .api.title | quote }}
+  description: {{ .api.description | quote }}
+  openApiSpec:
+    url: {{ .api.oasUrl }}
+    override:
+      servers:
+        - url: https://{{ $routing.host }}.{{ ($.Values.global).domain | default $.Values.domain }}
+{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
