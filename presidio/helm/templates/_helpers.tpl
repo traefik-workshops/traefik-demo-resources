@@ -49,3 +49,22 @@ Selector labels
 app.kubernetes.io/name: {{ include "presidio.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
+
+{{/*
+Multicluster deployment gating — presidio follows ai-gateway placement.
+Deploy when ai-gateway would deploy locally on this cluster:
+  - Single-cluster (multicluster disabled): always
+  - Parent mode with aiGateway NOT remote in parent.groups: yes
+  - Child mode with aiGateway enabled in child.groups: yes
+Otherwise skip.
+*/}}
+{{- define "presidio.mc.isLocalDeploy" -}}
+{{- $mc := (.Values.global).multicluster | default dict -}}
+{{- if not ($mc.enabled | default false) -}}true
+{{- else if eq ($mc.mode | default "parent") "child" -}}
+  {{- if (index (($mc.child).groups | default dict) "aiGateway") -}}true{{- end -}}
+{{- else -}}
+  {{- $provider := index (($mc.parent).groups | default dict) "aiGateway" -}}
+  {{- if not $provider -}}true{{- end -}}
+{{- end -}}
+{{- end -}}
