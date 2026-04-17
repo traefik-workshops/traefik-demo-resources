@@ -12,7 +12,7 @@ spec:
     ## Traefik Airlines API Portal
     Explore and subscribe to airline APIs across Flight Operations, Passenger Services, and Airport Operations.
   trustedUrls:
-    - https://portal.{{ include "airlines.domain" . }}
+    - https://portal.{{ include "airlines.domain" . }}{{ include "airlines.portSuffix" . }}
   auth:
     name: oidc-portal-auth
 ---

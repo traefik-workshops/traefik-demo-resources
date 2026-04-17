@@ -219,6 +219,8 @@ spec:
           match: >-
             Equals(`mcp.params.name`, `create_booking`)
           reason: "Booking creation requires authorization"
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -236,8 +238,10 @@ spec:
       match: {{ include "airlines.passengerSvcMcp.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passenger-svc-mcp" "port" 8080 "group" "passengerSvcMcp" "haName" "") | nindent 8 }}
+      {{- if $isLocalMcpDeploy }}
       middlewares:
         - name: passenger-svc-mcp-policy
+      {{- end }}
 {{- end }}
 {{- if $isMcpDeploy }}
 ---

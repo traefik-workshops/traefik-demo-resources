@@ -206,6 +206,8 @@ spec:
             Equals(`mcp.params.name`, `track_baggage`) ||
             Equals(`mcp.params.name`, `check_bag`) ||
             Equals(`mcp.params.name`, `get_gate_info`)
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -223,8 +225,10 @@ spec:
       match: {{ include "airlines.airportOpsMcp.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "airport-ops-mcp" "port" 8080 "group" "airportOpsMcp" "haName" "") | nindent 8 }}
+      {{- if $isLocalMcpDeploy }}
       middlewares:
         - name: airport-ops-mcp-policy
+      {{- end }}
 {{- end }}
 {{- if $isMcpDeploy }}
 ---

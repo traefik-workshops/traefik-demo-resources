@@ -221,6 +221,8 @@ spec:
             Equals(`mcp.params.name`, `get_flight_pricing`) ||
             Equals(`mcp.params.name`, `get_crew_assignments`) ||
             Equals(`mcp.params.name`, `find_connections`)
+{{- end }}
+{{- if $isParent }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -238,8 +240,10 @@ spec:
       match: {{ include "airlines.flightOpsMcp.hostMatch" . }}
       services:
         {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flight-ops-mcp" "port" 8080 "group" "flightOpsMcp" "haName" "") | nindent 8 }}
+      {{- if $isLocalMcpDeploy }}
       middlewares:
         - name: flight-ops-mcp-policy
+      {{- end }}
 {{- end }}
 {{- if $isMcpDeploy }}
 ---
