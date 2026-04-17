@@ -215,11 +215,11 @@ spec:
   routes:
     - kind: Rule
       match: Host(`{{ $host }}`)
+      middlewares:
+        - name: {{ $fullName }}-addprefix
       services:
         - kind: TraefikService
           name: {{ $uplinkEp }}@multicluster
-          middlewares:
-            - name: {{ $fullName }}-addprefix
 {{- end }}
 
 {{- if $isChild }}
