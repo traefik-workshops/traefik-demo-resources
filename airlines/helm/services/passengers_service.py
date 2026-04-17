@@ -22,7 +22,7 @@ def setup_passengers_routes():
 if __name__ == '__main__':
     init_store('/api/api.json', 'passenger_id', 'Passengers')
     setup_passengers_routes()
-    create_rest_api('passengers')
+    create_rest_api('passengers', versions=['v1', 'v2'])
 
     import logging
     logger = logging.getLogger(__name__)

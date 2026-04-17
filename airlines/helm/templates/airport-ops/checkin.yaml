@@ -1,15 +1,17 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
 {{- if $isDeploy }}
+{{- range $version := list "v1" "v2" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: checkin-openapi
+  name: checkin-openapi-{{ $version }}
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
     component: checkin
     group: airport-ops
+    version: {{ $version }}
 data:
   openapi.yaml: |
     openapi: "3.0.0"
@@ -22,15 +24,15 @@ data:
         name: Airport Operations Team
         email: ground-ops@traefik-airlines.io
     servers:
-      - url: {{ include "airlines.checkin.apiUrl" . }}
-        description: Check-in API
+      - url: {{ include "airlines.checkin.apiUrl" $ }}
+        description: Check-in API {{ $version }}
     tags:
       - name: checkin
         description: Check-in operations
       - name: boarding
         description: Boarding pass management
     paths:
-      /checkin:
+      /{{ $version }}/checkin:
         get:
           summary: List all check-ins
           operationId: listCheckins
@@ -124,7 +126,7 @@ data:
                     checked_in_at: "2026-03-15T08:00:00Z"
                     boarding_group: "3"
                     gate: "A14"
-      /checkin/{bookingId}:
+      /{{ $version }}/checkin/{bookingId}:
         get:
           summary: Get check-in status
           operationId: getCheckinStatus
@@ -168,7 +170,7 @@ data:
                         type: string
             "404":
               description: Booking not found
-      /checkin/{bookingId}/boarding-pass:
+      /{{ $version }}/checkin/{bookingId}/boarding-pass:
         get:
           summary: Get boarding pass
           description: Generate a boarding pass for a checked-in passenger
@@ -276,6 +278,8 @@ data:
             status:
               type: string
 
-{{ include "airlines.flaskService" (dict "root" . "name" "checkin") }}
+{{- end }}{{/* range versions */}}
 
-{{- end }}
+{{ include "airlines.flaskService" (dict "root" . "name" "checkin" "versions" (list "v1" "v2")) }}
+
+{{- end }}{{/* $isDeploy */}}

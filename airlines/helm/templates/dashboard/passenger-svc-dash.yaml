@@ -95,7 +95,23 @@ spec:
         expiry: 86400
         refresh: true
 {{- end }}
-{{- if $isPassengerSvc }}
+{{- $isRemotePassengerSvc := include "airlines.mc.isRemoteGroup" (dict "root" . "group" "passengerSvc") -}}
+{{- $isChildPassengerSvc := include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc") -}}
+{{/* Parent IngressRoute — see airport-ops-dash.yaml for the full pattern. */}}
+{{- if $isParent }}
+{{- if $isRemotePassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-passenger-svc-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passenger-svc-dash
+spec:
+  addPrefix:
+    prefix: /passenger-svc
+{{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -104,19 +120,59 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: passenger-svc-dash
-  {{- if and $mc.enabled (eq $mc.mode "child") }}
-  annotations:
-    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "passengerSvc") | nindent 4 }}
-  {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "passengerSvc") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.passengerSvcDash.hostMatch" . }}
+      {{- if $isRemotePassengerSvc }}
+      middlewares:
+        - name: addprefix-passenger-svc-dash
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "passenger-svc-dash" "port" 80 "group" "passengerSvc" "haName" "") | nindent 8 }}
-      {{- if $isLocalPassengerSvc }}
+        - kind: TraefikService
+          name: {{ index $mc.child.uplinkEntryPoints "passengerSvc" }}@multicluster
+      {{- else }}
       middlewares:
         - name: passenger-svc-dash-oidc
+      services:
+        - name: passenger-svc-dash
+          port: 80
+          passHostHeader: true
       {{- end }}
+{{- end }}
+{{/* Child IngressRoute */}}
+{{- if $isChildPassengerSvc }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-passenger-svc-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passenger-svc-dash
+spec:
+  stripPrefix:
+    prefixes:
+      - /passenger-svc
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: passenger-svc-dash-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: passenger-svc-dash
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "passengerSvc" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/passenger-svc`)
+      middlewares:
+        - name: stripprefix-passenger-svc-dash
+        - name: passenger-svc-dash-oidc
+      services:
+        - name: passenger-svc-dash
+          port: 80
+          passHostHeader: true
 {{- end }}

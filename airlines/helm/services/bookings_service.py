@@ -22,7 +22,7 @@ def setup_bookings_routes():
 if __name__ == '__main__':
     init_store('/api/api.json', 'booking_id', 'Bookings')
     setup_bookings_routes()
-    create_rest_api('bookings')
+    create_rest_api('bookings', versions=['v1', 'v2'])
 
     import logging
     logger = logging.getLogger(__name__)

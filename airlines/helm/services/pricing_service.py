@@ -72,7 +72,7 @@ if __name__ == '__main__':
     setup_pricing_routes()
 
     # Then set up standard CRUD routes
-    create_rest_api('pricing')
+    create_rest_api('pricing', versions=['v1', 'v2'])
 
     # Start the server
     import logging

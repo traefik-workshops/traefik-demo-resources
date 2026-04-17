@@ -350,7 +350,23 @@ spec:
   selector:
     app: flight-board
 {{- end }}
-{{- if $isFlightOps }}
+{{- $isRemoteFlightOps := include "airlines.mc.isRemoteGroup" (dict "root" . "group" "flightOps") -}}
+{{- $isChildFlightOps := include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps") -}}
+{{/* Parent IngressRoute — public, no OIDC. See airport-ops-dash.yaml for the pattern. */}}
+{{- if $isParent }}
+{{- if $isRemoteFlightOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-board
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-board
+spec:
+  addPrefix:
+    prefix: /board
+{{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -359,15 +375,56 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flight-board
-  {{- if and $mc.enabled (eq $mc.mode "child") }}
-  annotations:
-    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
-  {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.board.hostMatch" . }}
+      {{- if $isRemoteFlightOps }}
+      middlewares:
+        - name: addprefix-board
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flight-board" "port" 80 "group" "flightOps" "haName" "") | nindent 8 }}
+        - kind: TraefikService
+          name: {{ index $mc.child.uplinkEntryPoints "flightOps" }}@multicluster
+      {{- else }}
+      services:
+        - name: flight-board
+          port: 80
+          passHostHeader: true
+      {{- end }}
+{{- end }}
+{{/* Child IngressRoute */}}
+{{- if $isChildFlightOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-board
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-board
+spec:
+  stripPrefix:
+    prefixes:
+      - /board
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flight-board-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-board
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "flightOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/board`)
+      middlewares:
+        - name: stripprefix-board
+      services:
+        - name: flight-board
+          port: 80
+          passHostHeader: true
 {{- end }}

@@ -95,7 +95,30 @@ spec:
         expiry: 86400
         refresh: true
 {{- end }}
-{{- if $isAirportOps }}
+{{- $isRemoteAirportOps := include "airlines.mc.isRemoteGroup" (dict "root" . "group" "airportOps") -}}
+{{- $isChildAirportOps := include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps") -}}
+{{/*
+  Parent IngressRoute — Host(...)-matched, on the public entrypoint.
+    - Local parent (single-cluster or local group): direct service to local
+      backend with the OIDC middleware applied here.
+    - Remote parent: service is the @multicluster TraefikService with an
+      addPrefix middleware so the child's PathPrefix(/airport-ops) match
+      catches it. OIDC middleware runs on the child (where it's defined).
+*/}}
+{{- if $isParent }}
+{{- if $isRemoteAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-airport-ops-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: airport-ops-dash
+spec:
+  addPrefix:
+    prefix: /airport-ops
+{{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -104,19 +127,62 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: airport-ops-dash
-  {{- if and $mc.enabled (eq $mc.mode "child") }}
-  annotations:
-    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "airportOps") | nindent 4 }}
-  {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "airportOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.airportOpsDash.hostMatch" . }}
+      {{- if $isRemoteAirportOps }}
+      middlewares:
+        - name: addprefix-airport-ops-dash
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "airport-ops-dash" "port" 80 "group" "airportOps" "haName" "") | nindent 8 }}
-      {{- if $isLocalAirportOps }}
+        - kind: TraefikService
+          name: {{ index $mc.child.uplinkEntryPoints "airportOps" }}@multicluster
+      {{- else }}
       middlewares:
         - name: airport-ops-dash-oidc
+      services:
+        - name: airport-ops-dash
+          port: 80
+          passHostHeader: true
       {{- end }}
+{{- end }}
+{{/*
+  Child IngressRoute — PathPrefix(/airport-ops)-matched, on the uplink.
+  Strips the prefix, runs OIDC, forwards to the local dashboard service.
+*/}}
+{{- if $isChildAirportOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-airport-ops-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: airport-ops-dash
+spec:
+  stripPrefix:
+    prefixes:
+      - /airport-ops
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: airport-ops-dash-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: airport-ops-dash
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "airportOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/airport-ops`)
+      middlewares:
+        - name: stripprefix-airport-ops-dash
+        - name: airport-ops-dash-oidc
+      services:
+        - name: airport-ops-dash
+          port: 80
+          passHostHeader: true
 {{- end }}

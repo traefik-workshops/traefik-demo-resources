@@ -1,15 +1,17 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isDeploy := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "passengerSvc")) -}}
 {{- if $isDeploy }}
+{{- range $version := list "v1" "v2" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: bookings-openapi
+  name: bookings-openapi-{{ $version }}
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
     component: bookings
     group: passenger-svc
+    version: {{ $version }}
 data:
   openapi.yaml: |
     openapi: "3.0.0"
@@ -23,15 +25,15 @@ data:
         name: Passenger Services Team
         email: bookings@traefik-airlines.io
     servers:
-      - url: {{ include "airlines.bookings.apiUrl" . }}
-        description: Bookings API
+      - url: {{ include "airlines.bookings.apiUrl" $ }}
+        description: Bookings API {{ $version }}
     tags:
       - name: bookings
         description: Reservation management
       - name: search
         description: Booking search
     paths:
-      /bookings:
+      /{{ $version }}/bookings:
         get:
           summary: List all bookings
           description: Returns all reservations in the system
@@ -200,7 +202,7 @@ data:
                     currency: "USD"
                     ticket_number: "TKT-902860"
                     seat: ""
-      /bookings/search:
+      /{{ $version }}/bookings/search:
         get:
           summary: Search bookings
           description: Search bookings by passenger ID or flight ID
@@ -226,7 +228,7 @@ data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Booking'
-      /bookings/{bookingId}:
+      /{{ $version }}/bookings/{bookingId}:
         get:
           summary: Get booking details
           operationId: getBooking
@@ -345,6 +347,8 @@ data:
               type: string
               enum: [economy, premium-economy, business]
 
-{{ include "airlines.flaskService" (dict "root" . "name" "bookings") }}
+{{- end }}{{/* range versions */}}
 
-{{- end }}
+{{ include "airlines.flaskService" (dict "root" . "name" "bookings" "versions" (list "v1" "v2")) }}
+
+{{- end }}{{/* $isDeploy */}}

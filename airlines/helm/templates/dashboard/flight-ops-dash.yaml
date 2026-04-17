@@ -98,7 +98,23 @@ spec:
         expiry: 86400
         refresh: true
 {{- end }}
-{{- if $isFlightOps }}
+{{- $isRemoteFlightOps := include "airlines.mc.isRemoteGroup" (dict "root" . "group" "flightOps") -}}
+{{- $isChildFlightOps := include "airlines.mc.isChildDeploy" (dict "root" . "group" "flightOps") -}}
+{{/* Parent IngressRoute — see airport-ops-dash.yaml for the full pattern. */}}
+{{- if $isParent }}
+{{- if $isRemoteFlightOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: addprefix-flight-ops-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-ops-dash
+spec:
+  addPrefix:
+    prefix: /flight-ops
+{{- end }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -107,19 +123,59 @@ metadata:
   labels:
     {{- include "airlines.labels" . | nindent 4 }}
     component: flight-ops-dash
-  {{- if and $mc.enabled (eq $mc.mode "child") }}
-  annotations:
-    {{- include "airlines.mc.uplinkAnnotation" (dict "root" . "group" "flightOps") | nindent 4 }}
-  {{- end }}
 spec:
   {{- include "airlines.mc.entryPoints" (dict "root" . "group" "flightOps") | nindent 2 }}
   routes:
     - kind: Rule
       match: {{ include "airlines.flightOpsDash.hostMatch" . }}
+      {{- if $isRemoteFlightOps }}
+      middlewares:
+        - name: addprefix-flight-ops-dash
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flight-ops-dash" "port" 80 "group" "flightOps" "haName" "") | nindent 8 }}
-      {{- if $isLocalFlightOps }}
+        - kind: TraefikService
+          name: {{ index $mc.child.uplinkEntryPoints "flightOps" }}@multicluster
+      {{- else }}
       middlewares:
         - name: flight-ops-dash-oidc
+      services:
+        - name: flight-ops-dash
+          port: 80
+          passHostHeader: true
       {{- end }}
+{{- end }}
+{{/* Child IngressRoute */}}
+{{- if $isChildFlightOps }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: stripprefix-flight-ops-dash
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-ops-dash
+spec:
+  stripPrefix:
+    prefixes:
+      - /flight-ops
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flight-ops-dash-route
+  labels:
+    {{- include "airlines.labels" . | nindent 4 }}
+    component: flight-ops-dash
+  annotations:
+    hub.traefik.io/router.uplinks: {{ index $mc.child.uplinkEntryPoints "flightOps" | quote }}
+spec:
+  routes:
+    - kind: Rule
+      match: PathPrefix(`/flight-ops`)
+      middlewares:
+        - name: stripprefix-flight-ops-dash
+        - name: flight-ops-dash-oidc
+      services:
+        - name: flight-ops-dash
+          port: 80
+          passHostHeader: true
 {{- end }}

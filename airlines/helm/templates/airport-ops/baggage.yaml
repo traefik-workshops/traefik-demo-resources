@@ -1,15 +1,17 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps") -}}
 {{- if $isDeploy }}
+{{- range $version := list "v1" "v2" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: baggage-openapi
+  name: baggage-openapi-{{ $version }}
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
     component: baggage
     group: airport-ops
+    version: {{ $version }}
 data:
   openapi.yaml: |
     openapi: "3.0.0"
@@ -22,15 +24,15 @@ data:
         name: Airport Operations Team
         email: ground-ops@traefik-airlines.io
     servers:
-      - url: {{ include "airlines.baggage.apiUrl" . }}
-        description: Baggage API
+      - url: {{ include "airlines.baggage.apiUrl" $ }}
+        description: Baggage API {{ $version }}
     tags:
       - name: baggage
         description: Baggage management
       - name: tracking
         description: Real-time bag tracking
     paths:
-      /baggage:
+      /{{ $version }}/baggage:
         get:
           summary: List all tracked baggage
           operationId: listBaggage
@@ -129,7 +131,7 @@ data:
                     status: "checked-in"
                     location: "CDG Terminal 2 - Check-in Counter"
                     last_scan: "2026-03-15T12:00:00Z"
-      /baggage/{tagId}:
+      /{{ $version }}/baggage/{tagId}:
         delete:
           summary: Remove baggage record
           operationId: removeBaggage
@@ -223,6 +225,8 @@ data:
                   status:
                     type: string
 
-{{ include "airlines.flaskService" (dict "root" . "name" "baggage") }}
+{{- end }}{{/* range versions */}}
 
-{{- end }}
+{{ include "airlines.flaskService" (dict "root" . "name" "baggage" "versions" (list "v1" "v2")) }}
+
+{{- end }}{{/* $isDeploy */}}

@@ -1,15 +1,17 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "passengerSvc") -}}
 {{- if $isDeploy }}
+{{- range $version := list "v1" "v2" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: passengers-openapi
+  name: passengers-openapi-{{ $version }}
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
     component: passengers
     group: passenger-svc
+    version: {{ $version }}
 data:
   openapi.yaml: |
     openapi: "3.0.0"
@@ -22,15 +24,15 @@ data:
         name: Passenger Services Team
         email: passengers@traefik-airlines.io
     servers:
-      - url: {{ include "airlines.passengers.apiUrl" . }}
-        description: Passengers API
+      - url: {{ include "airlines.passengers.apiUrl" $ }}
+        description: Passengers API {{ $version }}
     tags:
       - name: passengers
         description: Passenger profile management
       - name: search
         description: Passenger search
     paths:
-      /passengers:
+      /{{ $version }}/passengers:
         get:
           summary: List all passengers
           operationId: listPassengers
@@ -154,7 +156,7 @@ data:
                     date_of_birth: "1993-04-17"
                     frequent_flyer: ""
                     tier: "standard"
-      /passengers/search:
+      /{{ $version }}/passengers/search:
         get:
           summary: Search passengers
           operationId: searchPassengers
@@ -181,7 +183,7 @@ data:
                     type: array
                     items:
                       $ref: '#/components/schemas/Passenger'
-      /passengers/{passengerId}:
+      /{{ $version }}/passengers/{passengerId}:
         get:
           summary: Get passenger profile
           operationId: getPassenger
@@ -295,6 +297,8 @@ data:
               type: string
               format: date
 
-{{ include "airlines.flaskService" (dict "root" . "name" "passengers") }}
+{{- end }}{{/* range versions */}}
 
-{{- end }}
+{{ include "airlines.flaskService" (dict "root" . "name" "passengers" "versions" (list "v1" "v2")) }}
+
+{{- end }}{{/* $isDeploy */}}

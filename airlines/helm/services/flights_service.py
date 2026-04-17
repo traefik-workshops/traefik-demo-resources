@@ -41,7 +41,7 @@ if __name__ == '__main__':
     setup_flights_routes()
 
     # Then set up standard CRUD routes
-    create_rest_api('flights')
+    create_rest_api('flights', versions=['v1', 'v2'])
 
     # Start the server
     import logging

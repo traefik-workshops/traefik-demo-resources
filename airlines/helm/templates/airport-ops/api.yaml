@@ -11,10 +11,11 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isAirportOps := or $isParent (include "airlines.mc.isChildDeploy" (dict "root" . "group" "airportOps")) -}}
 {{- $isLocalAirportOps := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "airportOps") -}}
+{{- $isRemoteAirportOps := include "airlines.mc.isRemoteGroup" (dict "root" . "group" "airportOps") -}}
 {{- $mc := .Values.global.multicluster -}}
 
 # ── Check-in ──────────────────────────────────────────────────────────────────
-{{- if $isLocalAirportOps }}
+{{- if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -29,18 +30,6 @@ spec:
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- end }}
 {{- if $isParent }}
-{{- if $mc.enabled }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: addprefix-checkin
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  addPrefix:
-    prefix: /checkin
-{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -93,7 +82,7 @@ spec:
           - methods: ["DELETE"]
     override:
       servers:
-        - url: {{ include "airlines.checkin.apiUrl" . }}/v1
+        - url: {{ include "airlines.checkin.apiUrl" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIVersion
@@ -133,22 +122,7 @@ spec:
           - methods: ["DELETE"]
     override:
       servers:
-        - url: {{ include "airlines.checkin.apiUrl" . }}/v2
-{{- end }}
-{{- if and $mc.enabled (not $isParent) $isAirportOps }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: stripprefix-airport-ops
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  stripPrefix:
-    prefixes:
-      - /checkin
-      - /baggage
-      - /gates
+        - url: {{ include "airlines.checkin.apiUrl" . }}
 {{- end }}
 {{- if and $mc.enabled (not $isParent) $isAirportOps }}
 ---
@@ -164,20 +138,23 @@ metadata:
 spec:
   routes:
     - kind: Rule
-      match: PathPrefix(`/checkin/v1`)
+      match: PathPrefix(`/v1/checkin`)
       middlewares:
-        - name: stripprefix-airport-ops
         - name: strip-version-v1
-        - name: checkin-v1-deprecation
       services:
         - name: checkin-app
           port: 3000
           passHostHeader: true
     - kind: Rule
-      match: PathPrefix(`/checkin/v2`)
+      match: PathPrefix(`/v2/checkin`)
       middlewares:
-        - name: stripprefix-airport-ops
         - name: strip-version-v2
+      services:
+        - name: checkin-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/checkin`)
       services:
         - name: checkin-app
           port: 3000
@@ -199,12 +176,9 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v1") }}
       middlewares:
-        {{- if $isLocalAirportOps }}
-        - name: strip-version-v1
         - name: checkin-v1-deprecation
-        {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha" "versionMiddleware" "strip-version-v1") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -224,12 +198,8 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "checkin" "version" "v2") }}
-      {{- if $isLocalAirportOps }}
-      middlewares:
-        - name: strip-version-v2
-      {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "checkin-app" "port" 3000 "group" "airportOps" "haName" "checkin-ha" "versionMiddleware" "strip-version-v2") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -237,7 +207,7 @@ spec:
 {{- end }}
 
 # ── Baggage ───────────────────────────────────────────────────────────────────
-{{- if $isLocalAirportOps }}
+{{- if $isAirportOps }}
 ---
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
@@ -252,18 +222,6 @@ spec:
       Sunset: "Sat, 01 Jan 2028 00:00:00 GMT"
 {{- end }}
 {{- if $isParent }}
-{{- if $mc.enabled }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: addprefix-baggage
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  addPrefix:
-    prefix: /baggage
-{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -317,7 +275,7 @@ spec:
           - methods: ["DELETE"]
     override:
       servers:
-        - url: {{ include "airlines.baggage.apiUrl" . }}/v1
+        - url: {{ include "airlines.baggage.apiUrl" . }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: APIVersion
@@ -358,7 +316,7 @@ spec:
           - methods: ["DELETE"]
     override:
       servers:
-        - url: {{ include "airlines.baggage.apiUrl" . }}/v2
+        - url: {{ include "airlines.baggage.apiUrl" . }}
 {{- end }}
 {{- if and $mc.enabled (not $isParent) $isAirportOps }}
 ---
@@ -374,20 +332,23 @@ metadata:
 spec:
   routes:
     - kind: Rule
-      match: PathPrefix(`/baggage/v1`)
+      match: PathPrefix(`/v1/baggage`)
       middlewares:
-        - name: stripprefix-airport-ops
         - name: strip-version-v1
-        - name: baggage-v1-deprecation
       services:
         - name: baggage-app
           port: 3000
           passHostHeader: true
     - kind: Rule
-      match: PathPrefix(`/baggage/v2`)
+      match: PathPrefix(`/v2/baggage`)
       middlewares:
-        - name: stripprefix-airport-ops
         - name: strip-version-v2
+      services:
+        - name: baggage-app
+          port: 3000
+          passHostHeader: true
+    - kind: Rule
+      match: PathPrefix(`/baggage`)
       services:
         - name: baggage-app
           port: 3000
@@ -409,12 +370,9 @@ spec:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v1") }}
       middlewares:
-        {{- if $isLocalAirportOps }}
-        - name: strip-version-v1
         - name: baggage-v1-deprecation
-        {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "baggage") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "versionMiddleware" "strip-version-v1") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -434,12 +392,8 @@ spec:
   routes:
     - kind: Rule
       match: {{ include "airlines.hostMatch" (dict "root" . "prefix" "baggage" "version" "v2") }}
-      {{- if $isLocalAirportOps }}
-      middlewares:
-        - name: strip-version-v2
-      {{- end }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "baggage") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "baggage-app" "port" 3000 "group" "airportOps" "haName" "" "versionMiddleware" "strip-version-v2") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed
@@ -448,18 +402,6 @@ spec:
 
 # ── Gates ─────────────────────────────────────────────────────────────────────
 {{- if $isParent }}
-{{- if $mc.enabled }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: addprefix-gates
-  labels:
-    {{- include "airlines.labels" . | nindent 4 }}
-spec:
-  addPrefix:
-    prefix: /gates
-{{- end }}
 ---
 apiVersion: hub.traefik.io/v1alpha1
 kind: API
@@ -518,8 +460,6 @@ spec:
   routes:
     - kind: Rule
       match: PathPrefix(`/gates`)
-      middlewares:
-        - name: stripprefix-airport-ops
       services:
         - name: gates-app
           port: 3000
@@ -543,7 +483,7 @@ spec:
     - kind: Rule
       match: {{ include "airlines.gates.hostMatch" . }}
       services:
-        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "" "prefix" "gates") | nindent 8 }}
+        {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "gates-app" "port" 3000 "group" "airportOps" "haName" "") | nindent 8 }}
       {{- if $isParent }}
       observability:
         traceVerbosity: detailed

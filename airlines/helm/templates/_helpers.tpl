@@ -275,7 +275,14 @@ Creates: 2x ConfigMap (code + data) + Deployment + Service for a Python Flask CR
 Service code is loaded from services/{name}_service.py + services/base_service.py.
 Seed data is loaded from files/data/{name}.json.
 
-Usage: {{ include "airlines.flaskService" (dict "root" . "name" "flights") }}
+Usage:
+  non-versioned: {{ include "airlines.flaskService" (dict "root" . "name" "crew") }}
+  versioned:     {{ include "airlines.flaskService" (dict "root" . "name" "flights" "versions" (list "v1" "v2")) }}
+
+When `versions` is passed, the template mounts one ConfigMap per version at
+/public/{version}/ (each ConfigMap expected to be named {name}-openapi-{version}),
+matching base_service.py's per-version spec-serving behaviour. Without
+`versions`, a single ConfigMap {name}-openapi is mounted at /public/.
 */}}
 {{- define "airlines.flaskService" -}}
 ---
@@ -345,8 +352,15 @@ spec:
               mountPath: /app
             - name: data
               mountPath: /api
+            {{- if .versions }}
+            {{- range $v := .versions }}
+            - name: openapi-{{ $v }}
+              mountPath: /public/{{ $v }}
+            {{- end }}
+            {{- else }}
             - name: openapi
               mountPath: /public
+            {{- end }}
           resources:
             requests:
               cpu: 50m
@@ -363,9 +377,17 @@ spec:
         - name: data
           configMap:
             name: {{ .name }}-data
+        {{- if .versions }}
+        {{- range $v := .versions }}
+        - name: openapi-{{ $v }}
+          configMap:
+            name: {{ $.name }}-openapi-{{ $v }}
+        {{- end }}
+        {{- else }}
         - name: openapi
           configMap:
             name: {{ .name }}-openapi
+        {{- end }}
 ---
 apiVersion: v1
 kind: Service
@@ -575,19 +597,19 @@ Multicluster helpers
 
 {{/*
 airlines.mc.openApiPath: returns the openApiSpec path for an API/APIVersion.
-In single-cluster mode (multicluster disabled): /openapi.yaml
-In multicluster mode: /{prefix}/openapi.yaml
-Usage: {{ include "airlines.mc.openApiPath" (dict "root" . "prefix" "flights") }}
+  - Versioned APIs (version passed): /{prefix}/{version}/openapi.yaml — each
+    APIVersion CRD points at its own spec file; the backend Flask app serves
+    these side-by-side.
+  - Non-versioned APIs (version empty): /{prefix}/openapi.yaml.
+Usage:
+  versioned:     {{ include "airlines.mc.openApiPath" (dict "prefix" "flights" "version" "v1") }}
+  non-versioned: {{ include "airlines.mc.openApiPath" (dict "prefix" "crew") }}
 */}}
 {{- define "airlines.mc.openApiPath" -}}
-{{- if .root.Values.global.multicluster.enabled -}}
-  {{- if .version -}}
+{{- if .version -}}
 /{{ .prefix }}/{{ .version }}/openapi.yaml
-  {{- else -}}
-/{{ .prefix }}/openapi.yaml
-  {{- end -}}
 {{- else -}}
-/openapi.yaml
+/{{ .prefix }}/openapi.yaml
 {{- end -}}
 {{- end -}}
 
@@ -685,11 +707,19 @@ parentRefs:
 
 {{/*
 airlines.mc.serviceSpec: returns the services list entry for an IngressRoute.
-  - Parent + remote group + haName set: references the WRR TraefikService (addprefix on WRR leg)
-  - Parent + remote group + haName empty: references the remote uplink directly with addprefix middleware
-  - All other cases (local or child): references the local Kubernetes service
-Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha" "prefix" "flights") | nindent 8 }}
-  prefix is required when haName is empty and the group may be remote (used to name the addprefix middleware).
+  - Parent + remote group + haName set: references the *-ha WRR TraefikService
+    (the WRR does its own local/remote leg selection and version stripping).
+  - Parent + remote group + haName empty: references the remote uplink
+    @multicluster directly. Version stripping, if needed, happens on the child.
+  - All other cases (local parent, child with local group): references the local
+    Kubernetes service. For versioned APIs the caller passes `versionMiddleware`
+    (e.g. "strip-version-v1") which is emitted at the service level to strip the
+    version prefix before the request hits the backend. `services[].middlewares`
+    works for K8s Service refs (Traefik wraps them in a generated load-balancer
+    service with the middleware attached).
+Usage:
+  versioned:   include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-app" "port" 3000 "group" "flightOps" "haName" "flights-ha" "versionMiddleware" "strip-version-v1")
+  unversioned: include "airlines.mc.serviceSpec" (dict "root" . "svcName" "crew-app"    "port" 3000 "group" "flightOps" "haName" "")
 */}}
 {{- define "airlines.mc.serviceSpec" -}}
 {{- $mc := .root.Values.global.multicluster -}}
@@ -701,11 +731,13 @@ Usage: {{- include "airlines.mc.serviceSpec" (dict "root" . "svcName" "flights-a
   {{- $ep := index $mc.child.uplinkEntryPoints .group -}}
 - kind: TraefikService
   name: {{ $ep }}@multicluster
-  middlewares:
-    - name: addprefix-{{ .prefix }}
 {{- else -}}
 - name: {{ .svcName }}
   port: {{ .port }}
   passHostHeader: true
+  {{- if .versionMiddleware }}
+  middlewares:
+    - name: {{ .versionMiddleware }}
+  {{- end }}
 {{- end -}}
 {{- end -}}

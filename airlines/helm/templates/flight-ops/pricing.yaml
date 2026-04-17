@@ -1,15 +1,17 @@
 {{- $isParent := include "airlines.mc.isParentMode" . -}}
 {{- $isDeploy := include "airlines.mc.isLocalDeploy" (dict "root" . "group" "flightOps") -}}
 {{- if $isDeploy }}
+{{- range $version := list "v1" "v2" }}
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pricing-openapi
+  name: pricing-openapi-{{ $version }}
   labels:
-    {{- include "airlines.labels" . | nindent 4 }}
+    {{- include "airlines.labels" $ | nindent 4 }}
     component: pricing
     group: flight-ops
+    version: {{ $version }}
 data:
   openapi.yaml: |
     openapi: "3.0.0"
@@ -23,15 +25,15 @@ data:
         name: Revenue Management Team
         email: revenue@traefik-airlines.io
     servers:
-      - url: {{ include "airlines.pricing.apiUrl" . }}
-        description: Pricing API
+      - url: {{ include "airlines.pricing.apiUrl" $ }}
+        description: Pricing API {{ $version }}
     tags:
       - name: pricing
         description: Fare lookup and calculation
       - name: classes
         description: Cabin class information
     paths:
-      /pricing:
+      /{{ $version }}/pricing:
         get:
           summary: List all flight pricing
           description: Returns fare information for all active flights
@@ -57,7 +59,7 @@ data:
                     type: array
                     items:
                       $ref: '#/components/schemas/FlightPricing'
-      /pricing/calculate:
+      /{{ $version }}/pricing/calculate:
         post:
           summary: Calculate total fare
           description: Calculate the total price for a booking including taxes, fees, and ancillaries
@@ -184,6 +186,8 @@ data:
             priority_boarding:
               type: boolean
 
-{{ include "airlines.flaskService" (dict "root" . "name" "pricing") }}
+{{- end }}{{/* range versions */}}
 
-{{- end }}
+{{ include "airlines.flaskService" (dict "root" . "name" "pricing" "versions" (list "v1" "v2")) }}
+
+{{- end }}{{/* $isDeploy */}}

@@ -129,18 +129,47 @@ def health():
     """Health check endpoint"""
     return jsonify({"status": "healthy", "records": len(store.data) if store else 0}), 200
 
-@app.route('/openapi.yaml', methods=['GET'])
-def openapi():
-    """Serve OpenAPI spec if available"""
-    openapi_file = os.getenv('OPENAPI_FILE', '/public/openapi.yaml')
-    if os.path.exists(openapi_file):
-        with open(openapi_file, 'r') as f:
-            return f.read(), 200, {'Content-Type': 'application/x-yaml'}
-    return "OpenAPI spec not found", 404
+def create_rest_api(resource_path: str, versions=None):
+    """Create RESTful API routes for a resource.
 
-def create_rest_api(resource_path: str):
-    """Create RESTful API routes for a resource"""
-    
+    OpenAPI spec serving:
+      - Non-versioned APIs (versions=None, the default): spec is served at
+        /{resource_path}/openapi.yaml from /public/openapi.yaml.
+      - Versioned APIs (versions=["v1", "v2", ...]): one spec per version
+        is served at /{resource_path}/{version}/openapi.yaml from
+        /public/{version}/openapi.yaml. Each version's ConfigMap is mounted
+        at the corresponding subdir by the flaskService helper.
+
+    Serving the spec under the resource_path prefix (rather than the global
+    /openapi.yaml) lets Hub's multicluster heartbeat fetch the spec via a
+    path that doesn't collide with other APIs on the same uplink.
+    """
+
+    def _serve_spec(openapi_path):
+        if os.path.exists(openapi_path):
+            with open(openapi_path, 'r') as f:
+                return f.read(), 200, {'Content-Type': 'application/x-yaml'}
+        return "OpenAPI spec not found", 404
+
+    if versions:
+        # One Flask route per version reading its own ConfigMap-mounted file.
+        # Capture `v` via default arg so the closure binds correctly.
+        for v in versions:
+            def _make_openapi(version=v):
+                def openapi_version():
+                    return _serve_spec(f'/public/{version}/openapi.yaml')
+                return openapi_version
+            app.add_url_rule(
+                f'/{resource_path}/{v}/openapi.yaml',
+                endpoint=f'openapi_{resource_path}_{v}',
+                view_func=_make_openapi(v),
+                methods=['GET'],
+            )
+    else:
+        @app.route(f'/{resource_path}/openapi.yaml', methods=['GET'])
+        def openapi():
+            return _serve_spec(os.getenv('OPENAPI_FILE', '/public/openapi.yaml'))
+
     @app.route(f'/{resource_path}', methods=['GET'])
     def list_all():
         """List all records"""

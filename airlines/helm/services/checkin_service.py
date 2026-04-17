@@ -37,7 +37,7 @@ if __name__ == '__main__':
     setup_checkin_routes()
 
     # Then set up standard CRUD routes
-    create_rest_api('checkin')
+    create_rest_api('checkin', versions=['v1', 'v2'])
 
     # Start the server
     import logging

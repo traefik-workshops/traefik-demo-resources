@@ -107,7 +107,7 @@ if __name__ == '__main__':
     setup_baggage_routes()
 
     # Then set up standard CRUD routes
-    create_rest_api('baggage')
+    create_rest_api('baggage', versions=['v1', 'v2'])
 
     # Start the server
     import logging
