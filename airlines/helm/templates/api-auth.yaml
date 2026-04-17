@@ -39,7 +39,11 @@ spec:
       - firstname
       - lastname
       - userId
+{{- end }}
 ---
+# oidc-credentials is referenced by both the parent's APIPortalAuth and by the
+# dashboard OIDC middlewares rendered on each cluster (parent or child). Always
+# render it so Traefik on child clusters can materialize the OIDC middlewares.
 apiVersion: v1
 kind: Secret
 metadata:
@@ -50,4 +54,3 @@ type: Opaque
 stringData:
   clientId: {{ include "airlines.oidc.clientId" . }}
   clientSecret: {{ include "airlines.oidc.clientSecret" . }}
-{{- end }}
