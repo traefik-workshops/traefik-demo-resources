@@ -29,9 +29,14 @@ metadata:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: {{ .Values.ingress.entrypoint }}
     traefik.ingress.kubernetes.io/router.middlewares: {{ include "keycloak.namespace" . }}-keycloak-cors@kubernetescrd
-    traefik.ingress.kubernetes.io/router.observability.accesslogs: {{ .Values.ingress.observability.accesslogs | quote  }}
-    traefik.ingress.kubernetes.io/router.observability.metrics: {{ .Values.ingress.observability.metrics | quote }}
-    traefik.ingress.kubernetes.io/router.observability.tracing: {{ .Values.ingress.observability.tracing | quote }}
+    {{- if not .Values.ingress.observability }}
+    traefik.ingress.kubernetes.io/router.observability.accesslogs: "false"
+    traefik.ingress.kubernetes.io/router.observability.metrics: "false"
+    traefik.ingress.kubernetes.io/router.observability.tracing: "false"
+    {{- end }}
+    {{- range $k, $v := .Values.ingress.annotations }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
 spec:
   rules:
     - host: keycloak.{{ $ingressDomain }}

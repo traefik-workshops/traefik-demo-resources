@@ -75,8 +75,10 @@ ingress:
   enabled: true
   domain: cloud
   entrypoint: traefik
-  # Observability settings
-  observability:
-    accesslogs: "false"
-    metrics: "false"
-    tracing: "false"
+  # Emit Traefik observability signals (access logs, metrics, traces) for the
+  # Keycloak ingress router. Set to false to add the three
+  # traefik.ingress.kubernetes.io/router.observability.*: "false" annotations.
+  observability: true
+  # Additional metadata annotations merged onto the Ingress. Useful for custom
+  # router options beyond the three observability toggles.
+  annotations: {}
