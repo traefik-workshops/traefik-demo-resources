@@ -20,10 +20,14 @@ variable "clusters" {
       # tasks in public subnets) unless a NAT-routed private subnet is supplied.
       assign_public_ip = optional(bool, false)
 
-      # If set, front the task with an internet-facing NLB on this port (a stable
-      # public address — the Fargate-equivalent of an EC2 Elastic IP). Targets the
-      # task's `port` on the main container.
+      # If set, front the task with an NLB on this port (a stable address — the
+      # Fargate-equivalent of an EC2 Elastic IP). Targets the task's `port`.
       nlb_port = optional(number, null)
+
+      # Make that NLB internal (private IPs only) instead of internet-facing — for a
+      # parent that dials the spoke privately within a shared VPC. Needs private
+      # (NAT-routed) subnet_ids + assign_public_ip = false.
+      nlb_internal = optional(bool, false)
 
       # Ephemeral task volumes (names) + the main container's mounts, for delivering
       # config files into a scratch image (e.g. a config-init sidecar writes them).

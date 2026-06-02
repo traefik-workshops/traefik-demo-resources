@@ -212,9 +212,15 @@ variable "custom_ports" {
 }
 
 variable "nlb_port" {
-  description = "If set, front the Traefik Fargate task with an internet-facing NLB on this port and make it the task's exposed/targeted container port (e.g. 9443 for a Hub multicluster uplink the parent dials). Null = no NLB, port stays 80."
+  description = "If set, front the Traefik Fargate task with an NLB on this port and make it the task's exposed/targeted container port (e.g. 9443 for a Hub multicluster uplink the parent dials). Null = no NLB, port stays 80."
   type        = number
   default     = null
+}
+
+variable "nlb_internal" {
+  description = "Make the NLB internal (private IPs only) instead of internet-facing — for a parent that dials this spoke privately within a shared VPC. Requires private (NAT-routed) subnet_ids + assign_public_ip = false."
+  type        = bool
+  default     = false
 }
 
 variable "assign_public_ip" {

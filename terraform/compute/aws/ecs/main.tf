@@ -17,6 +17,7 @@ locals {
         security_group_ids = length(app_config.security_group_ids) > 0 ? app_config.security_group_ids : var.security_group_ids
         assign_public_ip   = app_config.assign_public_ip
         nlb_port           = app_config.nlb_port
+        nlb_internal       = app_config.nlb_internal
         volumes            = app_config.volumes
         mount_points       = app_config.mount_points
         depends_on         = app_config.depends_on
@@ -171,7 +172,7 @@ resource "aws_lb" "nlb" {
 
   name               = substr("${each.value.cluster_name}-${each.value.app_name}-nlb", 0, 32)
   load_balancer_type = "network"
-  internal           = false
+  internal           = each.value.nlb_internal
   subnets            = var.create_vpc ? module.vpc[0].public_subnet_ids : each.value.subnet_ids
 }
 

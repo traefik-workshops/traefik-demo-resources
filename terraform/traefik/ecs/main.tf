@@ -37,6 +37,7 @@ module "ecs" {
           replicas         = module.config.replica_count
           port             = coalesce(var.nlb_port, 80)
           nlb_port         = var.nlb_port
+          nlb_internal     = var.nlb_internal
           assign_public_ip = var.assign_public_ip
           docker_image     = local.traefik_image
           # The shared module strips --hub.token from the extracted args so it can be
