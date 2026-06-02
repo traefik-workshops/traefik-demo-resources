@@ -174,7 +174,7 @@ variable "replica_count" {
 
 # Versions & Images
 variable "traefik_chart_version" {
-  description = "Traefik Helm chart version"
+  description = "Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh)."
   type        = string
   default     = "40.2.0"
 }
@@ -186,7 +186,7 @@ variable "traefik_tag" {
 }
 
 variable "traefik_hub_tag" {
-  description = "Traefik Hub version tag"
+  description = "Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh."
   type        = string
   default     = "v3.20.2"
 }
