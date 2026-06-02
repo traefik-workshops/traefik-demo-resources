@@ -37,5 +37,8 @@ module "whoami_vm" {
   # Apply service discovery categories
   categories = local.service_categories
 
+  # Empty default → DHCP. Set when the subnet's pool can't fit all whoami VMs.
+  static_ip = var.static_ip
+
   cloud_init_user_data = module.cloud_init.rendered
 }
