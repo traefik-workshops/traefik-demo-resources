@@ -78,6 +78,9 @@ locals {
     # Environment variables
     env = concat(
       var.dns_traefiker.enabled && length(data.kubernetes_secret_v1.dns_domain) > 0 ? [{ name = "CF_DNS_API_TOKEN", value = data.kubernetes_secret_v1.dns_domain[0].data["token"] }] : [],
+      # cloudflare_dns path (no dns-traefiker): the cf resolver's DNS-01 challenge
+      # still needs the token — feed it from cloudflare_dns.api_token directly.
+      !var.dns_traefiker.enabled && var.cloudflare_dns.enabled && var.cloudflare_dns.api_token != "" ? [{ name = "CF_DNS_API_TOKEN", value = var.cloudflare_dns.api_token }] : [],
       module.config.env_vars_list
     )
 
