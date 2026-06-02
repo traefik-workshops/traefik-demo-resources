@@ -26,3 +26,9 @@ variable "enable_nat_gateway" {
   description = "Enable NAT Gateway."
   default     = true
 }
+
+variable "extra_ingress_ports" {
+  type        = list(number)
+  description = "Additional TCP ports to open on the demo security group (from 0.0.0.0/0), beyond the default 80/443/8080/22. Used for the Traefik Hub multicluster uplink entrypoint (:9443) on VM/Fargate spokes the parent cluster dials."
+  default     = []
+}

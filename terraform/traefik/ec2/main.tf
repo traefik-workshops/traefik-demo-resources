@@ -70,6 +70,8 @@ locals {
 module "ec2_primary" {
   source = "../../compute/aws/ec2"
 
+  extra_ingress_ports = var.extra_ingress_ports
+
   apps = {
     traefik = {
       replicas   = 1

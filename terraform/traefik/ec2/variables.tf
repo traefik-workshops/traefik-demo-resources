@@ -281,12 +281,15 @@ variable "custom_plugins" {
 }
 
 variable "custom_ports" {
-  description = "Custom ports configuration"
-  type = map(object({
-    port     = number
-    protocol = optional(string, "tcp")
-  }))
-  default = {}
+  description = "Custom ports configuration. Typed `any` so it can carry a full Helm `ports.<name>` shape — e.g. a Hub multicluster uplink entrypoint { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } } — not just { port, protocol }."
+  type        = any
+  default     = {}
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (passed to compute/aws/ec2 -> compute/aws/vpc). Set to [9443] when this Traefik runs a Hub multicluster uplink entrypoint the parent cluster dials."
+  type        = list(number)
+  default     = []
 }
 
 variable "custom_arguments" {

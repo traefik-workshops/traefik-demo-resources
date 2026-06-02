@@ -88,9 +88,9 @@ variable "user_data_overrides" {
 }
 
 variable "root_block_device_size" {
-  description = "Root block device size in GB"
+  description = "Root block device size in GB. Must be >= the AMI's root snapshot — the Amazon Linux 2023 AMI snapshot is 30GB, so 20 now fails RunInstances with InvalidBlockDeviceMapping."
   type        = number
-  default     = 20
+  default     = 30
 }
 
 variable "associate_public_ip_address" {
@@ -108,4 +108,10 @@ variable "vpc_id" {
     condition     = var.create_vpc || var.vpc_id != ""
     error_message = "vpc_id must be provided if create_vpc is false"
   }
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (only when create_vpc = true). Passed through to compute/aws/vpc — e.g. [9443] for a Hub multicluster uplink entrypoint."
+  type        = list(number)
+  default     = []
 }
