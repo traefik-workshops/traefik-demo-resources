@@ -15,6 +15,12 @@ locals {
         app_labels         = app_config.labels
         subnet_ids         = length(app_config.subnet_ids) > 0 ? app_config.subnet_ids : var.subnet_ids
         security_group_ids = length(app_config.security_group_ids) > 0 ? app_config.security_group_ids : var.security_group_ids
+        assign_public_ip   = app_config.assign_public_ip
+        nlb_port           = app_config.nlb_port
+        volumes            = app_config.volumes
+        mount_points       = app_config.mount_points
+        depends_on         = app_config.depends_on
+        sidecars           = app_config.sidecars
       }
     ]
   ])
@@ -29,23 +35,38 @@ locals {
 
   # Get unique cluster names
   cluster_names = distinct([for svc in local.services : svc.cluster_name])
+
+  # Services fronted by an NLB (stable public address on nlb_port).
+  nlb_services = { for k, s in local.services_map : k => s if s.nlb_port != null }
 }
 
 module "vpc" {
   count  = var.create_vpc ? 1 : 0
   source = "../vpc"
 
-  name           = "ecs-vpc"
-  cidr           = "10.0.0.0/16"
-  public_subnets = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
-
+  name                = "ecs-vpc"
+  cidr                = "10.0.0.0/16"
+  public_subnets      = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+  extra_ingress_ports = var.extra_ingress_ports
 }
+
+data "aws_region" "current" {}
 
 # Create ECS clusters
 resource "aws_ecs_cluster" "cluster" {
   for_each = toset(local.cluster_names)
 
   name = each.value
+}
+
+# CloudWatch logs per service (Fargate has no SSH — this is the only window into
+# the containers; the execution role's AmazonECSTaskExecutionRolePolicy grants the
+# log writes).
+resource "aws_cloudwatch_log_group" "service" {
+  for_each = local.services_map
+
+  name              = "/ecs/${var.name}/${each.value.cluster_name}-${each.value.app_name}"
+  retention_in_days = 7
 }
 
 # Create IAM role for ECS task execution
@@ -56,11 +77,9 @@ resource "aws_iam_role" "ecs_task_execution" {
     Version = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
-        Effect = "Allow"
-        Principal = {
-          Service = "ecs-tasks.amazonaws.com"
-        }
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = { Service = "ecs-tasks.amazonaws.com" }
       }
     ]
   })
@@ -71,7 +90,9 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Create ECS task definitions
+# Create ECS task definitions. Each task is the main container + any sidecars
+# (e.g. a config-init that writes dynamic config into a shared volume, or a
+# co-located backend reachable on localhost).
 resource "aws_ecs_task_definition" "service" {
   for_each = local.services_map
 
@@ -79,41 +100,101 @@ resource "aws_ecs_task_definition" "service" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = "1024"
+  memory                   = "2048"
 
-  container_definitions = jsonencode([
-    merge(
-      {
-        name      = each.value.app_name
-        image     = each.value.docker_image
-        essential = true
+  dynamic "volume" {
+    for_each = toset(each.value.volumes)
+    content {
+      name = volume.value
+    }
+  }
 
-        portMappings = [
-          {
-            containerPort = each.value.port
-            protocol      = "tcp"
+  container_definitions = jsonencode(concat(
+    [
+      merge(
+        {
+          name         = each.value.app_name
+          image        = each.value.docker_image
+          essential    = true
+          portMappings = [{ containerPort = each.value.port, protocol = "tcp" }]
+          dockerLabels = merge(var.common_labels, each.value.app_labels)
+          mountPoints  = [for m in each.value.mount_points : { sourceVolume = m.name, containerPath = m.path }]
+          logConfiguration = {
+            logDriver = "awslogs"
+            options = {
+              "awslogs-group"         = aws_cloudwatch_log_group.service[each.key].name
+              "awslogs-region"        = data.aws_region.current.name
+              "awslogs-stream-prefix" = each.value.app_name
+            }
           }
-        ]
-
-        dockerLabels = merge(
-          var.common_labels,
-          each.value.app_labels
-        )
-      },
-      each.value.docker_command != "" ? {
-        command = split(" ", each.value.docker_command)
-      } : {},
-      length(each.value.environment) > 0 ? {
-        environment = [
-          for key, value in each.value.environment : {
-            name  = key
-            value = value
+        },
+        each.value.docker_command != "" ? { command = split(" ", each.value.docker_command) } : {},
+        length(each.value.environment) > 0 ? {
+          environment = [for k, v in each.value.environment : { name = k, value = v }]
+        } : {},
+        length(each.value.depends_on) > 0 ? {
+          dependsOn = [for d in each.value.depends_on : { containerName = d.name, condition = d.condition }]
+        } : {}
+      )
+    ],
+    [
+      for sc in each.value.sidecars : merge(
+        {
+          name        = sc.name
+          image       = sc.image
+          essential   = sc.essential
+          mountPoints = [for m in sc.mount_points : { sourceVolume = m.name, containerPath = m.path }]
+          logConfiguration = {
+            logDriver = "awslogs"
+            options = {
+              "awslogs-group"         = aws_cloudwatch_log_group.service[each.key].name
+              "awslogs-region"        = data.aws_region.current.name
+              "awslogs-stream-prefix" = sc.name
+            }
           }
-        ]
-      } : {}
-    )
-  ])
+        },
+        length(sc.command) > 0 ? { command = sc.command } : {},
+        length(sc.environment) > 0 ? {
+          environment = [for k, v in sc.environment : { name = k, value = v }]
+        } : {}
+      )
+    ]
+  ))
+}
+
+# --- Optional NLB per service: a stable internet-facing address on nlb_port
+# (the Fargate-equivalent of an EC2 Elastic IP) forwarding to the task's port.
+resource "aws_lb" "nlb" {
+  for_each = local.nlb_services
+
+  name               = substr("${each.value.cluster_name}-${each.value.app_name}-nlb", 0, 32)
+  load_balancer_type = "network"
+  internal           = false
+  subnets            = var.create_vpc ? module.vpc[0].public_subnet_ids : each.value.subnet_ids
+}
+
+resource "aws_lb_target_group" "nlb" {
+  for_each = local.nlb_services
+
+  name        = substr("${each.value.cluster_name}-${each.value.app_name}-tg", 0, 32)
+  port        = each.value.nlb_port
+  protocol    = "TCP"
+  target_type = "ip"
+  vpc_id      = var.create_vpc ? module.vpc[0].vpc_id : var.vpc_id
+}
+
+resource "aws_lb_listener" "nlb" {
+  for_each = local.nlb_services
+
+  load_balancer_arn = aws_lb.nlb[each.key].arn
+  port              = each.value.nlb_port
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.nlb[each.key].arn
+  }
 }
 
 # Create ECS services
@@ -129,7 +210,17 @@ resource "aws_ecs_service" "service" {
   network_configuration {
     subnets          = var.create_vpc ? module.vpc[0].public_subnet_ids : each.value.subnet_ids
     security_groups  = var.create_vpc ? module.vpc[0].security_group_ids : each.value.security_group_ids
-    assign_public_ip = false
+    assign_public_ip = each.value.assign_public_ip
   }
-}
 
+  dynamic "load_balancer" {
+    for_each = each.value.nlb_port != null ? [1] : []
+    content {
+      target_group_arn = aws_lb_target_group.nlb[each.key].arn
+      container_name   = each.value.app_name
+      container_port   = each.value.port
+    }
+  }
+
+  depends_on = [aws_lb_listener.nlb]
+}

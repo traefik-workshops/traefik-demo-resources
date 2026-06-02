@@ -15,8 +15,45 @@ variable "clusters" {
       labels             = optional(map(string), {})
       environment        = optional(map(string), {})
       security_group_ids = optional(list(string), [])
+
+      # Fargate task needs egress to pull images; set true (the module places
+      # tasks in public subnets) unless a NAT-routed private subnet is supplied.
+      assign_public_ip = optional(bool, false)
+
+      # If set, front the task with an internet-facing NLB on this port (a stable
+      # public address — the Fargate-equivalent of an EC2 Elastic IP). Targets the
+      # task's `port` on the main container.
+      nlb_port = optional(number, null)
+
+      # Ephemeral task volumes (names) + the main container's mounts, for delivering
+      # config files into a scratch image (e.g. a config-init sidecar writes them).
+      volumes      = optional(list(string), [])
+      mount_points = optional(list(object({ name = string, path = string })), [])
+
+      # Container start ordering, e.g. wait for a config-init sidecar to COMPLETE.
+      depends_on = optional(list(object({
+        name      = string
+        condition = optional(string, "START") # START | COMPLETE | SUCCESS | HEALTHY
+      })), [])
+
+      # Extra containers in the same task (sidecars: config writers, co-located
+      # backends reachable on localhost, etc.).
+      sidecars = optional(list(object({
+        name         = string
+        image        = string
+        command      = optional(list(string), [])
+        essential    = optional(bool, false)
+        environment  = optional(map(string), {})
+        mount_points = optional(list(object({ name = string, path = string })), [])
+      })), [])
     }))
   }))
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (only when create_vpc = true). E.g. [9443] for a Hub multicluster uplink entrypoint fronted by an NLB."
+  type        = list(number)
+  default     = []
 }
 
 variable "create_vpc" {

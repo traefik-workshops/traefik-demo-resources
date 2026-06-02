@@ -28,18 +28,50 @@ locals {
 module "ecs" {
   source = "../../compute/aws/ecs"
 
-  name = "traefik"
+  name                = "traefik"
+  extra_ingress_ports = var.extra_ingress_ports
   clusters = {
     traefik = {
       apps = {
         traefik = {
-          replicas           = module.config.replica_count
-          port               = 80
-          docker_image       = local.traefik_image
-          docker_command     = join(" ", local.traefik_arguments)
+          replicas         = module.config.replica_count
+          port             = coalesce(var.nlb_port, 80)
+          nlb_port         = var.nlb_port
+          assign_public_ip = var.assign_public_ip
+          docker_image     = local.traefik_image
+          # The shared module strips --hub.token from the extracted args so it can be
+          # injected per-platform. The Hub binary reads the FLAG (EC2's systemd does
+          # `--hub.token=$HUB_TOKEN`); ECS commands are exec'd with no shell, so the
+          # value is inlined here rather than referenced from an env var.
+          docker_command     = join(" ", concat(["--hub.token=${var.traefik_hub_token}"], local.traefik_arguments))
           subnet_ids         = var.subnet_ids
           security_group_ids = var.security_group_ids
           labels             = local.docker_labels
+
+          # The Hub image is scratch (no shell/cloud-init), so a config-init sidecar
+          # writes the file-provider config into a shared volume Traefik mounts.
+          volumes      = var.file_provider_config != "" ? ["dynamic"] : []
+          mount_points = var.file_provider_config != "" ? [{ name = "dynamic", path = var.file_provider_path }] : []
+          depends_on   = var.file_provider_config != "" ? [{ name = "config-init", condition = "COMPLETE" }] : []
+
+          sidecars = concat(
+            var.file_provider_config != "" ? [{
+              name         = "config-init"
+              image        = "busybox:1.36"
+              essential    = false
+              command      = ["sh", "-c", "echo \"$DYNAMIC_B64\" | base64 -d > ${var.file_provider_path}/dynamic.yml"]
+              environment  = { DYNAMIC_B64 = base64encode(var.file_provider_config) }
+              mount_points = [{ name = "dynamic", path = var.file_provider_path }]
+            }] : [],
+            var.colocated_backend_image != "" ? [{
+              name      = "backend"
+              image     = var.colocated_backend_image
+              essential = true
+              # Keep the backend off :80 — Traefik's web entrypoint owns it in the
+              # task's shared awsvpc network namespace.
+              command = var.colocated_backend_port != 80 ? ["--port", tostring(var.colocated_backend_port)] : []
+            }] : []
+          )
         }
       }
     }

@@ -206,12 +206,39 @@ variable "custom_plugins" {
 }
 
 variable "custom_ports" {
-  description = "Custom ports configuration"
-  type = map(object({
-    port     = number
-    protocol = optional(string, "tcp")
-  }))
-  default = {}
+  description = "Custom ports configuration. Typed `any` so it can carry a full Helm `ports.<name>` shape — e.g. a Hub multicluster uplink entrypoint { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } }."
+  type        = any
+  default     = {}
+}
+
+variable "nlb_port" {
+  description = "If set, front the Traefik Fargate task with an internet-facing NLB on this port and make it the task's exposed/targeted container port (e.g. 9443 for a Hub multicluster uplink the parent dials). Null = no NLB, port stays 80."
+  type        = number
+  default     = null
+}
+
+variable "assign_public_ip" {
+  description = "Assign a public IP to the Fargate task (needed for image pull when tasks run in public subnets)."
+  type        = bool
+  default     = true
+}
+
+variable "colocated_backend_image" {
+  description = "If set, run this image as an essential sidecar in the Traefik task (reachable on localhost) — e.g. a whoami the file-provider config advertises over the uplink. Empty = no sidecar."
+  type        = string
+  default     = ""
+}
+
+variable "colocated_backend_port" {
+  description = "Container port the colocated backend listens on (reached via localhost from Traefik)."
+  type        = number
+  default     = 80
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (passed to compute/aws/ecs). Set to [9443] when fronting a Hub uplink entrypoint with an NLB."
+  type        = list(number)
+  default     = []
 }
 
 variable "custom_arguments" {
