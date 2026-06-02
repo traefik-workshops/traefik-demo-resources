@@ -21,6 +21,9 @@ write_files:
       After=network.target
 
       [Service]
+      # WHOAMI_NAME (when non-empty) → response shows `Name: <name>` so the audience
+      # can tell which VM served them; empty = whoami uses OS hostname.
+      Environment=WHOAMI_NAME=${name}
       ExecStart=/usr/local/bin/whoami --port ${port}
       Restart=always
       User=nobody

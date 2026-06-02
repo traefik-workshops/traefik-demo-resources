@@ -18,6 +18,9 @@ module "cloud_init" {
   whoami_version = var.whoami_version
   arch           = var.arch
   port           = var.service_port
+  # Surfaces as `Name:` in the whoami response so the audience sees which
+  # VM served them (the OS hostname stays "ubuntu" — cloud-init doesn't set it).
+  name = var.vm_name
 }
 
 module "whoami_vm" {
