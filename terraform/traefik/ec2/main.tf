@@ -83,6 +83,7 @@ module "ec2_primary" {
   ami_architecture       = var.ami_architecture
   create_vpc             = var.create_vpc
   vpc_id                 = var.vpc_id
+  subnet_ids             = var.subnet_ids
   security_group_ids     = var.security_group_ids
   iam_instance_profile   = var.iam_instance_profile
   enable_acme_setup      = module.config.cloudflare_dns.enabled
@@ -220,6 +221,7 @@ module "ec2_secondary" {
   ami_architecture       = var.ami_architecture
   create_vpc             = var.create_vpc
   vpc_id                 = var.vpc_id
+  subnet_ids             = var.subnet_ids
   security_group_ids     = var.security_group_ids
   iam_instance_profile   = var.iam_instance_profile
   enable_acme_setup      = module.config.cloudflare_dns.enabled

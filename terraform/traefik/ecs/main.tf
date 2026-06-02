@@ -80,6 +80,10 @@ module "ecs" {
 
   create_vpc = var.create_vpc
   vpc_id     = var.vpc_id
+  # Plumb subnet_ids/security_group_ids to the compute module's TOP LEVEL too (not
+  # just per-app above) — that's where the create_vpc=false validation checks them.
+  subnet_ids         = var.subnet_ids
+  security_group_ids = var.security_group_ids
 }
 
 # =============================================================================
