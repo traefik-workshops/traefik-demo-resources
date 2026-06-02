@@ -56,6 +56,12 @@ variable "extra_ingress_ports" {
   default     = []
 }
 
+variable "enable_nat_gateway" {
+  description = "Create a NAT gateway in the VPC (only when create_vpc = true). Defaults false — Fargate tasks run in PUBLIC subnets with assign_public_ip (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost."
+  type        = bool
+  default     = false
+}
+
 variable "create_vpc" {
   description = "Create VPC if vpc_id is not provided"
   type        = bool

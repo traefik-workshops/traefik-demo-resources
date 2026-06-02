@@ -115,3 +115,9 @@ variable "extra_ingress_ports" {
   type        = list(number)
   default     = []
 }
+
+variable "enable_nat_gateway" {
+  description = "Create a NAT gateway in the VPC (only when create_vpc = true). Defaults false — these instances run in PUBLIC subnets with public IPs (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost."
+  type        = bool
+  default     = false
+}

@@ -48,6 +48,7 @@ module "vpc" {
   cidr                = "10.0.0.0/16"
   public_subnets      = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
   extra_ingress_ports = var.extra_ingress_ports
+  enable_nat_gateway  = var.enable_nat_gateway
 }
 
 data "aws_region" "current" {}
