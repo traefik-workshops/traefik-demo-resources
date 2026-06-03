@@ -4,5 +4,6 @@ output "rendered" {
     whoami_version = var.whoami_version
     arch           = var.arch
     port           = var.port
+    name           = var.name
   })
 }

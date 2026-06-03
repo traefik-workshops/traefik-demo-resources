@@ -157,7 +157,7 @@ variable "replica_count" {
 variable "traefik_chart_version" {
   description = "Traefik Helm chart version"
   type        = string
-  default     = "38.0.1"
+  default     = "40.2.0"
 }
 
 variable "traefik_tag" {
@@ -169,7 +169,7 @@ variable "traefik_tag" {
 variable "traefik_hub_tag" {
   description = "Traefik Hub version tag"
   type        = string
-  default     = "v3.19.0"
+  default     = "v3.20.2"
 }
 
 variable "traefik_hub_preview_tag" {

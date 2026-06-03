@@ -18,6 +18,9 @@ module "cloud_init" {
   whoami_version = var.whoami_version
   arch           = var.arch
   port           = var.service_port
+  # Surfaces as `Name:` in the whoami response so the audience sees which
+  # VM served them (the OS hostname stays "ubuntu" — cloud-init doesn't set it).
+  name = var.vm_name
 }
 
 module "whoami_vm" {
@@ -33,6 +36,9 @@ module "whoami_vm" {
 
   # Apply service discovery categories
   categories = local.service_categories
+
+  # Empty default → DHCP. Set when the subnet's pool can't fit all whoami VMs.
+  static_ip = var.static_ip
 
   cloud_init_user_data = module.cloud_init.rendered
 }

@@ -65,3 +65,12 @@ variable "whoami_version" {
   type        = string
   default     = "v1.10.1"
 }
+
+# Empty = DHCP (overlay subnets / VPCs always have it; VLAN subnets often have a
+# small pool that can be exhausted). Set this when the target subnet's DHCP pool
+# is full or you want predictable IPs to reference from Traefik routes.
+variable "static_ip" {
+  description = "Static IP for the whoami VM NIC. Empty means DHCP."
+  type        = string
+  default     = ""
+}
