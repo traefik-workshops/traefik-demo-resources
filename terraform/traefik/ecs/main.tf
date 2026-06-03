@@ -84,6 +84,7 @@ module "ecs" {
   # just per-app above) — that's where the create_vpc=false validation checks them.
   subnet_ids         = var.subnet_ids
   security_group_ids = var.security_group_ids
+  task_role_arn      = var.task_role_arn
 }
 
 # =============================================================================

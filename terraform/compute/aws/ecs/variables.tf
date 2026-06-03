@@ -110,3 +110,9 @@ variable "security_group_ids" {
     error_message = "security_group_ids must be provided if create_vpc is false"
   }
 }
+
+variable "task_role_arn" {
+  description = "IAM role ARN the task's containers assume (the task role — distinct from the execution role), e.g. so an in-task Traefik ECS provider can call the AWS ECS API. Empty = no task role."
+  type        = string
+  default     = ""
+}

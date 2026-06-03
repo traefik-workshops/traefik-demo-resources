@@ -102,8 +102,11 @@ resource "aws_ecs_task_definition" "service" {
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  cpu                      = "1024"
-  memory                   = "2048"
+  # Task role (optional): the identity the containers assume to call AWS APIs — e.g.
+  # an in-task Traefik ECS provider listing tasks. Distinct from the execution role.
+  task_role_arn = var.task_role_arn != "" ? var.task_role_arn : null
+  cpu           = "1024"
+  memory        = "2048"
 
   dynamic "volume" {
     for_each = toset(each.value.volumes)

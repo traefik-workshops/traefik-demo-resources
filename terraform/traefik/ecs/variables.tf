@@ -50,6 +50,12 @@ variable "extra_labels" {
   default     = {}
 }
 
+variable "task_role_arn" {
+  description = "IAM role ARN the Traefik task assumes (the task role) — e.g. so the in-task ECS provider can call the AWS ECS API. Empty = no task role."
+  type        = string
+  default     = ""
+}
+
 # =============================================================================
 # Shared Variable Declarations
 # =============================================================================
