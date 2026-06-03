@@ -303,8 +303,12 @@ runcmd:
     URL="https://github.com/traefik/hub/releases/download/$VERSION/traefik-hub_$${VERSION}_linux_$${DOWNLOAD_ARCH}.tar.gz"
     echo "Downloading Traefik Hub from $URL..."
 
-    for i in {1..5}; do
-      if curl -L --connect-timeout 10 --max-time 120 "$URL" -o /tmp/traefik-hub.tar.gz; then
+    # Up to ~4 min of patience: an instance can boot before its NAT gateway is ready
+    # (private-subnet spokes especially), so an early failure here usually just means
+    # "egress not up yet" — keep retrying instead of giving up after ~75s.
+    # --retry-connrefused covers transient connection refusals within each attempt.
+    for i in {1..20}; do
+      if curl -fL --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 5 --retry-connrefused "$URL" -o /tmp/traefik-hub.tar.gz; then
         mkdir -p /tmp/traefik-hub-extract
         tar -xzf /tmp/traefik-hub.tar.gz -C /tmp/traefik-hub-extract
         BINARY=$(find /tmp/traefik-hub-extract -maxdepth 1 -type f -name "traefik-hub*" | head -n 1)
@@ -315,8 +319,8 @@ runcmd:
           break
         fi
       fi
-      echo "Retrying Traefik Hub download ($i/5)..."
-      sleep 5
+      echo "Retrying Traefik Hub download ($i/20)..."
+      sleep 10
     done
     rm -rf /tmp/traefik-hub-extract /tmp/traefik-hub.tar.gz
 

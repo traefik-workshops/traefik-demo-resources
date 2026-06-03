@@ -56,7 +56,13 @@ runcmd:
     set -euo pipefail
     for i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; echo "waiting for docker ($i)"; sleep 2; done
     echo "Pulling traefik/whoami:${whoami_version} (linux/${arch})"
-    docker pull --platform linux/${arch} traefik/whoami:${whoami_version}
+    # Retry the pull (~4 min): the instance can boot before its NAT gateway is ready
+    # (private-subnet spokes), so an early pull failure usually just means egress isn't up.
+    for i in $(seq 1 20); do
+      docker pull --platform linux/${arch} traefik/whoami:${whoami_version} && break
+      echo "Retrying whoami image pull ($i/20)..."
+      sleep 10
+    done
     cid=$(docker create --platform linux/${arch} traefik/whoami:${whoami_version})
     docker cp "$cid:/whoami" /usr/local/bin/whoami
     docker rm -v "$cid"
