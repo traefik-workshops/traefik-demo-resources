@@ -46,9 +46,13 @@ resource "kubernetes_deployment_v1" "echo" {
             container_port = each.value.port
           }
 
+          # whoami prints `Name: <v>` when WHOAMI_NAME is set (it's the env default for
+          # the `-name` flag). Defaults to the app key; override per app (e.g. to tag a
+          # leg by its compute: whoami-eks vs whoami-aks) so identical-keyed whoamis on
+          # different clusters are still distinguishable in the response body.
           env {
             name  = "WHOAMI_NAME"
-            value = each.key
+            value = coalesce(each.value.name, each.key)
           }
 
           env {

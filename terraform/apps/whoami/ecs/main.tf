@@ -4,14 +4,17 @@ locals {
       cluster_config,
       {
         apps = {
+          # Strip `name` before passing on (compute/aws/ecs's apps object is strictly
+          # typed and has no `name`); it only feeds WHOAMI_NAME, so whoami's body shows
+          # `Name: <name>` (e.g. whoami-ecs). Defaults to the app key.
           for app_name, app_config in cluster_config.apps : app_name => merge(
-            app_config,
+            { for k, v in app_config : k => v if k != "name" },
             {
               docker_image       = "traefik/whoami:latest"
               subnet_ids         = cluster_config.subnet_ids
               security_group_ids = cluster_config.security_group_ids
               environment = {
-                WHOAMI_NAME = app_name
+                WHOAMI_NAME = try(app_config.name, app_name)
               }
             }
           )

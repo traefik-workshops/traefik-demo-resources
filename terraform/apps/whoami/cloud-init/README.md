@@ -46,6 +46,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_arch"></a> [arch](#input\_arch) | The architecture (amd64, arm64) | `string` | `"amd64"` | no |
+| <a name="input_name"></a> [name](#input\_name) | Optional whoami `--name`: when set, the systemd unit runs whoami with `--name <name>` so the response body carries `Name: <name>` (e.g. whoami-ec2). Empty omits the flag. | `string` | `""` | no |
 | <a name="input_port"></a> [port](#input\_port) | Port for whoami to listen on | `number` | `80` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The Whoami version to install | `string` | `"v1.10.1"` | no |
 

@@ -52,7 +52,7 @@ No resources.
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs | `list(string)` | `[]` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID | `string` | `""` | no |
-| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The Whoami version to install | `string` | `"1.10.1"` | no |
+| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The Whoami version to install. Must be a real traefik/whoami image tag — they carry a `v` prefix (e.g. v1.10.1); a bare `1.10.1` is `manifest unknown` and the binary extraction silently fails. | `string` | `"v1.10.1"` | no |
 
 ## Outputs
 

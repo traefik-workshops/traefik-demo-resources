@@ -4,6 +4,7 @@ variable "apps" {
   type = map(object({
     replicas     = optional(number, 1)
     port         = optional(number, 80)
+    name         = optional(string) # whoami `-name` (WHOAMI_NAME) — body shows `Name: <name>`; defaults to the app key
     docker_image = optional(string, "traefik/whoami:latest")
     labels       = optional(map(string), {})
     ingress_route = optional(object({

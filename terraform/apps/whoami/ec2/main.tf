@@ -6,12 +6,16 @@ module "cloud_init" {
   whoami_version = var.whoami_version
   arch           = var.ami_architecture == "x86_64" ? "amd64" : var.ami_architecture
   port           = each.value.port
+  # whoami `--name` on the systemd unit -> body shows `Name: <name>` (e.g. whoami-ec2).
+  name = try(each.value.name, "")
 }
 
 locals {
   apps = {
+    # `name` only feeds cloud-init's whoami --name above; strip it before passing to
+    # compute/aws/ec2 (its apps object is strictly typed and has no `name`).
     for app_name, app_config in var.apps : app_name => merge(
-      app_config,
+      { for k, v in app_config : k => v if k != "name" },
       {
         # Docker config is ignored when user_data_overrides is provided
         docker_image   = "traefik/whoami:${var.whoami_version}"
