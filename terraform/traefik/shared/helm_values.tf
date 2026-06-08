@@ -145,6 +145,10 @@ locals {
         addEntryPointsLabels = true
         addRoutersLabels     = true
         addServicesLabels    = true
+        # service.name resource attribute so OTLP metrics carry the same per-compute
+        # identity as traces/logs (which set serviceName). Without it, metrics land
+        # under a default name and you can't tell traefik-hub from traefik-aks etc.
+        resourceAttributes = { "service.name" = var.otlp_service_name }
         http = merge({
           enabled  = true
           endpoint = "${local.otlp_endpoint}/v1/metrics"
