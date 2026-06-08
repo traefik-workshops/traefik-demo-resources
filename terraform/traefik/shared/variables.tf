@@ -77,7 +77,7 @@ variable "traefik_tag" {
 variable "traefik_hub_tag" {
   description = "Traefik Hub version tag"
   type        = string
-  default     = "v3.20.4"
+  default     = "v3.20.2"
 }
 
 variable "traefik_hub_preview_tag" {

@@ -119,7 +119,7 @@ variable "traefik_tag" {
 variable "traefik_hub_tag" {
   description = "Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh."
   type        = string
-  default     = "v3.20.4"
+  default     = "v3.20.2"
 }
 
 variable "traefik_hub_preview_tag" {
