@@ -190,7 +190,7 @@ variable "enable_debug" {
 variable "traefik_chart_version" {
   description = "Traefik Helm chart version (latest stable). Must render the partial metrics.otlp block this module sets: chart 38.x nil-pointers on .Values.metrics.otlp.resourceAttributes when that block is set without it; 40.x renders it."
   type        = string
-  default     = "40.2.0"
+  default     = "40.3.0"
 }
 
 variable "traefik_tag" {
@@ -202,7 +202,7 @@ variable "traefik_tag" {
 variable "traefik_hub_tag" {
   description = "Traefik Hub image tag for ghcr.io/traefik/traefik-hub (latest stable), paired with the default chart version above."
   type        = string
-  default     = "v3.20.2"
+  default     = "v3.20.4"
 }
 
 variable "traefik_hub_preview_tag" {
