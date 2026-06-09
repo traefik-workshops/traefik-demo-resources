@@ -384,6 +384,12 @@ variable "dashboard_insecure" {
   default     = true
 }
 
+variable "enable_dashboard_discovery" {
+  description = "Self-register the Traefik VM via tags (traefik.enable + dashboard router/service) so its OWN EC2 provider discovers the dashboard as dashboard@ec2. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # Providers
 # -----------------------------------------------------------------------------

@@ -89,14 +89,22 @@ module "ec2_primary" {
   enable_acme_setup      = module.config.cloudflare_dns.enabled
   root_block_device_size = var.root_block_device_size
 
-  common_tags = merge(var.extra_tags, {
-    "Name"                                                     = "traefik"
-    "traefik.enable"                                           = "true"
-    "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-    "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-    "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-    "traefik.performance_hash"                                 = local.performance_tuning_hash
-  })
+  common_tags = merge(
+    var.extra_tags,
+    {
+      "Name"                     = "traefik"
+      "traefik.performance_hash" = local.performance_tuning_hash
+    },
+    # Self-register the Traefik VM's own dashboard via its EC2 provider (-> dashboard@ec2).
+    # Disable when the dashboard is advertised another way (e.g. a file-rule uplink): without
+    # traefik.enable the VM isn't self-discovered at all, so no redundant self-router appears.
+    var.enable_dashboard_discovery ? {
+      "traefik.enable"                                           = "true"
+      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
+      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
+      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
+    } : {}
+  )
 
   # Pass only primary user data
   user_data_overrides = {
@@ -227,14 +235,22 @@ module "ec2_secondary" {
   enable_acme_setup      = module.config.cloudflare_dns.enabled
   root_block_device_size = var.root_block_device_size
 
-  common_tags = merge(var.extra_tags, {
-    "Name"                                                     = "traefik"
-    "traefik.enable"                                           = "true"
-    "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-    "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-    "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-    "traefik.performance_hash"                                 = local.performance_tuning_hash
-  })
+  common_tags = merge(
+    var.extra_tags,
+    {
+      "Name"                     = "traefik"
+      "traefik.performance_hash" = local.performance_tuning_hash
+    },
+    # Self-register the Traefik VM's own dashboard via its EC2 provider (-> dashboard@ec2).
+    # Disable when the dashboard is advertised another way (e.g. a file-rule uplink): without
+    # traefik.enable the VM isn't self-discovered at all, so no redundant self-router appears.
+    var.enable_dashboard_discovery ? {
+      "traefik.enable"                                           = "true"
+      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
+      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
+      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
+    } : {}
+  )
 
   # Map primary user data indices to secondary naming scheme
   user_data_overrides = {
