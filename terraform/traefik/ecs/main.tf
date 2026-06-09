@@ -17,12 +17,16 @@ locals {
     for name, port in module.config.ports :
     "traefik.http.routers.${name}.entrypoints" => name
     if try(port.expose.default, false)
-    }, {
-    "traefik.enable"                                           = "true"
-    "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-    "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-    "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-  })
+    },
+    # Self-register the Traefik task's own dashboard via its ECS provider (-> dashboard@ecs).
+    # Disable when the dashboard is advertised another way (e.g. a file-rule uplink): without
+    # traefik.enable the task isn't self-discovered at all, so no redundant self-router appears.
+    var.enable_dashboard_discovery ? {
+      "traefik.enable"                                           = "true"
+      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
+      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
+      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
+  } : {})
 }
 
 module "ecs" {

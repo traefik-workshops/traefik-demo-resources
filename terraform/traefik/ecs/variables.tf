@@ -336,6 +336,12 @@ variable "dashboard_insecure" {
   default     = true
 }
 
+variable "enable_dashboard_discovery" {
+  description = "Self-register the Traefik task via tags (traefik.enable + dashboard router/service) so its OWN ECS provider discovers the dashboard as dashboard@ecs. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the task isn't self-discovered at all."
+  type        = bool
+  default     = true
+}
+
 # -----------------------------------------------------------------------------
 # Providers
 # -----------------------------------------------------------------------------
