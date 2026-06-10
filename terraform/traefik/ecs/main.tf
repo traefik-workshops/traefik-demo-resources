@@ -62,7 +62,7 @@ module "ecs" {
           sidecars = concat(
             var.file_provider_config != "" ? [{
               name         = "config-init"
-              image        = "busybox:1.36"
+              image        = "busybox:1.38.0"
               essential    = false
               command      = ["sh", "-c", "echo \"$DYNAMIC_B64\" | base64 -d > ${var.file_provider_path}/dynamic.yml"]
               environment  = { DYNAMIC_B64 = base64encode(var.file_provider_config) }

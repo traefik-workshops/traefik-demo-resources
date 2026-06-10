@@ -91,7 +91,7 @@ No resources.
 | <a name="input_traefik_hub_preview_tag"></a> [traefik\_hub\_preview\_tag](#input\_traefik\_hub\_preview\_tag) | Traefik Hub preview version tag | `string` | `""` | no |
 | <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub version tag | `string` | `"v3.20.4"` | no |
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
-| <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.6.6"` | no |
+| <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
 | <a name="input_vip"></a> [vip](#input\_vip) | Virtual IP for Keepalived | `string` | `""` | no |
 | <a name="input_vm_disk_size_mib"></a> [vm\_disk\_size\_mib](#input\_vm\_disk\_size\_mib) | Disk size in MiB | `number` | `20480` | no |
 | <a name="input_vm_memory_mib"></a> [vm\_memory\_mib](#input\_vm\_memory\_mib) | Memory size in MiB | `number` | `2048` | no |

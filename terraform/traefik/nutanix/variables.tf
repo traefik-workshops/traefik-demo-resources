@@ -164,7 +164,7 @@ variable "traefik_chart_version" {
 variable "traefik_tag" {
   description = "Traefik OSS version tag"
   type        = string
-  default     = "v3.6.6"
+  default     = "v3.7.4"
 }
 
 variable "traefik_hub_tag" {
