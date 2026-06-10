@@ -54,8 +54,8 @@ module "traefik" {
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Traefik Hub deployment | `string` | n/a | yes |
-| <a name="input_additional_volume_mounts"></a> [additional\_volume\_mounts](#input\_additional\_volume\_mounts) | Additional volume mounts for the Traefik container | `list(any)` | `[]` | no |
-| <a name="input_additional_volumes"></a> [additional\_volumes](#input\_additional\_volumes) | Additional volumes to mount in the Traefik pod | `list(any)` | `[]` | no |
+| <a name="input_additional_volume_mounts"></a> [additional\_volume\_mounts](#input\_additional\_volume\_mounts) | Additional volume mounts for the Traefik container | `any` | `[]` | no |
+| <a name="input_additional_volumes"></a> [additional\_volumes](#input\_additional\_volumes) | Additional volumes to mount in the Traefik pod | `any` | `[]` | no |
 | <a name="input_cloudflare_dns"></a> [cloudflare\_dns](#input\_cloudflare\_dns) | Cloudflare DNS configuration for certificate resolver | <pre>object({<br/>    enabled           = optional(bool, false)<br/>    domain            = optional(string, "")<br/>    api_token         = optional(string, "")<br/>    extra_san_domains = optional(list(string), [])<br/>  })</pre> | <pre>{<br/>  "api_token": "",<br/>  "domain": "",<br/>  "enabled": false,<br/>  "extra_san_domains": []<br/>}</pre> | no |
 | <a name="input_custom_arguments"></a> [custom\_arguments](#input\_custom\_arguments) | Additional CLI arguments for Traefik | `list(string)` | `[]` | no |
 | <a name="input_custom_envs"></a> [custom\_envs](#input\_custom\_envs) | Custom environment variables | <pre>list(object({<br/>    name  = string<br/>    value = string<br/>  }))</pre> | `[]` | no |
@@ -109,11 +109,11 @@ module "traefik" {
 | <a name="input_skip_crds"></a> [skip\_crds](#input\_skip\_crds) | Skip CRD installation (for NKP/Kommander clusters with pre-installed CRDs) | `bool` | `false` | no |
 | <a name="input_skip_gateway_api_crds"></a> [skip\_gateway\_api\_crds](#input\_skip\_gateway\_api\_crds) | Skip Gateway API CRD installation | `bool` | `false` | no |
 | <a name="input_tolerations"></a> [tolerations](#input\_tolerations) | Tolerations for the Traefik deployment | <pre>list(object({<br/>    key      = string<br/>    operator = string<br/>    value    = string<br/>    effect   = string<br/>  }))</pre> | `[]` | no |
-| <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version (latest stable). Must render the partial metrics.otlp block this module sets: chart 38.x nil-pointers on .Values.metrics.otlp.resourceAttributes when that block is set without it; 40.x renders it. | `string` | `"40.2.0"` | no |
+| <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version (latest stable). Must render the partial metrics.otlp block this module sets: chart 38.x nil-pointers on .Values.metrics.otlp.resourceAttributes when that block is set without it; 40.x renders it. | `string` | `"40.3.0"` | no |
 | <a name="input_traefik_hub_preview_tag"></a> [traefik\_hub\_preview\_tag](#input\_traefik\_hub\_preview\_tag) | Traefik Hub preview version tag | `string` | `""` | no |
-| <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub image tag for ghcr.io/traefik/traefik-hub (latest stable), paired with the default chart version above. | `string` | `"v3.20.2"` | no |
+| <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub image tag for ghcr.io/traefik/traefik-hub (latest stable), paired with the default chart version above. | `string` | `"v3.20.4"` | no |
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
-| <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.6.6"` | no |
+| <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
 | <a name="input_use_distributed_acme"></a> [use\_distributed\_acme](#input\_use\_distributed\_acme) | Use distributedAcme instead of acme (stores certs in K8s secrets instead of acme.json file) | `bool` | `true` | no |
 
 ## Outputs

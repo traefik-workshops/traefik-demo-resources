@@ -50,6 +50,12 @@ variable "extra_labels" {
   default     = {}
 }
 
+variable "task_role_arn" {
+  description = "IAM role ARN the Traefik task assumes (the task role) — e.g. so the in-task ECS provider can call the AWS ECS API. Empty = no task role."
+  type        = string
+  default     = ""
+}
+
 # =============================================================================
 # Shared Variable Declarations
 # =============================================================================
@@ -99,21 +105,22 @@ variable "replica_count" {
 
 # Versions & Images
 variable "traefik_chart_version" {
-  description = "Traefik Helm chart version"
+  description = "Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh)."
   type        = string
-  default     = "40.2.0"
+  # Chart 40.3.0 publishes hub-max v3.20.4 — the multicluster-verified pairing (matches the hub).
+  default = "40.3.0"
 }
 
 variable "traefik_tag" {
   description = "Traefik OSS version tag"
   type        = string
-  default     = "v3.6.6"
+  default     = "v3.7.4"
 }
 
 variable "traefik_hub_tag" {
-  description = "Traefik Hub version tag"
+  description = "Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh."
   type        = string
-  default     = "v3.20.2"
+  default     = "v3.20.4"
 }
 
 variable "traefik_hub_preview_tag" {
@@ -206,12 +213,45 @@ variable "custom_plugins" {
 }
 
 variable "custom_ports" {
-  description = "Custom ports configuration"
-  type = map(object({
-    port     = number
-    protocol = optional(string, "tcp")
-  }))
-  default = {}
+  description = "Custom ports configuration. Typed `any` so it can carry a full Helm `ports.<name>` shape — e.g. a Hub multicluster uplink entrypoint { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } }."
+  type        = any
+  default     = {}
+}
+
+variable "nlb_port" {
+  description = "If set, front the Traefik Fargate task with an NLB on this port and make it the task's exposed/targeted container port (e.g. 9443 for a Hub multicluster uplink the parent dials). Null = no NLB, port stays 80."
+  type        = number
+  default     = null
+}
+
+variable "nlb_internal" {
+  description = "Make the NLB internal (private IPs only) instead of internet-facing — for a parent that dials this spoke privately within a shared VPC. Requires private (NAT-routed) subnet_ids + assign_public_ip = false."
+  type        = bool
+  default     = false
+}
+
+variable "assign_public_ip" {
+  description = "Assign a public IP to the Fargate task (needed for image pull when tasks run in public subnets)."
+  type        = bool
+  default     = true
+}
+
+variable "colocated_backend_image" {
+  description = "If set, run this image as an essential sidecar in the Traefik task (reachable on localhost) — e.g. a whoami the file-provider config advertises over the uplink. Empty = no sidecar."
+  type        = string
+  default     = ""
+}
+
+variable "colocated_backend_port" {
+  description = "Container port the colocated backend listens on (reached via localhost from Traefik)."
+  type        = number
+  default     = 80
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (passed to compute/aws/ecs). Set to [9443] when fronting a Hub uplink entrypoint with an NLB."
+  type        = list(number)
+  default     = []
 }
 
 variable "custom_arguments" {
@@ -293,6 +333,12 @@ variable "enable_dashboard" {
 
 variable "dashboard_insecure" {
   description = "Enable insecure dashboard access (no auth)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dashboard_discovery" {
+  description = "Self-register the Traefik task via tags (traefik.enable + dashboard router/service) so its OWN ECS provider discovers the dashboard as dashboard@ecs. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the task isn't self-discovered at all."
   type        = bool
   default     = true
 }

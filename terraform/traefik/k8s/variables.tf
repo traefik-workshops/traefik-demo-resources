@@ -190,19 +190,19 @@ variable "enable_debug" {
 variable "traefik_chart_version" {
   description = "Traefik Helm chart version (latest stable). Must render the partial metrics.otlp block this module sets: chart 38.x nil-pointers on .Values.metrics.otlp.resourceAttributes when that block is set without it; 40.x renders it."
   type        = string
-  default     = "40.2.0"
+  default     = "40.3.0"
 }
 
 variable "traefik_tag" {
   description = "Traefik OSS version tag"
   type        = string
-  default     = "v3.6.6"
+  default     = "v3.7.4"
 }
 
 variable "traefik_hub_tag" {
   description = "Traefik Hub image tag for ghcr.io/traefik/traefik-hub (latest stable), paired with the default chart version above."
   type        = string
-  default     = "v3.20.2"
+  default     = "v3.20.4"
 }
 
 variable "traefik_hub_preview_tag" {
@@ -317,14 +317,17 @@ variable "custom_envs" {
 
 variable "additional_volumes" {
   description = "Additional volumes to mount in the Traefik pod"
-  type        = list(any)
-  default     = []
+  # `any`, not list(any): list(any) coerces mixed-type objects (e.g. a CSI volume
+  # carrying a readOnly bool) to map(string), stringifying the bool.
+  type    = any
+  default = []
 }
 
 variable "additional_volume_mounts" {
   description = "Additional volume mounts for the Traefik container"
-  type        = list(any)
-  default     = []
+  # `any`, not list(any) — see additional_volumes above (readOnly bool coercion).
+  type    = any
+  default = []
 }
 
 variable "file_provider_config" {

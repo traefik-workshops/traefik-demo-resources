@@ -49,10 +49,11 @@ No resources.
 | <a name="input_load_balancer_strategy"></a> [load\_balancer\_strategy](#input\_load\_balancer\_strategy) | Load balancer strategy for Nutanix Prism Central discovery (TraefikLoadBalancerStrategy category) | `string` | `""` | no |
 | <a name="input_service_name"></a> [service\_name](#input\_service\_name) | Service name for Nutanix Prism Central discovery (TraefikServiceName category) | `string` | `"whoami"` | no |
 | <a name="input_service_port"></a> [service\_port](#input\_service\_port) | Service port for Nutanix Prism Central discovery (TraefikServicePort category) | `number` | `8080` | no |
+| <a name="input_static_ip"></a> [static\_ip](#input\_static\_ip) | Static IP for the whoami VM NIC. Empty means DHCP. | `string` | `""` | no |
 | <a name="input_vm_memory_mib"></a> [vm\_memory\_mib](#input\_vm\_memory\_mib) | Memory size in MiB | `number` | `1024` | no |
 | <a name="input_vm_num_sockets"></a> [vm\_num\_sockets](#input\_vm\_num\_sockets) | Number of sockets | `number` | `1` | no |
 | <a name="input_vm_num_vcpus_per_socket"></a> [vm\_num\_vcpus\_per\_socket](#input\_vm\_num\_vcpus\_per\_socket) | Number of vCPUs per socket | `number` | `1` | no |
-| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The Whoami version to install | `string` | `"v1.10.1"` | no |
+| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The Whoami version to install | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 

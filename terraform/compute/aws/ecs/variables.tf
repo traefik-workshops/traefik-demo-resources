@@ -15,8 +15,55 @@ variable "clusters" {
       labels             = optional(map(string), {})
       environment        = optional(map(string), {})
       security_group_ids = optional(list(string), [])
+
+      # Fargate task needs egress to pull images; set true (the module places
+      # tasks in public subnets) unless a NAT-routed private subnet is supplied.
+      assign_public_ip = optional(bool, false)
+
+      # If set, front the task with an NLB on this port (a stable address — the
+      # Fargate-equivalent of an EC2 Elastic IP). Targets the task's `port`.
+      nlb_port = optional(number, null)
+
+      # Make that NLB internal (private IPs only) instead of internet-facing — for a
+      # parent that dials the spoke privately within a shared VPC. Needs private
+      # (NAT-routed) subnet_ids + assign_public_ip = false.
+      nlb_internal = optional(bool, false)
+
+      # Ephemeral task volumes (names) + the main container's mounts, for delivering
+      # config files into a scratch image (e.g. a config-init sidecar writes them).
+      volumes      = optional(list(string), [])
+      mount_points = optional(list(object({ name = string, path = string })), [])
+
+      # Container start ordering, e.g. wait for a config-init sidecar to COMPLETE.
+      depends_on = optional(list(object({
+        name      = string
+        condition = optional(string, "START") # START | COMPLETE | SUCCESS | HEALTHY
+      })), [])
+
+      # Extra containers in the same task (sidecars: config writers, co-located
+      # backends reachable on localhost, etc.).
+      sidecars = optional(list(object({
+        name         = string
+        image        = string
+        command      = optional(list(string), [])
+        essential    = optional(bool, false)
+        environment  = optional(map(string), {})
+        mount_points = optional(list(object({ name = string, path = string })), [])
+      })), [])
     }))
   }))
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (only when create_vpc = true). E.g. [9443] for a Hub multicluster uplink entrypoint fronted by an NLB."
+  type        = list(number)
+  default     = []
+}
+
+variable "enable_nat_gateway" {
+  description = "Create a NAT gateway in the VPC (only when create_vpc = true). Defaults false — Fargate tasks run in PUBLIC subnets with assign_public_ip (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost."
+  type        = bool
+  default     = false
 }
 
 variable "create_vpc" {
@@ -62,4 +109,10 @@ variable "security_group_ids" {
     condition     = var.create_vpc || length(var.security_group_ids) != 0
     error_message = "security_group_ids must be provided if create_vpc is false"
   }
+}
+
+variable "task_role_arn" {
+  description = "IAM role ARN the task's containers assume (the task role — distinct from the execution role), e.g. so an in-task Traefik ECS provider can call the AWS ECS API. Empty = no task role."
+  type        = string
+  default     = ""
 }

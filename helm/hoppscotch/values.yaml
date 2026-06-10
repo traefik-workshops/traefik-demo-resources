@@ -6,7 +6,7 @@ global:
 subdomain: "test"
 host: ""
 
-image: hoppscotch/hoppscotch:2026.2.0
+image: hoppscotch/hoppscotch:2026.5.0
 
 jwtSecret: "demo0demo0demo0demo0demo0demojwt"
 sessionSecret: "demo0demo0demo0demo0demo0demoses"

@@ -28,7 +28,7 @@ resource "kubernetes_stateful_set" "db" {
 
         init_container {
           name    = "init-permissions"
-          image   = "busybox:1.36"
+          image   = "busybox:1.38.0"
           command = ["sh", "-c", "mkdir -p /opt/oracle/oradata && chown -R 54321:54321 /opt/oracle/oradata"]
 
           security_context {

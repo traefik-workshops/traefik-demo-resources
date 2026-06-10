@@ -3,7 +3,7 @@ resource "helm_release" "nginx_ingress" {
   namespace  = var.namespace
   repository = "https://kubernetes.github.io/ingress-nginx"
   chart      = "ingress-nginx"
-  version    = "4.14.1"
+  version    = "4.15.1"
   timeout    = 900
   atomic     = true
 

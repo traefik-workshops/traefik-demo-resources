@@ -3,7 +3,7 @@ resource "helm_release" "cert_manager" {
   namespace  = var.namespace
   repository = "https://charts.jetstack.io"
   chart      = "cert-manager"
-  version    = "1.18.2"
+  version    = "1.20.2"
   timeout    = 900
   atomic     = true
 

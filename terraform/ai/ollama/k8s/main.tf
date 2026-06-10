@@ -24,7 +24,7 @@ resource "helm_release" "ollama" {
   namespace  = var.namespace
   repository = "https://otwld.github.io/ollama-helm"
   chart      = "ollama"
-  version    = "1.20.0"
+  version    = "1.60.0"
   timeout    = 900
   atomic     = true
 

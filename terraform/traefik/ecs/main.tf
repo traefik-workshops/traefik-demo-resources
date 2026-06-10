@@ -17,29 +17,66 @@ locals {
     for name, port in module.config.ports :
     "traefik.http.routers.${name}.entrypoints" => name
     if try(port.expose.default, false)
-    }, {
-    "traefik.enable"                                           = "true"
-    "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-    "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-    "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-  })
+    },
+    # Self-register the Traefik task's own dashboard via its ECS provider (-> dashboard@ecs).
+    # Disable when the dashboard is advertised another way (e.g. a file-rule uplink): without
+    # traefik.enable the task isn't self-discovered at all, so no redundant self-router appears.
+    var.enable_dashboard_discovery ? {
+      "traefik.enable"                                           = "true"
+      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
+      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
+      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
+  } : {})
 }
 
 module "ecs" {
   source = "../../compute/aws/ecs"
 
-  name = "traefik"
+  name                = "traefik"
+  extra_ingress_ports = var.extra_ingress_ports
   clusters = {
     traefik = {
       apps = {
         traefik = {
-          replicas           = module.config.replica_count
-          port               = 80
-          docker_image       = local.traefik_image
-          docker_command     = join(" ", local.traefik_arguments)
+          replicas         = module.config.replica_count
+          port             = coalesce(var.nlb_port, 80)
+          nlb_port         = var.nlb_port
+          nlb_internal     = var.nlb_internal
+          assign_public_ip = var.assign_public_ip
+          docker_image     = local.traefik_image
+          # The shared module strips --hub.token from the extracted args so it can be
+          # injected per-platform. The Hub binary reads the FLAG (EC2's systemd does
+          # `--hub.token=$HUB_TOKEN`); ECS commands are exec'd with no shell, so the
+          # value is inlined here rather than referenced from an env var.
+          docker_command     = join(" ", concat(["--hub.token=${var.traefik_hub_token}"], local.traefik_arguments))
           subnet_ids         = var.subnet_ids
           security_group_ids = var.security_group_ids
           labels             = local.docker_labels
+
+          # The Hub image is scratch (no shell/cloud-init), so a config-init sidecar
+          # writes the file-provider config into a shared volume Traefik mounts.
+          volumes      = var.file_provider_config != "" ? ["dynamic"] : []
+          mount_points = var.file_provider_config != "" ? [{ name = "dynamic", path = var.file_provider_path }] : []
+          depends_on   = var.file_provider_config != "" ? [{ name = "config-init", condition = "COMPLETE" }] : []
+
+          sidecars = concat(
+            var.file_provider_config != "" ? [{
+              name         = "config-init"
+              image        = "busybox:1.38.0"
+              essential    = false
+              command      = ["sh", "-c", "echo \"$DYNAMIC_B64\" | base64 -d > ${var.file_provider_path}/dynamic.yml"]
+              environment  = { DYNAMIC_B64 = base64encode(var.file_provider_config) }
+              mount_points = [{ name = "dynamic", path = var.file_provider_path }]
+            }] : [],
+            var.colocated_backend_image != "" ? [{
+              name      = "backend"
+              image     = var.colocated_backend_image
+              essential = true
+              # Keep the backend off :80 — Traefik's web entrypoint owns it in the
+              # task's shared awsvpc network namespace.
+              command = var.colocated_backend_port != 80 ? ["--port", tostring(var.colocated_backend_port)] : []
+            }] : []
+          )
         }
       }
     }
@@ -47,6 +84,11 @@ module "ecs" {
 
   create_vpc = var.create_vpc
   vpc_id     = var.vpc_id
+  # Plumb subnet_ids/security_group_ids to the compute module's TOP LEVEL too (not
+  # just per-app above) — that's where the create_vpc=false validation checks them.
+  subnet_ids         = var.subnet_ids
+  security_group_ids = var.security_group_ids
+  task_role_arn      = var.task_role_arn
 }
 
 # =============================================================================

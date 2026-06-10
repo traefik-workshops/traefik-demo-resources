@@ -4,15 +4,21 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
 
-  name                    = var.name
-  cidr                    = var.cidr
-  azs                     = data.aws_availability_zones.traefik_demo.names
-  private_subnets         = var.private_subnets
-  public_subnets          = var.public_subnets
-  enable_nat_gateway      = var.enable_nat_gateway
-  single_nat_gateway      = true
-  enable_dns_hostnames    = true
-  map_public_ip_on_launch = !var.enable_nat_gateway
+  name                 = var.name
+  cidr                 = var.cidr
+  azs                  = data.aws_availability_zones.traefik_demo.names
+  private_subnets      = var.private_subnets
+  public_subnets       = var.public_subnets
+  enable_nat_gateway   = var.enable_nat_gateway
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+
+  # Public subnets must NOT blanket-assign public IPs (tfsec aws-ec2-no-public-ip-subnet).
+  # Each consumer opts in explicitly where it needs one: EC2 instances set
+  # associate_public_ip_address (compute/aws/ec2), Fargate tasks set assign_public_ip
+  # (compute/aws/ecs — awsvpc ignores this subnet flag anyway), and EKS worker nodes run
+  # in the PRIVATE subnets (NAT egress). So subnet auto-assign is redundant — keep it off.
+  map_public_ip_on_launch = false
 }
 
 resource "aws_security_group" "demo_sg" {
@@ -50,6 +56,17 @@ resource "aws_security_group" "demo_sg" {
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Extra ports (e.g. the Hub multicluster uplink :9443 on VM/Fargate spokes)
+  dynamic "ingress" {
+    for_each = toset(var.extra_ingress_ports)
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
   }
 
   egress {

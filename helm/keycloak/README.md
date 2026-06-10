@@ -3,7 +3,7 @@
 Keycloak identity and access management with operator
 
 - **Chart version:** `4.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
-- **App version:** `26.5.2`
+- **App version:** `26.6.3`
 
 ## Install
 
@@ -41,7 +41,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version |
 |------|---------|
-| kubernetes | (not pinned — pin in Chart.yaml) |
+| kubernetes | `>= 1.27.0-0` |
 | helm | (apiVersion v2) |
 
 ## Values
@@ -49,7 +49,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | Key | Default |
 |-----|---------|
 | `enabled` | `true` |
-| `operatorVersion` | `"26.5.2"` |
+| `operatorVersion` | `"26.6.3"` |
 | `namespace` | `"keycloak"` |
 | `postgres` | (object) |
 | `postgres.name` | `"keycloak-postgres"` |
@@ -66,13 +66,14 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `realm.enabled` | `true` |
 | `realm.name` | `"traefik"` |
 | `realm.accessTokenLifespan` | `2419200` |
-| `realm.users` | `"[]"` |
-| `realm.extraUsers` | `"[]"` |
-| `realm.advancedUsers` | `"[]"` |
-| `realm.extraAdvancedUsers` | `"[]"` |
+| `realm.users` | `[]` |
+| `realm.userPassword` | `"topsecretpassword"` |
+| `realm.extraUsers` | `[]` |
+| `realm.advancedUsers` | `[]` |
+| `realm.extraAdvancedUsers` | `[]` |
 | `realm.clientSecret` | `"NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0"` |
-| `realm.redirectUris` | `"[]"` |
-| `realm.extraRedirectUris` | `"[]"` |
+| `realm.redirectUris` | `[]` |
+| `realm.extraRedirectUris` | `[]` |
 | `validation` | (object) |
 | `validation.image` | `"bitnami/kubectl:latest"` |
 | `ingress` | (object) |

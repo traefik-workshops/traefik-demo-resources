@@ -18,3 +18,4 @@ files/private/
 ct.yaml
 .helmignore
 README.md.bak
+README.md.gotmpl

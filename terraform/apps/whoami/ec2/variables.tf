@@ -41,9 +41,9 @@ variable "security_group_ids" {
 }
 
 variable "whoami_version" {
-  description = "The Whoami version to install"
+  description = "The Whoami version to install. Must be a real traefik/whoami image tag — they carry a `v` prefix (e.g. v1.11.0); a bare `1.11.0` is `manifest unknown` and the binary extraction silently fails."
   type        = string
-  default     = "1.10.1"
+  default     = "v1.11.0"
 }
 
 variable "ami_architecture" {

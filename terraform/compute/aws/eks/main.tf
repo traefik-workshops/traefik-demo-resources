@@ -29,6 +29,23 @@ module "eks" {
     "kubernetes.io/cluster/${var.cluster_name}" = null
   }
 
+  # Allow ALL node-to-node traffic. The module default opens only ephemeral ports
+  # (1025-65535) + DNS between nodes, so a pod listening on a privileged port (e.g.
+  # whoami on :80) is unreachable cross-node — which strands a backend on the
+  # "wrong" node from a Traefik replica and makes its forward hang (TLS connects,
+  # no response). Self-referencing all-ports is the standard EKS pod-network rule
+  # and only ADDS permitted traffic.
+  node_security_group_additional_rules = {
+    ingress_self_all = {
+      description = "Node to node all ports/protocols (pod-to-pod across nodes)"
+      protocol    = "-1"
+      from_port   = 0
+      to_port     = 0
+      type        = "ingress"
+      self        = true
+    }
+  }
+
   eks_managed_node_groups = length(var.worker_nodes) == 0 ? {
     default = {
       name           = "${var.cluster_name}-ng"

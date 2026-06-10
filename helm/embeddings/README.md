@@ -3,7 +3,7 @@
 Lightweight embedding server using Infinity (michaelfeil/infinity)
 
 - **Chart version:** `4.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
-- **App version:** `0.0.75`
+- **App version:** `0.0.77`
 
 ## Install
 
@@ -29,7 +29,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version |
 |------|---------|
-| kubernetes | (not pinned — pin in Chart.yaml) |
+| kubernetes | `>= 1.27.0-0` |
 | helm | (apiVersion v2) |
 
 ## Values
@@ -38,7 +38,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 |-----|---------|
 | `image` | (object) |
 | `image.repository` | `"michaelf34/infinity"` |
-| `image.tag` | `"0.0.75"` |
+| `image.tag` | `"0.0.77"` |
 | `image.pullPolicy` | `"IfNotPresent"` |
 | `model` | `"nomic-embed-text"` |
 | `service` | (object) |

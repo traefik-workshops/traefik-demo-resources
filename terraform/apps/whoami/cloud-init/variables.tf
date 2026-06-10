@@ -1,7 +1,7 @@
 variable "whoami_version" {
   type        = string
   description = "The Whoami version to install"
-  default     = "v1.10.1"
+  default     = "v1.11.0"
 }
 
 variable "arch" {

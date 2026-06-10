@@ -174,21 +174,22 @@ variable "replica_count" {
 
 # Versions & Images
 variable "traefik_chart_version" {
-  description = "Traefik Helm chart version"
+  description = "Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh)."
   type        = string
-  default     = "40.2.0"
+  # Chart 40.3.0 publishes hub-max v3.20.4 — the multicluster-verified pairing (matches the hub).
+  default = "40.3.0"
 }
 
 variable "traefik_tag" {
   description = "Traefik OSS version tag"
   type        = string
-  default     = "v3.6.6"
+  default     = "v3.7.4"
 }
 
 variable "traefik_hub_tag" {
-  description = "Traefik Hub version tag"
+  description = "Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh."
   type        = string
-  default     = "v3.20.2"
+  default     = "v3.20.4"
 }
 
 variable "traefik_hub_preview_tag" {
@@ -281,12 +282,15 @@ variable "custom_plugins" {
 }
 
 variable "custom_ports" {
-  description = "Custom ports configuration"
-  type = map(object({
-    port     = number
-    protocol = optional(string, "tcp")
-  }))
-  default = {}
+  description = "Custom ports configuration. Typed `any` so it can carry a full Helm `ports.<name>` shape — e.g. a Hub multicluster uplink entrypoint { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } } — not just { port, protocol }."
+  type        = any
+  default     = {}
+}
+
+variable "extra_ingress_ports" {
+  description = "Additional TCP ports to open on the created VPC's security group (passed to compute/aws/ec2 -> compute/aws/vpc). Set to [9443] when this Traefik runs a Hub multicluster uplink entrypoint the parent cluster dials."
+  type        = list(number)
+  default     = []
 }
 
 variable "custom_arguments" {
@@ -377,6 +381,12 @@ variable "enable_dashboard" {
 
 variable "dashboard_insecure" {
   description = "Enable insecure dashboard access (no auth)"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dashboard_discovery" {
+  description = "Self-register the Traefik VM via tags (traefik.enable + dashboard router/service) so its OWN EC2 provider discovers the dashboard as dashboard@ec2. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
   type        = bool
   default     = true
 }

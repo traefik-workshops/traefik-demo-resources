@@ -1,0 +1,24 @@
+{{- /* Source for README.md — rendered by the pre-commit helm-docs hook with helm/_templates.gotmpl. Edit this file, not README.md. */ -}}
+{{ template "demo.header" . }}
+
+## Related
+
+There is also a Terraform module that wraps a similar Keycloak install:
+[`terraform/security/keycloak/k8s`](../../terraform/security/keycloak/k8s). Pick which:
+
+- Use **this chart** when you want a plain `helm install` (Argo, Flux, or
+  manual). Realms, users, and clients are populated entirely from values.
+- Use the **Terraform module** when the demo also needs Keycloak to mint
+  per-user access tokens and write them to Kubernetes Secrets the rest of
+  the Terraform graph can read. The module wraps this chart and adds the
+  token-capture Job + Secret outputs on top.
+
+{{ template "demo.conventions" . }}
+
+<!-- BEGIN_HELM_DOCS -->
+
+{{ template "demo.requirementsSection" . }}
+
+{{ template "demo.valuesSection" . }}
+
+<!-- END_HELM_DOCS -->

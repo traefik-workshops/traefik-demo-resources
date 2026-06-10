@@ -3,7 +3,7 @@ name: keycloak
 description: Keycloak identity and access management with operator
 type: application
 version: 4.0.0
-appVersion: "26.5.2"
+appVersion: "26.6.3"
 kubeVersion: ">= 1.27.0-0"
 
 maintainers:

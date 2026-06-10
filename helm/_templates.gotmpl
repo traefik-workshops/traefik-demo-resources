@@ -1,0 +1,120 @@
+{{- /*
+Shared helm-docs templates for every chart under helm/.
+
+The pre-commit helm-docs hook loads this file first (via
+`--template-files=./_templates.gotmpl`, resolved against the chart search
+root) and then each chart's `README.md.gotmpl`. Together they render the
+chart's entire `README.md` — so edit the templates, never `README.md`
+itself, and re-run `pre-commit run helm-docs --all-files`.
+
+`demo.valuesSection` reproduces this repo's compact two-column values table
+from helm-docs' exploded rows: list items (`key[0].sub`) collapse into one
+`(list, N items)` row, intermediate objects get synthesized `(object)` rows,
+and long strings truncate to 57 chars + `...`.
+*/ -}}
+
+{{- define "demo.header" -}}
+# helm/{{ .Name }}
+
+{{ .Description }}
+
+- **Chart version:** `{{ .Version }}` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **App version:** `{{ .AppVersion }}`
+
+## Install
+
+```bash
+helm install my-{{ .Name }} oci://ghcr.io/traefik-workshops/{{ .Name }} --version {{ .Version }}
+```
+
+From source (for development against this repo):
+
+```bash
+cd helm/{{ .Name }}
+helm dep update
+helm install my-{{ .Name }} .
+```
+{{- end -}}
+
+{{- define "demo.conventions" -}}
+## Conventions
+
+See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.md`](../../AGENTS.md) for repo-wide rules.
+{{- end -}}
+
+{{- define "demo.requirementsSection" -}}
+## Requirements
+
+| Name | Version |
+|------|---------|
+| kubernetes | {{ if .KubeVersion }}`{{ .KubeVersion }}`{{ else }}(not pinned — pin in Chart.yaml){{ end }} |
+| helm | (apiVersion {{ .ApiVersion }}) |
+{{- end -}}
+
+{{- /*
+demo.dependenciesSection takes (dict "root" . "conditions" (dict ...)).
+helm-docs does not parse the `condition:` field out of Chart.yaml
+dependencies, so each chart's README.md.gotmpl passes a name → condition
+map that must be kept in sync with Chart.yaml.
+*/ -}}
+{{- define "demo.dependenciesSection" -}}
+## Dependencies
+
+| Name | Version | Repository | Condition |
+|------|---------|------------|-----------|
+{{- range .root.Dependencies }}
+| {{ .Name }} | `{{ .Version }}` | `{{ .Repository }}` | `{{ index $.conditions .Name | default "" }}` |
+{{- end }}
+{{- end -}}
+
+{{- define "demo.valuesSection" -}}
+{{- $rows := list -}}
+{{- $seen := dict -}}
+{{- $listCounts := dict -}}
+{{- /* pass 1: count items per list — rows arrive exploded as `path[N]` / `path[N].sub` */ -}}
+{{- range .Values -}}
+  {{- if contains "[" .Key -}}
+    {{- $listPath := splitList "[" .Key | first -}}
+    {{- $idx := regexFind "[0-9]+" (trimPrefix $listPath .Key) | atoi -}}
+    {{- $_ := set $listCounts $listPath (max (add1 $idx) (index $listCounts $listPath | default 0)) -}}
+  {{- end -}}
+{{- end -}}
+{{- /* pass 2: emit rows, synthesizing `(object)` ancestors and collapsing lists */ -}}
+{{- range .Values -}}
+  {{- $key := .Key -}}
+  {{- $isList := contains "[" $key -}}
+  {{- $path := ternary (splitList "[" $key | first) $key $isList -}}
+  {{- $parts := splitList "." $path -}}
+  {{- $prefix := "" -}}
+  {{- range $i, $p := $parts -}}
+    {{- if lt $i (sub (len $parts) 1) -}}
+      {{- $prefix = ternary $p (printf "%s.%s" $prefix $p) (eq $prefix "") -}}
+      {{- if not (hasKey $seen $prefix) -}}
+        {{- $rows = append $rows (printf "| `%s` | (object) |" $prefix) -}}
+        {{- $_ := set $seen $prefix true -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $isList -}}
+    {{- if not (hasKey $seen $path) -}}
+      {{- $rows = append $rows (printf "| `%s` | (list, %d items) |" $path (index $listCounts $path)) -}}
+      {{- $_ := set $seen $path true -}}
+    {{- end -}}
+  {{- else -}}
+    {{- $cell := .Default -}}
+    {{- if eq .Type "string" -}}
+      {{- $json := trimAll "`" .Default -}}
+      {{- $content := trimSuffix "\"" (trimPrefix "\"" $json) -}}
+      {{- if gt (len $content) 60 -}}
+        {{- $cell = printf "`\"%s...\"`" (trunc 57 $content) -}}
+      {{- end -}}
+    {{- end -}}
+    {{- $rows = append $rows (printf "| `%s` | %s |" $path $cell) -}}
+  {{- end -}}
+{{- end -}}
+## Values
+
+| Key | Default |
+|-----|---------|
+{{ join "\n" $rows }}
+{{- end -}}

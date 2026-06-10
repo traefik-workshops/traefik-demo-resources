@@ -157,19 +157,20 @@ variable "replica_count" {
 variable "traefik_chart_version" {
   description = "Traefik Helm chart version"
   type        = string
-  default     = "40.2.0"
+  # Chart 40.3.0 publishes hub-max v3.20.4 — the multicluster-verified pairing (matches traefik/k8s).
+  default = "40.3.0"
 }
 
 variable "traefik_tag" {
   description = "Traefik OSS version tag"
   type        = string
-  default     = "v3.6.6"
+  default     = "v3.7.4"
 }
 
 variable "traefik_hub_tag" {
   description = "Traefik Hub version tag"
   type        = string
-  default     = "v3.20.2"
+  default     = "v3.20.4"
 }
 
 variable "traefik_hub_preview_tag" {

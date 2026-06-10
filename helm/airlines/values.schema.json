@@ -318,7 +318,7 @@
         },
         "image": {
           "type": "string",
-          "default": "hoppscotch/hoppscotch:2026.2.0"
+          "default": "hoppscotch/hoppscotch:2026.5.0"
         },
         "jwtSecret": {
           "type": "string",

@@ -63,7 +63,19 @@ write_files:
       NUMAMask=${performance_tuning.numa_node}
       CPUAffinity=numa
       %{ endif }
+%{ if enable_preview_mode ~}
+      # Preview/dev builds (e.g. the EC2 provider, not yet in a Hub release) ship only as a
+      # container image, and a dev binary extracted from it isn't reliably standalone. Run the
+      # image as a CONTAINER instead — --network host so the uplink :9443, the local whoami, and
+      # the EC2 IMDS (the provider's instance-profile creds) all work, matching how the k8s
+      # spokes run the same image. The mounted dynamic dir carries the file-provider config.
+      ExecStartPre=-/usr/bin/docker rm -f traefik-hub
+      ExecStartPre=/usr/bin/docker pull ${preview_image}
+      ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
+      ExecStop=-/usr/bin/docker stop traefik-hub
+%{ else ~}
       ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
+%{ endif ~}
       Restart=always
       RestartSec=10
       AmbientCapabilities=CAP_NET_BIND_SERVICE
@@ -245,51 +257,29 @@ runcmd:
     fi
 %{ if enable_preview_mode ~}
   - |
-    # Preview Mode: Install Docker, pull preview image, extract binary
-    echo "Preview mode enabled - installing Docker to extract binary from container image..."
-
-    # Install Docker
-    apt-get update
-    apt-get install -y ca-certificates curl gnupg
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    chmod a+r /etc/apt/keyrings/docker.gpg
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
-    apt-get update
-    apt-get install -y docker-ce docker-ce-cli containerd.io
-
-    # Pull preview image and extract binary
-    PREVIEW_IMAGE="${preview_image}"
-    echo "Pulling preview image: $PREVIEW_IMAGE..."
-
-    for i in {1..5}; do
-      if docker pull "$PREVIEW_IMAGE"; then
-        # Create temporary container and copy binary out
-        CONTAINER_ID=$(docker create "$PREVIEW_IMAGE")
-        if docker cp "$CONTAINER_ID:/usr/local/bin/traefik-hub" /usr/local/bin/traefik-hub 2>/dev/null || \
-           docker cp "$CONTAINER_ID:/traefik-hub" /usr/local/bin/traefik-hub 2>/dev/null || \
-           docker cp "$CONTAINER_ID:/usr/bin/traefik-hub" /usr/local/bin/traefik-hub 2>/dev/null; then
-          chmod +x /usr/local/bin/traefik-hub
-          echo "Traefik Hub preview binary extracted successfully."
-        else
-          echo "Searching for traefik-hub binary in container..."
-          BINARY_PATH=$(docker run --rm --entrypoint="" "$PREVIEW_IMAGE" which traefik-hub 2>/dev/null || echo "")
-          if [ -n "$BINARY_PATH" ]; then
-            docker cp "$CONTAINER_ID:$BINARY_PATH" /usr/local/bin/traefik-hub
-            chmod +x /usr/local/bin/traefik-hub
-            echo "Traefik Hub preview binary found at $BINARY_PATH and extracted."
-          fi
-        fi
-        docker rm "$CONTAINER_ID" 2>/dev/null || true
-        break
+    # Preview/dev image: install Docker + pull the image; traefik-hub.service runs it as a
+    # container (see the unit above) — NO binary extraction. A dev binary run standalone on the
+    # VM isn't reliable; the container carries its full runtime and (with --network host) reaches
+    # the EC2 IMDS for the provider's instance-profile credentials.
+    echo "Preview mode - installing Docker + pulling ${preview_image}..."
+    # Install Docker with whatever package manager the AMI ships (Amazon Linux 2023: dnf;
+    # older Amazon Linux: yum; Debian/Ubuntu: apt). The AMI may already include docker, in
+    # which case this is a no-op. NOTE: an apt-only install silently broke Amazon Linux
+    # spokes — docker was never installed, so the preview pull hit "docker: command not found".
+    if ! command -v docker >/dev/null 2>&1; then
+      if command -v dnf >/dev/null 2>&1; then dnf install -y docker || true
+      elif command -v yum >/dev/null 2>&1; then yum install -y docker || true
+      elif command -v apt-get >/dev/null 2>&1; then apt-get update || true; apt-get install -y docker.io || apt-get install -y docker-ce docker-ce-cli containerd.io || true
       fi
-      echo "Retrying preview image pull ($i/5)..."
-      sleep 5
+    fi
+    systemctl enable --now docker || true
+    PREVIEW_IMAGE="${preview_image}"
+    for i in {1..30}; do
+      docker pull "$PREVIEW_IMAGE" && break
+      echo "Retrying preview image pull ($i/30)..."; sleep 10
     done
-
-    if [ ! -f /usr/local/bin/traefik-hub ]; then
-      echo "ERROR: Failed to extract Traefik Hub binary from preview image"
-      exit 1
+    if ! docker image inspect "$PREVIEW_IMAGE" >/dev/null 2>&1; then
+      echo "ERROR: Failed to pull preview image $PREVIEW_IMAGE"; exit 1
     fi
 %{ else ~}
   - |
@@ -303,8 +293,12 @@ runcmd:
     URL="https://github.com/traefik/hub/releases/download/$VERSION/traefik-hub_$${VERSION}_linux_$${DOWNLOAD_ARCH}.tar.gz"
     echo "Downloading Traefik Hub from $URL..."
 
-    for i in {1..5}; do
-      if curl -L --connect-timeout 10 --max-time 120 "$URL" -o /tmp/traefik-hub.tar.gz; then
+    # Up to ~4 min of patience: an instance can boot before its NAT gateway is ready
+    # (private-subnet spokes especially), so an early failure here usually just means
+    # "egress not up yet" — keep retrying instead of giving up after ~75s.
+    # --retry-connrefused covers transient connection refusals within each attempt.
+    for i in {1..20}; do
+      if curl -fL --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 5 --retry-connrefused "$URL" -o /tmp/traefik-hub.tar.gz; then
         mkdir -p /tmp/traefik-hub-extract
         tar -xzf /tmp/traefik-hub.tar.gz -C /tmp/traefik-hub-extract
         BINARY=$(find /tmp/traefik-hub-extract -maxdepth 1 -type f -name "traefik-hub*" | head -n 1)
@@ -315,8 +309,8 @@ runcmd:
           break
         fi
       fi
-      echo "Retrying Traefik Hub download ($i/5)..."
-      sleep 5
+      echo "Retrying Traefik Hub download ($i/20)..."
+      sleep 10
     done
     rm -rf /tmp/traefik-hub-extract /tmp/traefik-hub.tar.gz
 
