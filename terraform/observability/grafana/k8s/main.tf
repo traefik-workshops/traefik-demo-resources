@@ -73,11 +73,16 @@ locals {
 }
 
 resource "helm_release" "grafana" {
-  name       = var.name
-  namespace  = var.namespace
-  repository = "https://grafana.github.io/helm-charts"
+  name      = var.name
+  namespace = var.namespace
+  # The grafana chart moved homes: grafana/helm-charts froze it as deprecated
+  # at 10.5.15 (2026-01-30); the maintained line continues in
+  # grafana-community/helm-charts (12.x). Same values schema — 11.0.0 only
+  # raised the k8s floor to 1.25; 12.0.0 defaults to Grafana 13 and auto-wires
+  # an image-renderer auth token. Rendered Service/Ingress/ConfigMap diff clean.
+  repository = "https://grafana-community.github.io/helm-charts"
   chart      = "grafana"
-  version    = "10.5.15"
+  version    = "12.4.4"
   timeout    = 900
   atomic     = true
 

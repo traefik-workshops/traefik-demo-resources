@@ -1,9 +1,13 @@
 resource "helm_release" "tempo" {
-  name       = var.name
-  namespace  = var.namespace
-  repository = "https://grafana.github.io/helm-charts"
+  name      = var.name
+  namespace = var.namespace
+  # The single-binary tempo chart moved homes: grafana/helm-charts froze it as
+  # deprecated at 1.24.4 (2026-01-30); the maintained line continues in
+  # grafana-community/helm-charts (2.x). Same chart, same values schema — the
+  # 2.0.0 major only raised the k8s floor to 1.25 and dropped pre-v1 Ingress.
+  repository = "https://grafana-community.github.io/helm-charts"
   chart      = "tempo"
-  version    = "1.24.4"
+  version    = "2.2.1"
   timeout    = 900
   atomic     = true
 
