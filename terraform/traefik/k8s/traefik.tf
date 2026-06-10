@@ -77,7 +77,11 @@ locals {
 
     # Environment variables
     env = concat(
-      var.dns_traefiker.enabled && length(data.kubernetes_secret_v1.dns_domain) > 0 ? [{ name = "CF_DNS_API_TOKEN", value = data.kubernetes_secret_v1.dns_domain[0].data["token"] }] : [],
+      # dns-traefiker path: the cf resolver's DNS-01 token comes from the domain-secret
+      # dns-traefiker writes — referenced via secretKeyRef so no token literal lands in
+      # helm values/state, and the POD (not the plan) resolves it: no plan-time
+      # chicken-and-egg on the secret existing before the first Traefik apply.
+      var.dns_traefiker.enabled ? [{ name = "CF_DNS_API_TOKEN", valueFrom = { secretKeyRef = { name = "domain-secret", key = "token" } } }] : [],
       # cloudflare_dns path (no dns-traefiker): the cf resolver's DNS-01 challenge
       # still needs the token — feed it from cloudflare_dns.api_token directly.
       !var.dns_traefiker.enabled && var.cloudflare_dns.enabled && var.cloudflare_dns.api_token != "" ? [{ name = "CF_DNS_API_TOKEN", value = var.cloudflare_dns.api_token }] : [],
