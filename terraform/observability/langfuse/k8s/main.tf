@@ -56,7 +56,7 @@ resource "helm_release" "langfuse" {
   values = [
     yamlencode({
       langfuse = {
-        deployment    = { replicas = var.replicas }
+        replicas      = var.replicas
         salt          = { value = var.salt }
         encryptionKey = { value = var.encryption_key }
         nextauth = {
@@ -76,6 +76,19 @@ resource "helm_release" "langfuse" {
       clickhouse = {
         deploy = true
         auth   = { password = var.subchart_password }
+        # The bundled bitnami zookeeper (ClickHouse's coordinator) defaults to heapSize=1024
+        # (1Gi JVM heap) but its resourcesPreset caps memory at 384Mi — the JVM is ~3x the cgroup
+        # limit and OOMKills in a loop (265 restarts observed, destabilizing ClickHouse). Align
+        # them: a 512Mi heap inside a 1Gi limit (heap + JVM/native overhead). Zookeeper is a
+        # sub-dependency of the clickhouse subchart, so its values nest under clickhouse.*.
+        zookeeper = {
+          heapSize        = 512
+          resourcesPreset = "none"
+          resources = {
+            requests = { cpu = "250m", memory = "512Mi" }
+            limits   = { cpu = "500m", memory = "1Gi" }
+          }
+        }
       }
       s3 = {
         deploy = true
@@ -85,18 +98,6 @@ resource "helm_release" "langfuse" {
         # in ~5 days, and MinIO 500s ("minimum free drive threshold") -> traces silently dropped.
         # 30Gi ~= 1.9M inodes; pair with a retention/lifecycle policy for long-lived clusters.
         persistence = { size = "30Gi" }
-      }
-      # The bundled bitnami zookeeper (ClickHouse's coordinator) defaults to heapSize=1024
-      # (1Gi JVM heap) but its resourcesPreset caps memory at 384Mi — the JVM is ~3x the cgroup
-      # limit and OOMKills in a loop (265 restarts observed, destabilizing ClickHouse). Align
-      # them: a 512Mi heap inside a 1Gi limit (heap + JVM/native overhead).
-      zookeeper = {
-        heapSize        = 512
-        resourcesPreset = "none"
-        resources = {
-          requests = { cpu = "250m", memory = "512Mi" }
-          limits   = { cpu = "500m", memory = "1Gi" }
-        }
       }
     })
   ]
