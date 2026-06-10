@@ -114,11 +114,14 @@ locals {
       knative           = var.enable_knative_provider
     }
 
-    # Gateway API listeners (K8s-specific)
+    # Gateway API listeners (K8s-specific). The chart requires each listener port to be a
+    # DECLARED entrypoint CONTAINER port (ports.<name>.port — web=8000, traefik=8080), not
+    # the published Service port (80): gateway.yaml fails with "port 80 is not declared in
+    # ports" otherwise. The Service still publishes web on :80 (exposedPort).
     gateway = {
       listeners = {
         web = {
-          port            = 80
+          port            = 8000
           protocol        = "HTTP"
           namespacePolicy = { from = "All" }
         }
