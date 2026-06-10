@@ -41,7 +41,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version |
 |------|---------|
-| kubernetes | (not pinned — pin in Chart.yaml) |
+| kubernetes | `>= 1.27.0-0` |
 | helm | (apiVersion v2) |
 
 ## Values
@@ -66,13 +66,14 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `realm.enabled` | `true` |
 | `realm.name` | `"traefik"` |
 | `realm.accessTokenLifespan` | `2419200` |
-| `realm.users` | `"[]"` |
-| `realm.extraUsers` | `"[]"` |
-| `realm.advancedUsers` | `"[]"` |
-| `realm.extraAdvancedUsers` | `"[]"` |
+| `realm.users` | `[]` |
+| `realm.userPassword` | `"topsecretpassword"` |
+| `realm.extraUsers` | `[]` |
+| `realm.advancedUsers` | `[]` |
+| `realm.extraAdvancedUsers` | `[]` |
 | `realm.clientSecret` | `"NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0"` |
-| `realm.redirectUris` | `"[]"` |
-| `realm.extraRedirectUris` | `"[]"` |
+| `realm.redirectUris` | `[]` |
+| `realm.extraRedirectUris` | `[]` |
 | `validation` | (object) |
 | `validation.image` | `"bitnami/kubectl:latest"` |
 | `ingress` | (object) |

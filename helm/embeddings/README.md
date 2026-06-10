@@ -29,7 +29,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version |
 |------|---------|
-| kubernetes | (not pinned — pin in Chart.yaml) |
+| kubernetes | `>= 1.27.0-0` |
 | helm | (apiVersion v2) |
 
 ## Values

@@ -29,16 +29,16 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version |
 |------|---------|
-| kubernetes | (not pinned — pin in Chart.yaml) |
+| kubernetes | `>= 1.27.0-0` |
 | helm | (apiVersion v2) |
 
 ## Dependencies
 
 | Name | Version | Repository | Condition |
 |------|---------|------------|-----------|
+| embeddings | `4.0.0` | `file://../embeddings` | `sharedMiddlewares.semanticCache.enabled` |
 | presidio | `4.0.0` | `file://../presidio` | `sharedMiddlewares.contentGuardPresidio.enabled` |
 | weaviate | `17.8.1` | `https://weaviate.github.io/weaviate-helm` | `sharedMiddlewares.semanticCache.enabled` |
-| embeddings | `4.0.0` | `file://../embeddings` | `sharedMiddlewares.semanticCache.enabled` |
 
 ## Values
 
@@ -86,15 +86,15 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `sharedMiddlewares.contentGuardPresidio` | (object) |
 | `sharedMiddlewares.contentGuardPresidio.enabled` | `true` |
 | `sharedMiddlewares.contentGuardPresidio.request` | (object) |
-| `sharedMiddlewares.contentGuardPresidio.request.rules` | `"[]"` |
+| `sharedMiddlewares.contentGuardPresidio.request.rules` | `[]` |
 | `sharedMiddlewares.contentGuardPresidio.response` | (object) |
 | `sharedMiddlewares.contentGuardPresidio.response.rules` | (list, 1 items) |
 | `sharedMiddlewares.contentGuardRegex` | (object) |
 | `sharedMiddlewares.contentGuardRegex.enabled` | `false` |
 | `sharedMiddlewares.contentGuardRegex.request` | (object) |
-| `sharedMiddlewares.contentGuardRegex.request.rules` | `"[]"` |
+| `sharedMiddlewares.contentGuardRegex.request.rules` | `[]` |
 | `sharedMiddlewares.contentGuardRegex.response` | (object) |
-| `sharedMiddlewares.contentGuardRegex.response.rules` | `"[]"` |
+| `sharedMiddlewares.contentGuardRegex.response.rules` | `[]` |
 | `sharedMiddlewares.parallelGuard` | (object) |
 | `sharedMiddlewares.parallelGuard.enabled` | `false` |
 | `sharedMiddlewares.semanticCache` | (object) |

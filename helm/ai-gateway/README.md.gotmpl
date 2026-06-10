@@ -1,0 +1,18 @@
+{{- /* Source for README.md — rendered by the pre-commit helm-docs hook with helm/_templates.gotmpl. Edit this file, not README.md. */ -}}
+{{ template "demo.header" . }}
+
+{{ template "demo.conventions" . }}
+
+<!-- BEGIN_HELM_DOCS -->
+
+{{ template "demo.requirementsSection" . }}
+
+{{ template "demo.dependenciesSection" (dict "root" . "conditions" (dict
+  "presidio"   "sharedMiddlewares.contentGuardPresidio.enabled"
+  "weaviate"   "sharedMiddlewares.semanticCache.enabled"
+  "embeddings" "sharedMiddlewares.semanticCache.enabled"
+)) }}
+
+{{ template "demo.valuesSection" . }}
+
+<!-- END_HELM_DOCS -->
