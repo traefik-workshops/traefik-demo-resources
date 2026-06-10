@@ -51,7 +51,7 @@ variable "enable_federation" {
 variable "spire_chart_version" {
   type        = string
   description = "Pinned version of the `spire` umbrella chart (spiffe/helm-charts-hardened)."
-  default     = "0.28.4"
+  default     = "0.29.0"
 }
 
 variable "spire_crds_chart_version" {

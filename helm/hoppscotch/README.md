@@ -3,7 +3,7 @@
 Self-hosted Hoppscotch with multi-collection nginx serving
 
 - **Chart version:** `4.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
-- **App version:** `2026.2.0`
+- **App version:** `2026.5.0`
 
 ## Install
 
@@ -40,7 +40,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `global.domain` | `""` |
 | `subdomain` | `"test"` |
 | `host` | `""` |
-| `image` | `"hoppscotch/hoppscotch:2026.2.0"` |
+| `image` | `"hoppscotch/hoppscotch:2026.5.0"` |
 | `jwtSecret` | `"change-me-32-chars-long-exactly!"` |
 | `sessionSecret` | `"change-me-32-chars-long-exactly!"` |
 | `dataEncryptionKey` | `"change-me-32-chars-long-exactly!"` |

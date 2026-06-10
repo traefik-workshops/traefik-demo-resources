@@ -3,7 +3,7 @@ resource "helm_release" "weaviate" {
   namespace  = var.namespace
   repository = "https://weaviate.github.io/weaviate-helm"
   chart      = "weaviate"
-  version    = "17.6.1"
+  version    = "17.8.1"
   timeout    = 900
   atomic     = true
 

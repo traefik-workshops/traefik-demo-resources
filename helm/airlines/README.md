@@ -116,7 +116,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `hoppscotch` | (object) |
 | `hoppscotch.enabled` | `true` |
 | `hoppscotch.subdomain` | `"test"` |
-| `hoppscotch.image` | `"hoppscotch/hoppscotch:2026.2.0"` |
+| `hoppscotch.image` | `"hoppscotch/hoppscotch:2026.5.0"` |
 | `hoppscotch.jwtSecret` | `"airlines-demo-jwt-secret-32chars!"` |
 | `hoppscotch.sessionSecret` | `"airlines-demo-session-32chars-ok"` |
 | `hoppscotch.dataEncryptionKey` | `"airlines-demo-encrypt-32chars-ok"` |

@@ -2,7 +2,7 @@
 enabled: true
 
 # Keycloak operator version (must match available releases from keycloak-k8s-resources)
-operatorVersion: "26.5.2"
+operatorVersion: "26.6.3"
 
 # Namespace for Keycloak deployment
 namespace: keycloak

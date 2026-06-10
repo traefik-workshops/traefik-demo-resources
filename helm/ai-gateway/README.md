@@ -37,7 +37,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | Name | Version | Repository | Condition |
 |------|---------|------------|-----------|
 | presidio | `4.0.0` | `file://../presidio` | `sharedMiddlewares.contentGuardPresidio.enabled` |
-| weaviate | `17.6.1` | `https://weaviate.github.io/weaviate-helm` | `sharedMiddlewares.semanticCache.enabled` |
+| weaviate | `17.8.1` | `https://weaviate.github.io/weaviate-helm` | `sharedMiddlewares.semanticCache.enabled` |
 | embeddings | `4.0.0` | `file://../embeddings` | `sharedMiddlewares.semanticCache.enabled` |
 
 ## Values

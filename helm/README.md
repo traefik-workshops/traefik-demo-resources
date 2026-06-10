@@ -25,10 +25,10 @@ If a chart's *upstream* app changes version, that lives in `appVersion` and move
 | [`ai-gateway`](./ai-gateway) | AI gateway with shared middlewares (Presidio, NeMo Guardrails, Weaviate semantic cache) | 1.0.0 |
 | [`airlines`](./airlines) | Full airlines-demo umbrella — APIs, dashboards, MCP servers, Hoppscotch, Keycloak | 2.0.0 |
 | [`dns-traefiker`](./dns-traefiker) | DNS automation sidecar — keeps a wildcard-style record pointing at the right LB | v1.0.2 |
-| [`embeddings`](./embeddings) | Lightweight embedding server (Infinity) — used by ai-gateway's semantic cache | 0.0.75 |
-| [`hoppscotch`](./hoppscotch) | Self-hosted Hoppscotch + nginx-served demo collections | 2026.2.0 |
-| [`keycloak`](./keycloak) | Keycloak operator + realm + seeded demo users | 26.5.2 |
-| [`presidio`](./presidio) | Microsoft Presidio Analyzer — PII detection backend for ai-gateway | 2.2.358 |
+| [`embeddings`](./embeddings) | Lightweight embedding server (Infinity) — used by ai-gateway's semantic cache | 0.0.77 |
+| [`hoppscotch`](./hoppscotch) | Self-hosted Hoppscotch + nginx-served demo collections | 2026.5.0 |
+| [`keycloak`](./keycloak) | Keycloak operator + realm + seeded demo users | 26.6.3 |
+| [`presidio`](./presidio) | Microsoft Presidio Analyzer — PII detection backend for ai-gateway | 2.2.362 |
 
 Two charts compose others via subchart dependencies. The dependency graph:
 

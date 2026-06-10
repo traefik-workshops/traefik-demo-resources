@@ -13,7 +13,7 @@ variable "namespace" {
 variable "chart_version" {
   type        = string
   description = "Version of the langfuse/langfuse-k8s Helm chart."
-  default     = "1.5.27"
+  default     = "1.5.34"
 }
 
 variable "replicas" {

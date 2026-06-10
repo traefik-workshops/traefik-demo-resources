@@ -3,7 +3,7 @@
 A Helm chart for Microsoft Presidio Analyzer
 
 - **Chart version:** `4.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
-- **App version:** `2.2.358`
+- **App version:** `2.2.362`
 
 ## Install
 
@@ -51,7 +51,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 |-----|---------|
 | `image` | (object) |
 | `image.repository` | `"mcr.microsoft.com/presidio-analyzer"` |
-| `image.tag` | `"2.2.358"` |
+| `image.tag` | `"2.2.362"` |
 | `image.pullPolicy` | `"IfNotPresent"` |
 | `service` | (object) |
 | `service.type` | `"ClusterIP"` |

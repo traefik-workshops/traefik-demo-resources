@@ -62,7 +62,7 @@ resource "helm_release" "opentelemetry" {
   namespace  = var.namespace
   repository = "https://open-telemetry.github.io/opentelemetry-helm-charts"
   chart      = "opentelemetry-collector"
-  version    = "0.127.2"
+  version    = "0.158.1"
   timeout    = 900
   atomic     = true
 

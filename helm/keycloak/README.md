@@ -3,7 +3,7 @@
 Keycloak identity and access management with operator
 
 - **Chart version:** `4.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
-- **App version:** `26.5.2`
+- **App version:** `26.6.3`
 
 ## Install
 
@@ -49,7 +49,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | Key | Default |
 |-----|---------|
 | `enabled` | `true` |
-| `operatorVersion` | `"26.5.2"` |
+| `operatorVersion` | `"26.6.3"` |
 | `namespace` | `"keycloak"` |
 | `postgres` | (object) |
 | `postgres.name` | `"keycloak-postgres"` |

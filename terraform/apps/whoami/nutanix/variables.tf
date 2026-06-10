@@ -63,7 +63,7 @@ variable "load_balancer_strategy" {
 variable "whoami_version" {
   description = "The Whoami version to install"
   type        = string
-  default     = "v1.10.1"
+  default     = "v1.11.0"
 }
 
 # Empty = DHCP (overlay subnets / VPCs always have it; VLAN subnets often have a

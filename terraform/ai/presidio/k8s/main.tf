@@ -19,7 +19,7 @@ resource "kubernetes_deployment_v1" "presidio" {
       spec {
         container {
           name  = "presidio"
-          image = "mcr.microsoft.com/presidio-analyzer:2.2.358"
+          image = "mcr.microsoft.com/presidio-analyzer:2.2.362"
         }
       }
     }

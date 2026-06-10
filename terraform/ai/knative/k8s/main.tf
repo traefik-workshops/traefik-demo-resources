@@ -3,7 +3,7 @@ resource "helm_release" "knative_operator" {
   namespace  = var.namespace
   repository = "https://knative.github.io/operator"
   chart      = "knative-operator"
-  version    = "v1.19.0"
+  version    = "v1.22.2"
   timeout    = 900
   atomic     = true
 }

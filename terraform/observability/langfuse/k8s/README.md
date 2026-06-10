@@ -55,7 +55,7 @@ module "langfuse" {
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | Version of the langfuse/langfuse-k8s Helm chart. | `string` | `"1.5.27"` | no |
+| <a name="input_chart_version"></a> [chart\_version](#input\_chart\_version) | Version of the langfuse/langfuse-k8s Helm chart. | `string` | `"1.5.34"` | no |
 | <a name="input_disable_signup"></a> [disable\_signup](#input\_disable\_signup) | When true, sets AUTH\_DISABLE\_SIGNUP=true so no additional users can register after the seeded admin. | `bool` | `true` | no |
 | <a name="input_encryption_key"></a> [encryption\_key](#input\_encryption\_key) | ENCRYPTION\_KEY for at-rest encryption (langfuse.encryptionKey.value). 64 hex chars. Demo default is all zeros — override for real use (openssl rand -hex 32). | `string` | `"0000000000000000000000000000000000000000000000000000000000000000"` | no |
 | <a name="input_ingress"></a> [ingress](#input\_ingress) | Create a Traefik IngressRoute on `ingress_host` pointing at the langfuse-web Service. | `bool` | `false` | no |

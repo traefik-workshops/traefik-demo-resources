@@ -92,7 +92,7 @@ aiGateway:
 hoppscotch:
   enabled: true
   subdomain: "test"
-  image: hoppscotch/hoppscotch:2026.2.0
+  image: hoppscotch/hoppscotch:2026.5.0
   jwtSecret: "airlines-demo-jwt-secret-32chars!"
   sessionSecret: "airlines-demo-session-32chars-ok"
   dataEncryptionKey: "airlines-demo-encrypt-32chars-ok"

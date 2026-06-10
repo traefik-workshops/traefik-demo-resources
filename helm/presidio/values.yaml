@@ -1,6 +1,6 @@
 image:
   repository: mcr.microsoft.com/presidio-analyzer
-  tag: 2.2.358
+  tag: 2.2.362
   pullPolicy: IfNotPresent
 
 service:
