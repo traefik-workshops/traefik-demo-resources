@@ -1,7 +1,18 @@
-# Common patterns
+# Patterns to ignore when packaging
 .DS_Store
-.git
+.git/
 .gitignore
+.idea/
+.vscode/
+
+# Build/Test artifacts
+.terraform/
+*.tfstate*
+*.tgz
+
+# Source code (Helm charts ship templates, not app source)
+services/
+files/private/
 
 # CI / docs scaffolding
 ct.yaml
