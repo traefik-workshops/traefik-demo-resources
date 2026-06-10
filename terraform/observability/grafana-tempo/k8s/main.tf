@@ -10,7 +10,7 @@ resource "helm_release" "tempo" {
   values = [
     yamlencode({
       tempo = {
-        reporting_enabled = false
+        reportingEnabled = false
         # Metrics generator + the local-blocks processor are required for TraceQL
         # metrics — the `{...} | rate() by(...)` queries Grafana's Traces Drilldown
         # runs. Without a running generator the generator ring is empty and the
@@ -28,9 +28,6 @@ resource "helm_release" "tempo" {
             }
           }
         }
-      }
-      tempo_query = {
-        enabled = true
       }
       tolerations = var.tolerations
     }),
