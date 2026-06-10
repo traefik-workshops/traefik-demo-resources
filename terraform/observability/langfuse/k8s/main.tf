@@ -80,6 +80,11 @@ resource "helm_release" "langfuse" {
       s3 = {
         deploy = true
         auth   = { rootPassword = var.subchart_password }
+        # 30Gi (default MinIO is 8Gi). Langfuse's OTLP trace ingestion writes one tiny S3
+        # object per span — on the 8Gi/512K-inode default the drive hit 100% INODES (not bytes)
+        # in ~5 days, and MinIO 500s ("minimum free drive threshold") -> traces silently dropped.
+        # 30Gi ~= 1.9M inodes; pair with a retention/lifecycle policy for long-lived clusters.
+        persistence = { size = "30Gi" }
       }
     })
   ]
