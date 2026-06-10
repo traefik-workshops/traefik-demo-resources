@@ -86,6 +86,18 @@ resource "helm_release" "langfuse" {
         # 30Gi ~= 1.9M inodes; pair with a retention/lifecycle policy for long-lived clusters.
         persistence = { size = "30Gi" }
       }
+      # The bundled bitnami zookeeper (ClickHouse's coordinator) defaults to heapSize=1024
+      # (1Gi JVM heap) but its resourcesPreset caps memory at 384Mi — the JVM is ~3x the cgroup
+      # limit and OOMKills in a loop (265 restarts observed, destabilizing ClickHouse). Align
+      # them: a 512Mi heap inside a 1Gi limit (heap + JVM/native overhead).
+      zookeeper = {
+        heapSize        = 512
+        resourcesPreset = "none"
+        resources = {
+          requests = { cpu = "250m", memory = "512Mi" }
+          limits   = { cpu = "500m", memory = "1Gi" }
+        }
+      }
     })
   ]
 }
