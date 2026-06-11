@@ -109,7 +109,9 @@ data "external" "capture_tokens" {
     set -e
     
     # Configure isolated kubectl context
-    if [ -n "${var.host}" ]; then
+    if [ -n "${var.kubeconfig}" ]; then
+      export KUBECONFIG="${var.kubeconfig}"
+    elif [ -n "${var.host}" ]; then
       KUBECONFIG_FILE=$(mktemp)
       CERT_FILE=$(mktemp)
       KEY_FILE=$(mktemp)

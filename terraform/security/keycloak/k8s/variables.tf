@@ -93,6 +93,12 @@ variable "client_key" {
   sensitive   = true
 }
 
+variable "kubeconfig" {
+  description = "Path to a kubeconfig file for the token-capture data source. Takes precedence over `host` and the ambient kubeconfig. Use when the ambient context may not point at the cluster Keycloak runs on (e.g. exec-auth clusters like EKS, where `host`/`client_certificate` don't apply)."
+  type        = string
+  default     = ""
+}
+
 variable "instances" {
   type        = number
   default     = 1
