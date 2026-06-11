@@ -24,7 +24,7 @@ write_files:
       # WHOAMI_NAME (when non-empty) → response shows `Name: <name>` so the audience
       # can tell which VM served them; empty = whoami uses OS hostname.
       Environment=WHOAMI_NAME=${name}
-      ExecStart=/usr/local/bin/whoami --port ${port}
+      ExecStart=/usr/local/bin/whoami --verbose --port ${port}
       Restart=always
       User=nobody
       AmbientCapabilities=CAP_NET_BIND_SERVICE

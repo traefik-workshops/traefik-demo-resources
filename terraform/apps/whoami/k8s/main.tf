@@ -41,6 +41,7 @@ resource "kubernetes_deployment_v1" "echo" {
           name              = each.key
           image             = each.value.docker_image
           image_pull_policy = "IfNotPresent"
+          args              = ["--verbose"]
 
           port {
             container_port = each.value.port

@@ -11,6 +11,7 @@ locals {
             { for k, v in app_config : k => v if k != "name" },
             {
               docker_image       = "traefik/whoami:latest"
+              docker_command     = "--verbose"
               subnet_ids         = cluster_config.subnet_ids
               security_group_ids = cluster_config.security_group_ids
               environment = {
