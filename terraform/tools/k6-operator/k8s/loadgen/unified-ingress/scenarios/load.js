@@ -9,16 +9,36 @@ const CLIENT_ID = '${client_id}';
 const CLIENT_SECRET = '${client_secret}';
 const USERS = JSON.parse('${users_json}');
 const AI_ENABLED = ${ai_enabled};
+const OPENAI_MODELS = JSON.parse('${openai_models}');
+const ANTHROPIC_MODELS = JSON.parse('${anthropic_models}');
+const AI_MAX_TOKENS = ${ai_max_tokens};
+
+// Two scenarios: high-volume edge traffic (free) + a deliberately LOW-rate AI scenario
+// (constant arrival, ai_rpm/min) so real provider spend stays tiny. The dashboards inflate
+// the displayed AI token/spend numbers separately.
+const scenarios = {
+  edge: { executor: 'constant-vus', vus: ${vus}, duration: '${duration}', exec: 'edge' },
+};
+if (AI_ENABLED) {
+  scenarios.ai = {
+    executor: 'constant-arrival-rate',
+    rate: ${ai_rpm},
+    timeUnit: '1m',
+    duration: '${duration}',
+    preAllocatedVUs: 5,
+    maxVUs: 10,
+    exec: 'ai',
+  };
+}
 
 export const options = {
-  vus: ${vus},
-  duration: '${duration}',
   discardResponseBodies: true,
   insecureSkipTLSVerify: true,
+  scenarios: scenarios,
 };
 
-// Unauthenticated edge routes — the bulk of the traffic. Lights up the per-compute
-// (EKS/EC2/ECS/AKS) and per-route Traefik metrics behind the Traffic-by-Compute view.
+// Unauthenticated edge routes — the bulk of the traffic. Lights up the per-compute and
+// per-route Traefik metrics behind the Traffic-by-Compute view.
 const PUBLIC_GETS = [
   'https://lb.' + DOMAIN + '/',
   'https://lbsticky.' + DOMAIN + '/',
@@ -34,19 +54,16 @@ const PUBLIC_GETS = [
   'https://waf.' + DOMAIN + '/',
 ];
 
-// A couple of WAF attack payloads — denied at the edge (403). Feed the WAF/Loki
-// story and the error-code panels without touching any backend.
+// WAF attack payloads — denied at the edge (403). Feed the WAF/Loki story + error panels.
 const WAF_ATTACKS = [
   'https://waf.' + DOMAIN + '/?id=1%27%20OR%20%271%27%3D%271',
   'https://waf.' + DOMAIN + '/debug/pprof/heap',
 ];
 
-// Benign AI prompts — REAL provider spend, off by default (the gateway's Redis
-// token budget self-caps how much real spend a sustained run can incur).
 const AI_OPENAI = 'https://ai.' + DOMAIN + '/v1/responses';
 const AI_ANTHROPIC = 'https://ai.' + DOMAIN + '/v1/messages';
 
-// setup() runs once: mint a JWT per user via the Keycloak password grant.
+// setup() runs once: mint a JWT per user via the Keycloak password grant (for the managed API).
 export function setup() {
   const tokens = {};
   USERS.forEach(function (u) {
@@ -70,12 +87,21 @@ export function setup() {
   return { usernames: Object.keys(tokens), tokens: tokens };
 }
 
-function publicGet() {
-  http.get(randomItem(PUBLIC_GETS));
+// --- edge scenario: public routes + managed API + WAF attacks ----------------
+export function edge(data) {
+  const r = Math.random();
+  if (r < 0.65) {
+    http.get(randomItem(PUBLIC_GETS));
+  } else if (r < 0.90) {
+    managedApi(data);
+  } else {
+    http.get(randomItem(WAF_ATTACKS));
+  }
+  sleep(Math.random() * 0.8 + 0.2);
 }
 
-// Managed API: pick a random consumer; its group claim becomes app_id at the gate.
-// Mostly reads (free tier 429s under load); an occasional write (free 403, premium 200).
+// Managed API: random consumer; its group claim becomes app_id at the gate. Mostly reads
+// (free tier 429s under load); an occasional write (free 403, premium 200).
 function managedApi(data) {
   if (!data.usernames.length) { return; }
   const user = randomItem(data.usernames);
@@ -91,40 +117,19 @@ function managedApi(data) {
   }
 }
 
-function wafAttack() {
-  http.get(randomItem(WAF_ATTACKS));
-}
-
-function aiCall() {
+// --- ai scenario: low-rate, rotates 5 OpenAI + 5 Anthropic models ------------
+export function ai() {
   if (Math.random() < 0.5) {
     http.post(
       AI_OPENAI,
-      JSON.stringify({ model: 'gpt-4o-mini', input: 'Reply with exactly: gateway ok' }),
+      JSON.stringify({ model: randomItem(OPENAI_MODELS), input: 'Reply with exactly: gateway ok', max_output_tokens: AI_MAX_TOKENS }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   } else {
     http.post(
       AI_ANTHROPIC,
-      JSON.stringify({ model: 'claude-haiku-4-5', max_tokens: 16, messages: [{ role: 'user', content: 'Reply with exactly: gateway ok' }] }),
+      JSON.stringify({ model: randomItem(ANTHROPIC_MODELS), max_tokens: AI_MAX_TOKENS, messages: [{ role: 'user', content: 'Reply with exactly: gateway ok' }] }),
       { headers: { 'Content-Type': 'application/json' } }
     );
   }
-}
-
-// Weighted mix per iteration: 60% public edge, 25% managed API (per-consumer),
-// 12% WAF attacks, 3% AI (only when enabled; otherwise falls back to public).
-export default function (data) {
-  const r = Math.random();
-  if (r < 0.60) {
-    publicGet();
-  } else if (r < 0.85) {
-    managedApi(data);
-  } else if (r < 0.97) {
-    wafAttack();
-  } else if (AI_ENABLED) {
-    aiCall();
-  } else {
-    publicGet();
-  }
-  sleep(Math.random() * 0.8 + 0.2);
 }

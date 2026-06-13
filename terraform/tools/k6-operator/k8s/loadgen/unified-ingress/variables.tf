@@ -58,7 +58,31 @@ variable "parallelism" {
 }
 
 variable "ai_enabled" {
-  description = "Include a small slice of real AI-gateway calls (gpt-4o-mini / claude-haiku-4-5). OFF by default: these are billed per call (the gateway's Redis budget self-caps spend)."
+  description = "Run the AI-gateway traffic scenario (rotates the openai/anthropic model lists). OFF by default: these are billed per call. Kept low-rate (ai_rpm) + small (ai_max_tokens), and the gateway's Redis budget self-caps spend."
   type        = bool
   default     = false
+}
+
+variable "openai_models" {
+  description = "OpenAI models the AI scenario rotates through (sent to /v1/responses; the gateway allows model override). Cost-managed: keep to cheap chat models."
+  type        = list(string)
+  default     = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-2024-08-06"]
+}
+
+variable "anthropic_models" {
+  description = "Anthropic models the AI scenario rotates through (sent to /v1/messages). Needs the gateway to inject the platform key (enable_messages_api_passthrough_auth = false)."
+  type        = list(string)
+  default     = ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8", "claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"]
+}
+
+variable "ai_rpm" {
+  description = "AI requests per MINUTE across all models/providers (constant arrival rate). Low by default for cost control — the dashboard inflates the displayed token/spend numbers separately."
+  type        = number
+  default     = 6
+}
+
+variable "ai_max_tokens" {
+  description = "Max output tokens per AI call. Small by default to cap real spend."
+  type        = number
+  default     = 32
 }
