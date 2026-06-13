@@ -129,7 +129,7 @@ export function ai() {
     http.post(
       AI_ANTHROPIC,
       JSON.stringify({ model: randomItem(ANTHROPIC_MODELS), max_tokens: AI_MAX_TOKENS, messages: [{ role: 'user', content: 'Reply with exactly: gateway ok' }] }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { 'Content-Type': 'application/json', 'anthropic-version': '2023-06-01' } }
     );
   }
 }

@@ -72,7 +72,7 @@ variable "openai_models" {
 variable "anthropic_models" {
   description = "Anthropic models the AI scenario rotates through (sent to /v1/messages). Needs the gateway to inject the platform key (enable_messages_api_passthrough_auth = false)."
   type        = list(string)
-  default     = ["claude-haiku-4-5", "claude-sonnet-4-6", "claude-opus-4-8", "claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"]
+  default     = ["claude-haiku-4-5", "claude-sonnet-4-5", "claude-sonnet-4-6", "claude-opus-4-1", "claude-opus-4-8"]
 }
 
 variable "ai_rpm" {
