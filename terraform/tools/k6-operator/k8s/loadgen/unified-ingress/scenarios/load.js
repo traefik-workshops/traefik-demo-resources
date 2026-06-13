@@ -34,6 +34,9 @@ if (AI_ENABLED) {
 export const options = {
   discardResponseBodies: true,
   insecureSkipTLSVerify: true,
+  // 40 sequential token mints against a possibly-cold Keycloak (e.g. right after a reseed)
+  // can take a while; give setup() generous headroom so it never times out at the default 60s.
+  setupTimeout: '300s',
   scenarios: scenarios,
 };
 
@@ -64,6 +67,8 @@ const AI_OPENAI = 'https://ai.' + DOMAIN + '/v1/responses';
 const AI_ANTHROPIC = 'https://ai.' + DOMAIN + '/v1/messages';
 
 // setup() runs once: mint a JWT per user via the Keycloak password grant (for the managed API).
+// Retries per user so a transient Keycloak blip at test start (e.g. right after a reseed) can't
+// zero out the whole run.
 export function setup() {
   const tokens = {};
   USERS.forEach(function (u) {
@@ -73,14 +78,20 @@ export function setup() {
       '&grant_type=password&scope=openid' +
       '&username=' + encodeURIComponent(u.username) +
       '&password=' + encodeURIComponent(u.password);
-    const res = http.post(KEYCLOAK_URL, body, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    });
-    if (res.status === 200) {
-      try {
-        const tok = JSON.parse(res.body).access_token;
-        if (tok) { tokens[u.username] = tok; }
-      } catch (e) { /* ignore */ }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // responseType 'text' overrides the global discardResponseBodies — setup() needs the
+      // body to read access_token.
+      const res = http.post(KEYCLOAK_URL, body, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        responseType: 'text',
+      });
+      if (res.status === 200) {
+        try {
+          const tok = JSON.parse(res.body).access_token;
+          if (tok) { tokens[u.username] = tok; break; }
+        } catch (e) { /* retry */ }
+      }
+      sleep(1);
     }
   });
   console.log('setup: minted ' + Object.keys(tokens).length + '/' + USERS.length + ' JWTs');
