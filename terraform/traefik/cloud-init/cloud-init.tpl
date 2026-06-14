@@ -70,12 +70,7 @@ write_files:
       # the EC2 IMDS (the provider's instance-profile creds) all work, matching how the k8s
       # spokes run the same image. The mounted dynamic dir carries the file-provider config.
       ExecStartPre=-/usr/bin/docker rm -f traefik-hub
-      # Best-effort (leading "-"): cloud-init already pulled the image, so a restart must NOT
-      # depend on a fresh pull. The image is on docker.io and pulled ANONYMOUSLY (no login),
-      # so a crashloop re-pulling every RestartSec would exhaust Docker Hub's per-IP anonymous
-      # limit (shared across spokes via the NAT egress IP); once throttled a hard pull fails and
-      # ExecStart never runs. Ignoring pull failure lets the container start from the local image.
-      ExecStartPre=-/usr/bin/docker pull ${preview_image}
+      ExecStartPre=/usr/bin/docker pull ${preview_image}
       ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
       ExecStop=-/usr/bin/docker stop traefik-hub
 %{ else ~}
