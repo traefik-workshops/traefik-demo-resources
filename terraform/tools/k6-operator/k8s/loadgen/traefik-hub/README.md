@@ -1,6 +1,6 @@
-# tools/k6-operator/k8s/loadgen/unified-ingress
+# tools/k6-operator/k8s/loadgen/traefik-hub
 
-Renders a k6 `TestRun` that drives steady, broad traffic across the `unified-ingress` demo edge
+Renders a k6 `TestRun` that drives steady, broad traffic across the `traefik-hub` demo edge
 so the Grafana dashboards have something to show. Sibling to [`aigateway`](../aigateway/), but
 general-purpose: it exercises the whole demo surface (public edge routes, the managed API per
 consumer, WAF attacks, and optionally the AI gateway) rather than only AI chat.
@@ -14,7 +14,7 @@ The weighted mix per iteration: ~60% public edge GETs (lb / whoami / mocking / m
 
 ```hcl
 module "loadgen_unified_ingress" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo.git//terraform/tools/k6-operator/k8s/loadgen/unified-ingress?ref=v4.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo.git//terraform/tools/k6-operator/k8s/loadgen/traefik-hub?ref=v4.0.0"
 
   namespace              = "monitoring"
   domain                 = "unified.demo.traefik.ai"
@@ -68,7 +68,7 @@ module "loadgen_unified_ingress" {
 | <a name="input_anthropic_models"></a> [anthropic\_models](#input\_anthropic\_models) | Anthropic models the AI scenario rotates through (sent to /v1/messages). Needs the gateway to inject the platform key (enable\_messages\_api\_passthrough\_auth = false). | `list(string)` | <pre>[<br/>  "claude-haiku-4-5",<br/>  "claude-sonnet-4-5",<br/>  "claude-sonnet-4-6",<br/>  "claude-opus-4-1",<br/>  "claude-opus-4-8"<br/>]</pre> | no |
 | <a name="input_duration"></a> [duration](#input\_duration) | How long the test runs (k6 duration string, e.g. 2h). | `string` | `"2h"` | no |
 | <a name="input_keycloak_client_id"></a> [keycloak\_client\_id](#input\_keycloak\_client\_id) | Keycloak client id used for the password grant. | `string` | `"traefik"` | no |
-| <a name="input_name"></a> [name](#input\_name) | Name of the k6 TestRun + its script ConfigMap. | `string` | `"unified-ingress-traffic"` | no |
+| <a name="input_name"></a> [name](#input\_name) | Name of the k6 TestRun + its script ConfigMap. | `string` | `"traefik-hub-traffic"` | no |
 | <a name="input_openai_models"></a> [openai\_models](#input\_openai\_models) | OpenAI models the AI scenario rotates through (sent to /v1/responses; the gateway allows model override). Cost-managed: keep to cheap chat models. | `list(string)` | <pre>[<br/>  "gpt-4o-mini",<br/>  "gpt-4o",<br/>  "gpt-4.1-mini",<br/>  "gpt-4.1-nano",<br/>  "gpt-4o-2024-08-06"<br/>]</pre> | no |
 | <a name="input_parallelism"></a> [parallelism](#input\_parallelism) | k6 TestRun parallelism (number of runner pods the load is split across). | `number` | `1` | no |
 | <a name="input_vus"></a> [vus](#input\_vus) | Concurrent virtual users (controls aggregate request rate). | `number` | `20` | no |

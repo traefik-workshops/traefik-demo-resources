@@ -5,7 +5,7 @@ resource "kubectl_manifest" "unified_traffic_testrun" {
     metadata = {
       name      = var.name
       namespace = var.namespace
-      labels    = { app = "unified-ingress-load-test" }
+      labels    = { app = "traefik-hub-load-test" }
     }
     spec = {
       parallelism = var.parallelism

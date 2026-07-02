@@ -25,7 +25,7 @@ This is workload identity, **not** a user IdP — so it does not follow the `use
 module "spire" {
   source = "../../terraform/security/spire/k8s" # demos use relative sources
 
-  trust_domain      = "eks.unified-ingress"
+  trust_domain      = "eks.traefik-hub"
   cluster_name      = "eks-hub"
   enable_federation = true # expose the bundle endpoint for cross-cluster mTLS
 }

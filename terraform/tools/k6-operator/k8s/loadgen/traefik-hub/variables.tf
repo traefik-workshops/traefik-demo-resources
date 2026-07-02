@@ -1,7 +1,7 @@
 variable "name" {
   description = "Name of the k6 TestRun + its script ConfigMap."
   type        = string
-  default     = "unified-ingress-traffic"
+  default     = "traefik-hub-traffic"
 }
 
 variable "namespace" {
