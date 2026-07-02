@@ -4,7 +4,10 @@ locals {
   newrelic_exporter   = var.enable_new_relic ? ["otlphttp/nri"] : []
   dash0_exporter      = var.enable_dash0 ? ["otlphttp/dash0"] : []
   honeycomb_exporter  = var.enable_honeycomb ? ["otlphttp/honeycomb"] : []
-  langsmith_exporter  = var.enable_langsmith ? ["otlphttp/langsmith"] : []
+  langsmith_host_filter_active = var.enable_langsmith && length(var.langsmith_host_filter) > 0
+  # When a host filter is set, LangSmith rides its own filtered traces pipeline
+  # (local.langsmith_pipeline below) instead of the shared traces pipeline.
+  langsmith_exporter  = (var.enable_langsmith && !local.langsmith_host_filter_active) ? ["otlphttp/langsmith"] : []
   langfuse_exporter   = var.enable_langfuse ? ["otlphttp/langfuse"] : []
   prometheus_exporter = var.enable_prometheus ? ["prometheus"] : []
 
@@ -54,7 +57,30 @@ locals {
       value = exporter
   }]) : []
 
-  service_pipelines = concat(local.logs_pipeline, local.metrics_pipeline, local.traces_pipeline)
+  # Dedicated, host-filtered traces pipeline for LangSmith. The tail_sampling
+  # processor (defined in the config block) keeps a whole trace only when it
+  # matches langsmith_host_filter, so the AI gateway's full trace tree reaches
+  # LangSmith while everything else is dropped before export.
+  langsmith_pipeline = local.langsmith_host_filter_active ? [
+    {
+      name  = "config.service.pipelines.traces/langsmith.receivers[0]"
+      value = "otlp"
+    },
+    {
+      name  = "config.service.pipelines.traces/langsmith.processors[0]"
+      value = "tail_sampling/langsmith"
+    },
+    {
+      name  = "config.service.pipelines.traces/langsmith.processors[1]"
+      value = "batch"
+    },
+    {
+      name  = "config.service.pipelines.traces/langsmith.exporters[0]"
+      value = "otlphttp/langsmith"
+    },
+  ] : []
+
+  service_pipelines = concat(local.logs_pipeline, local.metrics_pipeline, local.traces_pipeline, local.langsmith_pipeline)
 }
 
 resource "helm_release" "opentelemetry" {
@@ -93,11 +119,29 @@ resource "helm_release" "opentelemetry" {
             }
           }
         }
-        processors = {
+        processors = merge({
           batch = {
             timeout = "5s"
           }
-        }
+          }, local.langsmith_host_filter_active ? {
+          # Trace-level host filter for LangSmith. Tail sampling is required (not a
+          # per-span filter): the GenAI/upstream spans carry the provider host
+          # (e.g. api.openai.com), not the gateway host, so a per-span filter would
+          # strip the AI detail out of the trace. This keeps or drops the whole trace
+          # based on whether any span's server.address matches langsmith_host_filter.
+          "tail_sampling/langsmith" = {
+            decision_wait = "10s"
+            policies = [{
+              name = "langsmith-host-allowlist"
+              type = "string_attribute"
+              string_attribute = {
+                key                    = "server.address"
+                values                 = var.langsmith_host_filter
+                enabled_regex_matching = true
+              }
+            }]
+          }
+        } : {})
         exporters = merge(
           var.enable_loki ? {
             "otlphttp/loki" = {

@@ -140,6 +140,12 @@ variable "langsmith_project" {
   default     = "default"
 }
 
+variable "langsmith_host_filter" {
+  type        = list(string)
+  description = "Allow-list of host patterns (RE2 regex, matched against the span server.address) for LangSmith trace export. When set, LangSmith gets its own traces pipeline gated by a tail_sampling processor: a trace is exported only if one of its spans has a server.address matching one of these patterns, so the full trace (including GenAI/upstream spans whose host is the provider, not the gateway) is kept or dropped as a unit. Other trace backends (Tempo, etc.) still receive every trace. Empty = export all traces to LangSmith. Example: [\"ai.localhost\"]."
+  default     = []
+}
+
 variable "enable_langfuse" {
   type        = bool
   description = "Enable Langfuse trace export (SaaS cloud.langfuse.com or self-hosted). Langfuse's OTLP endpoint currently accepts traces only (metrics/logs in preview); we only wire the traces pipeline here."
