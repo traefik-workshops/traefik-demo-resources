@@ -19,6 +19,8 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/k8s`](./whoami/k8s) | k8s | whoami in-cluster, with optional Traefik IngressRoute |
 | [`whoami/nutanix`](./whoami/nutanix) | Nutanix | whoami on a Nutanix VM |
 | [`whoami/nutanix/image_builder`](./whoami/nutanix/image_builder) | Nutanix | Builds a Nutanix image baked with whoami |
+| [`whoami/oci-ci`](./whoami/oci-ci) | OCI | whoami as OCI Container Instances (private VNIC IPs; declared port via TCP health check) |
+| [`whoami/oci-vm`](./whoami/oci-vm) | OCI | whoami on OCI Compute VMs (traefik config via dotted freeform tags; uses `whoami/cloud-init`) |
 
 ## When to add an app
 

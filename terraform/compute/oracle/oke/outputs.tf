@@ -42,3 +42,13 @@ output "node_pool_id" {
   description = "OKE node pool ID"
   value       = length(oci_containerengine_node_pool.traefik_demo) > 0 ? oci_containerengine_node_pool.traefik_demo[0].id : null
 }
+
+output "vcn_id" {
+  description = "OCID of the cluster's VCN — VM/container-instance spokes (apps/whoami/oci-*, traefik/oci-*) join it"
+  value       = oci_core_vcn.traefik_demo.id
+}
+
+output "nodes_subnet_id" {
+  description = "OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly."
+  value       = oci_core_subnet.traefik_demo_nodes.id
+}

@@ -15,6 +15,8 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`gce`](./gce) | Traefik Hub on a GCE VM (uses `cloud-init`; `hub.providers.gce` + attached service account) |
 | [`k8s`](./k8s) | Traefik on Kubernetes via Helm (CRDs, IngressRoutes) |
 | [`nutanix`](./nutanix) | Traefik on a Nutanix VM (uses `cloud-init`) |
+| [`oci-ci`](./oci-ci) | Traefik Hub as an OCI Container Instance (`hub.providers.ociContainerInstances` + config-file auth) |
+| [`oci-vm`](./oci-vm) | Traefik Hub on an OCI Compute VM (uses `cloud-init`; `hub.providers.oci` + instance principal) |
 
 ## How `shared/` works
 

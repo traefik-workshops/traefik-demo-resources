@@ -25,7 +25,7 @@ module "oke" {
 ## Requirements
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_external"></a> [external](#requirement\_external) | ~> 2.0 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | ~> 3.0 |
@@ -36,7 +36,7 @@ module "oke" {
 ## Providers
 
 | Name | Version |
-| ---- | ------- |
+|------|---------|
 | <a name="provider_external"></a> [external](#provider\_external) | ~> 2.0 |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
@@ -46,7 +46,7 @@ module "oke" {
 ## Resources
 
 | Name | Type |
-| ---- | ---- |
+|------|------|
 | [helm_release.metrics_server](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [null_resource.oke_cluster](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [null_resource.oke_taints](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
@@ -65,7 +65,7 @@ module "oke" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-| ---- | ----------- | ---- | ------- | :------: |
+|------|-------------|------|---------|:--------:|
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | OKE cluster name. | `string` | n/a | yes |
 | <a name="input_compartment_id"></a> [compartment\_id](#input\_compartment\_id) | Oracle Cloud compartment ID. | `string` | n/a | yes |
 | <a name="input_cluster_location"></a> [cluster\_location](#input\_cluster\_location) | OKE cluster location. | `string` | `"us-chicago-1"` | no |
@@ -78,11 +78,13 @@ module "oke" {
 ## Outputs
 
 | Name | Description |
-| ---- | ----------- |
+|------|-------------|
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | OKE cluster CA certificate |
 | <a name="output_cluster_id"></a> [cluster\_id](#output\_cluster\_id) | OKE cluster ID |
 | <a name="output_host"></a> [host](#output\_host) | OKE cluster host |
 | <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | OKE cluster kubeconfig |
 | <a name="output_node_pool_id"></a> [node\_pool\_id](#output\_node\_pool\_id) | OKE node pool ID |
+| <a name="output_nodes_subnet_id"></a> [nodes\_subnet\_id](#output\_nodes\_subnet\_id) | OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly. |
 | <a name="output_token"></a> [token](#output\_token) | OKE cluster auth token |
+| <a name="output_vcn_id"></a> [vcn\_id](#output\_vcn\_id) | OCID of the cluster's VCN — VM/container-instance spokes (apps/whoami/oci-*, traefik/oci-*) join it |
 <!-- END_TF_DOCS -->
