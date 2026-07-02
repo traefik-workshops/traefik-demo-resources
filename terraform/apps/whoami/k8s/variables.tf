@@ -4,8 +4,9 @@ variable "apps" {
   type = map(object({
     replicas     = optional(number, 1)
     port         = optional(number, 80)
-    name         = optional(string) # whoami `-name` (WHOAMI_NAME) — body shows `Name: <name>`; defaults to the app key
-    docker_image = optional(string, "traefik/whoami:latest")
+    name         = optional(string)          # whoami `-name` (WHOAMI_NAME) — body shows `Name: <name>`; defaults to the app key
+    docker_image = optional(string)          # per-app image override; null = module-level whoami_image
+    environment  = optional(map(string), {}) # merged over module-level `environment` into the container
     labels       = optional(map(string), {})
     ingress_route = optional(object({
       enabled     = optional(bool, false)
@@ -39,6 +40,18 @@ variable "namespace" {
   description = "Kubernetes namespace to deploy applications"
   type        = string
   default     = "apps"
+}
+
+variable "whoami_image" {
+  description = "Whoami image for every app that doesn't set its own docker_image."
+  type        = string
+  default     = "docker.io/zalbiraw/whoami:latest"
+}
+
+variable "environment" {
+  description = "Environment variables added to every whoami container, e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
+  type        = map(string)
+  default     = {}
 }
 
 variable "common_labels" {

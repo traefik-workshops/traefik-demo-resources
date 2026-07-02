@@ -60,10 +60,22 @@ variable "load_balancer_strategy" {
   default     = ""
 }
 
+variable "whoami_image" {
+  description = "Whoami image to docker-run on the VM. Untagged references get `:` + whoami_version appended."
+  type        = string
+  default     = "docker.io/zalbiraw/whoami:latest"
+}
+
 variable "whoami_version" {
-  description = "The Whoami version to install"
+  description = "Image tag used only when whoami_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0)."
   type        = string
   default     = "v1.11.0"
+}
+
+variable "environment" {
+  description = "Environment variables passed to the whoami container (docker -e), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork."
+  type        = map(string)
+  default     = {}
 }
 
 # Empty = DHCP (overlay subnets / VPCs always have it; VLAN subnets often have a

@@ -109,6 +109,15 @@ variable "extra_values" {
   default     = {}
 }
 
+variable "default_generated_cert" {
+  description = "Default TLSStore generated-certificate config, rendered as chart values tlsStore.default.defaultGeneratedCert.{resolver,domain.main} (the chart emits the TLSStore CRD — no hand-rolled manifest needed). null = no default TLSStore. `resolver` must name a configured certificates resolver (e.g. \"cf\"); `domain` is the cert's main domain (e.g. \"*.example.com\")."
+  type = object({
+    resolver = string
+    domain   = string
+  })
+  default = null
+}
+
 variable "kubernetes_namespaces" {
   description = "List of namespaces to watch for Kubernetes providers (Ingress, Gateway, CRD)"
   type        = list(string)

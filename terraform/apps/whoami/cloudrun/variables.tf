@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of Cloud Run services to deploy. Workload config is `annotations` (dotted traefik.* keys, the cloudRun provider's config source); optional `labels` (dotless) feed provider constraints only. No replicas — Cloud Run scales via min/max instances. { name = { port, name, annotations, labels } }."
+  description = "Map of Cloud Run services to deploy. Workload config is `annotations` (dotted traefik.* keys, the cloudRun provider's config source); optional `labels` (dotless) feed provider constraints only; optional `environment` (map) is merged over the module-level `environment` into the container. No replicas — Cloud Run scales via min/max instances. { name = { port, name, environment, annotations, labels } }."
   type        = any
   default     = {}
 }
@@ -10,20 +10,32 @@ variable "location" {
   default     = "us-central1"
 }
 
+variable "whoami_image" {
+  description = "Whoami image every service runs, pulled through the module's Docker Hub mirror — so it must be a docker.io reference (Cloud Run can't pull docker.io directly; use `image` for other registries). Untagged references get `:` + whoami_version appended."
+  type        = string
+  default     = "docker.io/zalbiraw/whoami:latest"
+}
+
 variable "whoami_version" {
-  description = "The traefik/whoami image tag to run — they carry a `v` prefix (e.g. v1.11.0)."
+  description = "Image tag used only when whoami_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0)."
   type        = string
   default     = "v1.11.0"
 }
 
+variable "environment" {
+  description = "Environment variables added to every whoami container, e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
+  type        = map(string)
+  default     = {}
+}
+
 variable "image" {
-  description = "Full image reference override. Empty = pull traefik/whoami through the module's Docker Hub mirror (requires enable_registry_mirror). Must be an Artifact Registry / GCR path — Cloud Run can't pull docker.io directly."
+  description = "Full image reference override. Empty = pull whoami_image through the module's Docker Hub mirror (requires enable_registry_mirror). Must be an Artifact Registry / GCR path — Cloud Run can't pull docker.io directly."
   type        = string
   default     = ""
 }
 
 variable "enable_registry_mirror" {
-  description = "Create an Artifact Registry REMOTE repository mirroring Docker Hub (how traefik/whoami becomes pullable by Cloud Run). Disable only when `image` is set."
+  description = "Create an Artifact Registry REMOTE repository mirroring Docker Hub (how whoami_image becomes pullable by Cloud Run). Disable only when `image` is set."
   type        = bool
   default     = true
 }

@@ -1,5 +1,5 @@
 # whoami on Azure Linux VMs — the azure-vm sibling of apps/whoami/ec2.
-# Reuses the whoami/cloud-init template (systemd unit + binary extraction);
+# Reuses the whoami/cloud-init template (docker-run systemd unit);
 # each app replica is one small VM whose Azure TAGS (dotted keys, exactly like
 # EC2 instance tags) are what a Traefik Hub azureVM provider discovers.
 
@@ -7,10 +7,13 @@ module "cloud_init" {
   for_each = var.apps
   source   = "../cloud-init"
 
+  whoami_image   = var.whoami_image
   whoami_version = var.whoami_version
   port           = try(each.value.port, 80)
-  # whoami `--name` on the systemd unit -> body shows `Name: <name>` (e.g. whoami-azure-vm).
+  # WHOAMI_NAME on the container -> body shows `Name: <name>` (e.g. whoami-azure-vm).
   name = try(each.value.name, "")
+  # Per-app env wins over module-level env on collision.
+  environment = merge(var.environment, try(each.value.environment, {}))
 }
 
 locals {

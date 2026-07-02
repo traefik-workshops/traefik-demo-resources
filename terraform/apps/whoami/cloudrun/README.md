@@ -2,7 +2,7 @@
 
 Provisions Traefik `whoami` as Cloud Run v2 services — the serverless GCP sibling of `apps/whoami/ecs` and `apps/whoami/aci`. Each service's **`traefik.*` annotations** (dotted keys) are the workload config a Traefik Hub `cloudRun` provider discovers; **labels** (dotless) feed the provider's `constraints` only. Cloud Run is URL-mode: the provider routes to the service's HTTPS URI — there is no IP/port discovery.
 
-Cloud Run can't pull `docker.io` images directly, so the module creates an Artifact Registry **remote repository** (a Docker Hub pull-through mirror) and runs `traefik/whoami` through it. Override with `image` (any AR/GCR path) and set `enable_registry_mirror = false` to skip the mirror.
+Cloud Run can't pull `docker.io` images directly, so the module creates an Artifact Registry **remote repository** (a Docker Hub pull-through mirror) and runs `whoami_image` (default: the OTel-instrumented fork `docker.io/zalbiraw/whoami`) through it. Override with `image` (any AR/GCR path) and set `enable_registry_mirror = false` to skip the mirror.
 
 ## Optional function (`enable_function`)
 
@@ -17,6 +17,16 @@ module "whoami_cloudrun" {
   source = "git::https://github.com/traefik/traefik-demo.git//terraform/apps/whoami/cloudrun?ref=v4.3.0"
 
   location = "us-central1"
+
+  # OTel config for the instrumented fork — added to every service's container env
+  # (per-app `environment` entries win on collision).
+  environment = {
+    OTEL_TRACES_EXPORTER        = "otlp"
+    OTEL_METRICS_EXPORTER       = "otlp"
+    OTEL_EXPORTER_OTLP_ENDPOINT = "http://otel-collector.internal:4318"
+    OTEL_EXPORTER_OTLP_PROTOCOL = "http/protobuf"
+    OTEL_SERVICE_NAME           = "whoami-cloudrun"
+  }
 
   apps = {
     whoami-cloudrun = {
@@ -88,23 +98,25 @@ module "whoami_cloudrun" {
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of Cloud Run services to deploy. Workload config is `annotations` (dotted traefik.* keys, the cloudRun provider's config source); optional `labels` (dotless) feed provider constraints only. No replicas — Cloud Run scales via min/max instances. { name = { port, name, annotations, labels } }. | `any` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of Cloud Run services to deploy. Workload config is `annotations` (dotted traefik.* keys, the cloudRun provider's config source); optional `labels` (dotless) feed provider constraints only; optional `environment` (map) is merged over the module-level `environment` into the container. No replicas — Cloud Run scales via min/max instances. { name = { port, name, environment, annotations, labels } }. | `any` | `{}` | no |
 | <a name="input_common_annotations"></a> [common\_annotations](#input\_common\_annotations) | Annotations applied to every service (dotted traefik.* keys allowed — provider workload config) | `map(string)` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Labels applied to every service (dotless — provider constraints only) | `map(string)` | `{}` | no |
 | <a name="input_deletion_protection"></a> [deletion\_protection](#input\_deletion\_protection) | Cloud Run v2 deletion protection. Off — demos are torn down per-run. | `bool` | `false` | no |
 | <a name="input_enable_function"></a> [enable\_function](#input\_enable\_function) | Also deploy a whoami-ish HTTP function from inline source via Cloud Run's build\_config (the gen2 Cloud Functions path — the built function IS a Cloud Run service, discovered via the same annotations pathway). Requires the Cloud Build API. | `bool` | `false` | no |
-| <a name="input_enable_registry_mirror"></a> [enable\_registry\_mirror](#input\_enable\_registry\_mirror) | Create an Artifact Registry REMOTE repository mirroring Docker Hub (how traefik/whoami becomes pullable by Cloud Run). Disable only when `image` is set. | `bool` | `true` | no |
+| <a name="input_enable_registry_mirror"></a> [enable\_registry\_mirror](#input\_enable\_registry\_mirror) | Create an Artifact Registry REMOTE repository mirroring Docker Hub (how whoami\_image becomes pullable by Cloud Run). Disable only when `image` is set. | `bool` | `true` | no |
 | <a name="input_enable_unauthenticated"></a> [enable\_unauthenticated](#input\_enable\_unauthenticated) | Grant roles/run.invoker to allUsers on every service (demo-grade; the Traefik child dials the service URL unauthenticated) | `bool` | `true` | no |
+| <a name="input_environment"></a> [environment](#input\_environment) | Environment variables added to every whoami container, e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision. | `map(string)` | `{}` | no |
 | <a name="input_function_annotations"></a> [function\_annotations](#input\_function\_annotations) | Annotations for the function's Cloud Run service (dotted traefik.* keys — same pathway as the plain services) | `map(string)` | `{}` | no |
 | <a name="input_function_labels"></a> [function\_labels](#input\_function\_labels) | Labels for the function's Cloud Run service (dotless — provider constraints only) | `map(string)` | `{}` | no |
 | <a name="input_function_name"></a> [function\_name](#input\_function\_name) | Name of the function's Cloud Run service (also prefixes its source bucket, image repository, and build SA) | `string` | `"whoami-fn"` | no |
-| <a name="input_image"></a> [image](#input\_image) | Full image reference override. Empty = pull traefik/whoami through the module's Docker Hub mirror (requires enable\_registry\_mirror). Must be an Artifact Registry / GCR path — Cloud Run can't pull docker.io directly. | `string` | `""` | no |
+| <a name="input_image"></a> [image](#input\_image) | Full image reference override. Empty = pull whoami\_image through the module's Docker Hub mirror (requires enable\_registry\_mirror). Must be an Artifact Registry / GCR path — Cloud Run can't pull docker.io directly. | `string` | `""` | no |
 | <a name="input_ingress"></a> [ingress](#input\_ingress) | Cloud Run ingress setting (INGRESS\_TRAFFIC\_ALL, INGRESS\_TRAFFIC\_INTERNAL\_ONLY, INGRESS\_TRAFFIC\_INTERNAL\_LOAD\_BALANCER). The Traefik child dials the public service URL, so ALL is the demo default. | `string` | `"INGRESS_TRAFFIC_ALL"` | no |
 | <a name="input_location"></a> [location](#input\_location) | Cloud Run region (also used for the Artifact Registry repositories and the function source bucket) | `string` | `"us-central1"` | no |
 | <a name="input_max_instances"></a> [max\_instances](#input\_max\_instances) | Maximum instance count per service | `number` | `2` | no |
 | <a name="input_min_instances"></a> [min\_instances](#input\_min\_instances) | Minimum instance count per service (0 = scale to zero) | `number` | `0` | no |
 | <a name="input_mirror_repository_id"></a> [mirror\_repository\_id](#input\_mirror\_repository\_id) | Repository ID for the Docker Hub mirror (unique per project+location) | `string` | `"dockerhub-mirror"` | no |
-| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | The traefik/whoami image tag to run — they carry a `v` prefix (e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every service runs, pulled through the module's Docker Hub mirror — so it must be a docker.io reference (Cloud Run can't pull docker.io directly; use `image` for other registries). Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 

@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to Azure VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2: { name = { replicas, port, name, tags } }."
+  description = "Map of applications to deploy to Azure VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2: { name = { replicas, port, name, environment, tags } } — optional `environment` (map) is merged over the module-level `environment` into the container."
   type        = any
   default     = {}
 }
@@ -50,10 +50,22 @@ variable "network_security_group_id" {
   default     = ""
 }
 
+variable "whoami_image" {
+  description = "Whoami image to docker-run on each VM. Untagged references get `:` + whoami_version appended."
+  type        = string
+  default     = "docker.io/zalbiraw/whoami:latest"
+}
+
 variable "whoami_version" {
-  description = "The Whoami version to install. Must be a real traefik/whoami image tag — they carry a `v` prefix (e.g. v1.11.0); a bare `1.11.0` is `manifest unknown` and the binary extraction silently fails."
+  description = "Image tag used only when whoami_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0)."
   type        = string
   default     = "v1.11.0"
+}
+
+variable "environment" {
+  description = "Environment variables passed to every whoami container (docker -e), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
+  type        = map(string)
+  default     = {}
 }
 
 variable "admin_username" {

@@ -3,22 +3,25 @@ module "cloud_init" {
   for_each = var.apps
   source   = "../cloud-init"
 
+  whoami_image   = var.whoami_image
   whoami_version = var.whoami_version
   arch           = var.ami_architecture == "x86_64" ? "amd64" : var.ami_architecture
   port           = each.value.port
-  # whoami `--name` on the systemd unit -> body shows `Name: <name>` (e.g. whoami-ec2).
+  # WHOAMI_NAME on the container -> body shows `Name: <name>` (e.g. whoami-ec2).
   name = try(each.value.name, "")
+  # Per-app env wins over module-level env on collision.
+  environment = merge(var.environment, try(each.value.environment, {}))
 }
 
 locals {
   apps = {
-    # `name` only feeds cloud-init's whoami --name above; strip it before passing to
-    # compute/aws/ec2 (its apps object is strictly typed and has no `name`).
+    # `name` and `environment` only feed cloud-init above; strip them before passing
+    # to compute/aws/ec2 (its apps object is strictly typed and has neither).
     for app_name, app_config in var.apps : app_name => merge(
-      { for k, v in app_config : k => v if k != "name" },
+      { for k, v in app_config : k => v if k != "name" && k != "environment" },
       {
         # Docker config is ignored when user_data_overrides is provided
-        docker_image   = "traefik/whoami:${var.whoami_version}"
+        docker_image   = var.whoami_image
         docker_options = ""
       }
     )

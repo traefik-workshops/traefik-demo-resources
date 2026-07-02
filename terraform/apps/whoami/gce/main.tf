@@ -1,5 +1,5 @@
 # whoami on GCE VMs — the GCP sibling of apps/whoami/ec2 and apps/whoami/azure-vm.
-# Reuses the whoami/cloud-init template (systemd unit + binary extraction).
+# Reuses the whoami/cloud-init template (docker-run systemd unit).
 #
 # UNLIKE EC2/Azure, the workload config is NOT tags: GCE metadata keys can't
 # contain dots, so the Traefik Hub gce provider reads ONE metadata item with
@@ -11,10 +11,13 @@ module "cloud_init" {
   for_each = var.apps
   source   = "../cloud-init"
 
+  whoami_image   = var.whoami_image
   whoami_version = var.whoami_version
   port           = try(each.value.port, 80)
-  # whoami `--name` on the systemd unit -> body shows `Name: <name>` (e.g. whoami-gce).
+  # WHOAMI_NAME on the container -> body shows `Name: <name>` (e.g. whoami-gce).
   name = try(each.value.name, "")
+  # Per-app env wins over module-level env on collision.
+  environment = merge(var.environment, try(each.value.environment, {}))
 }
 
 locals {

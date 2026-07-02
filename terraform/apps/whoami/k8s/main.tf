@@ -39,7 +39,7 @@ resource "kubernetes_deployment_v1" "echo" {
 
         container {
           name              = each.key
-          image             = each.value.docker_image
+          image             = coalesce(each.value.docker_image, var.whoami_image)
           image_pull_policy = "IfNotPresent"
           args              = ["--verbose"]
 
@@ -47,13 +47,25 @@ resource "kubernetes_deployment_v1" "echo" {
             container_port = each.value.port
           }
 
-          # whoami prints `Name: <v>` when WHOAMI_NAME is set (it's the env default for
-          # the `-name` flag). Defaults to the app key; override per app (e.g. to tag a
-          # leg by its compute: whoami-eks vs whoami-aks) so identical-keyed whoamis on
-          # different clusters are still distinguishable in the response body.
-          env {
-            name  = "WHOAMI_NAME"
-            value = coalesce(each.value.name, each.key)
+          # WHOAMI_NAME (env default for the `-name` flag) -> body shows `Name: <v>`.
+          # Defaults to the app key; override per app (e.g. to tag a leg by its
+          # compute: whoami-eks vs whoami-aks) so identical-keyed whoamis on different
+          # clusters are still distinguishable. Module/per-app `environment` wins on
+          # collision so callers can override any of these built-ins.
+          dynamic "env" {
+            for_each = merge(
+              {
+                WHOAMI_NAME    = coalesce(each.value.name, each.key)
+                REPLICA_NUMBER = "k8s-managed"
+              },
+              var.environment,
+              each.value.environment,
+            )
+
+            content {
+              name  = env.key
+              value = env.value
+            }
           }
 
           env {
@@ -72,11 +84,6 @@ resource "kubernetes_deployment_v1" "echo" {
                 field_path = "status.podIP"
               }
             }
-          }
-
-          env {
-            name  = "REPLICA_NUMBER"
-            value = "k8s-managed"
           }
         }
       }

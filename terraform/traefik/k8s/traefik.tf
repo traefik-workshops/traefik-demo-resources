@@ -75,6 +75,18 @@ locals {
       name           = var.ingress_class_name
     }
 
+    # Default TLSStore via chart values — the chart's tlsstore.yaml renders
+    # .Values.tlsStore.<name> verbatim as the TLSStore spec, so this replaces
+    # per-demo kubectl_manifest TLSStores. null is stripped below.
+    tlsStore = var.default_generated_cert != null ? {
+      default = {
+        defaultGeneratedCert = {
+          resolver = var.default_generated_cert.resolver
+          domain   = { main = var.default_generated_cert.domain }
+        }
+      }
+    } : null
+
     # Environment variables
     env = concat(
       # dns-traefiker path: the cf resolver's DNS-01 token comes from the domain-secret

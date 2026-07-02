@@ -17,7 +17,14 @@
 data "google_project" "current" {}
 
 locals {
-  mirror_image = "${var.location}-docker.pkg.dev/${data.google_project.current.project_id}/${var.mirror_repository_id}/traefik/whoami:${var.whoami_version}"
+  # A tag is a `:` in the LAST path segment (a registry host may carry a :port).
+  image_last_segment = element(split("/", var.whoami_image), length(split("/", var.whoami_image)) - 1)
+  whoami_image_ref   = length(regexall(":", local.image_last_segment)) > 0 ? var.whoami_image : "${var.whoami_image}:${var.whoami_version}"
+
+  # The mirror is a Docker Hub remote repo, so the path inside it is the
+  # docker.io repository path — strip the registry host if present.
+  mirror_path  = trimprefix(trimprefix(local.whoami_image_ref, "registry-1.docker.io/"), "docker.io/")
+  mirror_image = "${var.location}-docker.pkg.dev/${data.google_project.current.project_id}/${var.mirror_repository_id}/${local.mirror_path}"
   image        = var.image != "" ? var.image : local.mirror_image
 }
 
@@ -66,15 +73,23 @@ resource "google_cloud_run_v2_service" "whoami" {
         container_port = try(each.value.port, 80)
       }
 
-      env {
-        name  = "WHOAMI_PORT_NUMBER"
-        value = tostring(try(each.value.port, 80))
-      }
+      # WHOAMI_PORT_NUMBER makes whoami bind Cloud Run's routed port;
+      # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-cloudrun).
+      # Built-ins first so module/per-app `environment` wins on collision.
+      dynamic "env" {
+        for_each = merge(
+          {
+            WHOAMI_PORT_NUMBER = tostring(try(each.value.port, 80))
+            WHOAMI_NAME        = try(each.value.name, each.key)
+          },
+          var.environment,
+          try(each.value.environment, {}),
+        )
 
-      env {
-        # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-cloudrun).
-        name  = "WHOAMI_NAME"
-        value = try(each.value.name, each.key)
+        content {
+          name  = env.key
+          value = env.value
+        }
       }
     }
   }

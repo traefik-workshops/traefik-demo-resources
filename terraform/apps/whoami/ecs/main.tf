@@ -10,13 +10,16 @@ locals {
           for app_name, app_config in cluster_config.apps : app_name => merge(
             { for k, v in app_config : k => v if k != "name" },
             {
-              docker_image       = "traefik/whoami:latest"
+              docker_image       = var.whoami_image
               docker_command     = "--verbose"
               subnet_ids         = cluster_config.subnet_ids
               security_group_ids = cluster_config.security_group_ids
-              environment = {
-                WHOAMI_NAME = try(app_config.name, app_name)
-              }
+              # Built-in WHOAMI_NAME first so module/per-app env can override it.
+              environment = merge(
+                { WHOAMI_NAME = try(app_config.name, app_name) },
+                var.environment,
+                try(app_config.environment, {}),
+              )
             }
           )
         }

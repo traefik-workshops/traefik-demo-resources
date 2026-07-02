@@ -1,6 +1,18 @@
 variable "clusters" {
-  description = "Map of ECS clusters with their echo applications."
+  description = "Map of ECS clusters with their echo applications. Each app may set an optional `environment` (map) merged over the module-level `environment` into the task's container definition."
   type        = any
+  default     = {}
+}
+
+variable "whoami_image" {
+  description = "Whoami image every task runs."
+  type        = string
+  default     = "docker.io/zalbiraw/whoami:latest"
+}
+
+variable "environment" {
+  description = "Environment variables added to every whoami container definition, e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
+  type        = map(string)
   default     = {}
 }
 
