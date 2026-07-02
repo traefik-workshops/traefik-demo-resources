@@ -15,9 +15,11 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/azure-vm`](./whoami/azure-vm) | Azure | whoami on Azure Linux VMs (uses `whoami/cloud-init`) |
 | [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that docker-runs the whoami image (default: OTel-instrumented `zalbiraw/whoami` fork) on a VM |
 | [`whoami/cloudrun`](./whoami/cloudrun) | GCP | whoami as Cloud Run v2 services (traefik.* annotations; optional gen2 function) |
+| [`whoami/codeengine`](./whoami/codeengine) | IBM | whoami as Code Engine apps (NO traefik config surface — the ibmCodeEngine provider is config-less) |
 | [`whoami/ec2`](./whoami/ec2) | AWS | whoami on EC2 (uses `whoami/cloud-init`) |
 | [`whoami/ecs`](./whoami/ecs) | AWS | whoami on ECS Fargate |
 | [`whoami/gce`](./whoami/gce) | GCP | whoami on GCE VMs (traefik config via the `traefik` JSON metadata item; uses `whoami/cloud-init`) |
+| [`whoami/ibm-vpc`](./whoami/ibm-vpc) | IBM | whoami on IBM VPC instances (one `traefik-service-name:<service>` tag each — routers live in the ibmVPC provider's base config file; uses `whoami/cloud-init`) |
 | [`whoami/k8s`](./whoami/k8s) | k8s | whoami in-cluster, with optional Traefik IngressRoute |
 | [`whoami/nutanix`](./whoami/nutanix) | Nutanix | whoami on a Nutanix VM |
 | [`whoami/nutanix/image_builder`](./whoami/nutanix/image_builder) | Nutanix | Builds a Nutanix image baked with whoami |
