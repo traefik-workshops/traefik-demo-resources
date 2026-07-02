@@ -10,6 +10,8 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 |---|---|---|
 | [`httpbin/k8s`](./httpbin/k8s) | k8s | httpbin in-cluster — useful for testing ingress, headers, redirects |
 | [`whoami/aci`](./whoami/aci) | Azure | whoami as ACI container groups (private vnet-injected IPs) |
+| [`whoami/alibaba-eci`](./whoami/alibaba-eci) | Alibaba | whoami as ECI container groups (private vswitch IPs; declared container port 80) |
+| [`whoami/alibaba-ecs`](./whoami/alibaba-ecs) | Alibaba | whoami on ECS instances (traefik config via dotted tags; uses `whoami/cloud-init`) |
 | [`whoami/azure-vm`](./whoami/azure-vm) | Azure | whoami on Azure Linux VMs (uses `whoami/cloud-init`) |
 | [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that docker-runs the whoami image (default: OTel-instrumented `zalbiraw/whoami` fork) on a VM |
 | [`whoami/cloudrun`](./whoami/cloudrun) | GCP | whoami as Cloud Run v2 services (traefik.* annotations; optional gen2 function) |

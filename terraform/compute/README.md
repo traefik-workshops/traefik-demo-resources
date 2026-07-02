@@ -8,6 +8,8 @@ Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the larg
 
 | Path | Purpose |
 |---|---|
+| [`alibaba/ack`](./alibaba/ack) | ACK cluster (joins `alibaba/vpc`'s vswitches; AKS-style cert outputs) |
+| [`alibaba/vpc`](./alibaba/vpc) | VPC, zone-spread vswitches, security group |
 | [`aws/ec2`](./aws/ec2) | EC2 instances + optional VPC |
 | [`aws/ecs`](./aws/ecs) | ECS Fargate cluster + IAM |
 | [`aws/eks`](./aws/eks) | EKS cluster (wraps the community EKS module) |

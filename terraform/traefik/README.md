@@ -9,6 +9,8 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`shared`](./shared) | **Heart of the section.** 42 variables, 40 outputs. Builds Traefik static config, CLI args, env vars, Helm values, etc. |
 | [`cloud-init`](./cloud-init) | Cloud-init script that installs Traefik on a VM |
 | [`aci`](./aci) | Traefik Hub as an ACI container group (`hub.providers.aci` + managed identity) |
+| [`alibaba-eci`](./alibaba-eci) | Traefik Hub as an ECI container group (`hub.providers.alibabaECI` + instance RAM role) |
+| [`alibaba-ecs`](./alibaba-ecs) | Traefik Hub on an Alibaba ECS instance (uses `cloud-init`; `hub.providers.alibabaECS` + instance RAM role) |
 | [`azure-vm`](./azure-vm) | Traefik Hub on an Azure VM (uses `cloud-init`; `hub.providers.azureVM` + managed identity) |
 | [`ec2`](./ec2) | Traefik on EC2 instances (uses `cloud-init`) |
 | [`ecs`](./ecs) | Traefik on ECS Fargate |
