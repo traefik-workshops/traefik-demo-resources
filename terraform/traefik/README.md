@@ -12,6 +12,7 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`azure-vm`](./azure-vm) | Traefik Hub on an Azure VM (uses `cloud-init`; `hub.providers.azureVM` + managed identity) |
 | [`ec2`](./ec2) | Traefik on EC2 instances (uses `cloud-init`) |
 | [`ecs`](./ecs) | Traefik on ECS Fargate |
+| [`gce`](./gce) | Traefik Hub on a GCE VM (uses `cloud-init`; `hub.providers.gce` + attached service account) |
 | [`k8s`](./k8s) | Traefik on Kubernetes via Helm (CRDs, IngressRoutes) |
 | [`nutanix`](./nutanix) | Traefik on a Nutanix VM (uses `cloud-init`) |
 

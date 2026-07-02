@@ -12,8 +12,10 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/aci`](./whoami/aci) | Azure | whoami as ACI container groups (private vnet-injected IPs) |
 | [`whoami/azure-vm`](./whoami/azure-vm) | Azure | whoami on Azure Linux VMs (uses `whoami/cloud-init`) |
 | [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that runs terraform/traefik/whoami on a VM |
+| [`whoami/cloudrun`](./whoami/cloudrun) | GCP | whoami as Cloud Run v2 services (traefik.* annotations; optional gen2 function) |
 | [`whoami/ec2`](./whoami/ec2) | AWS | whoami on EC2 (uses `whoami/cloud-init`) |
 | [`whoami/ecs`](./whoami/ecs) | AWS | whoami on ECS Fargate |
+| [`whoami/gce`](./whoami/gce) | GCP | whoami on GCE VMs (traefik config via the `traefik` JSON metadata item; uses `whoami/cloud-init`) |
 | [`whoami/k8s`](./whoami/k8s) | k8s | whoami in-cluster, with optional Traefik IngressRoute |
 | [`whoami/nutanix`](./whoami/nutanix) | Nutanix | whoami on a Nutanix VM |
 | [`whoami/nutanix/image_builder`](./whoami/nutanix/image_builder) | Nutanix | Builds a Nutanix image baked with whoami |

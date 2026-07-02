@@ -13,3 +13,13 @@ output "token" {
   value       = data.google_client_config.traefik_demo.access_token
   sensitive   = true
 }
+
+output "network" {
+  description = "VPC network the cluster nodes sit on (the project's default network — the module doesn't create one). Join GCE/Traefik VMs to it so the cluster reaches them privately."
+  value       = google_container_cluster.traefik_demo.network
+}
+
+output "subnetwork" {
+  description = "Subnetwork the cluster nodes sit on"
+  value       = google_container_cluster.traefik_demo.subnetwork
+}
