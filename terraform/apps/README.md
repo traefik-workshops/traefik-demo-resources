@@ -9,6 +9,8 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | Path | Platform | Purpose |
 |---|---|---|
 | [`httpbin/k8s`](./httpbin/k8s) | k8s | httpbin in-cluster — useful for testing ingress, headers, redirects |
+| [`whoami/aci`](./whoami/aci) | Azure | whoami as ACI container groups (private vnet-injected IPs) |
+| [`whoami/azure-vm`](./whoami/azure-vm) | Azure | whoami on Azure Linux VMs (uses `whoami/cloud-init`) |
 | [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that runs terraform/traefik/whoami on a VM |
 | [`whoami/ec2`](./whoami/ec2) | AWS | whoami on EC2 (uses `whoami/cloud-init`) |
 | [`whoami/ecs`](./whoami/ecs) | AWS | whoami on ECS Fargate |

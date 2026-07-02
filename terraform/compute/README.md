@@ -13,6 +13,7 @@ Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the larg
 | [`aws/eks`](./aws/eks) | EKS cluster (wraps the community EKS module) |
 | [`aws/vpc`](./aws/vpc) | VPC, subnets, route tables |
 | [`azure/aks`](./azure/aks) | AKS cluster + kubeconfig outputs |
+| [`azure/vnet`](./azure/vnet) | VNet, VM + ACI-delegated subnets, NSG |
 | [`gcp/gke`](./gcp/gke) | GKE cluster + kubeconfig outputs |
 | [`digitalocean/doks`](./digitalocean/doks) | DOKS cluster (rich output set) |
 | [`oracle/oke`](./oracle/oke) | OKE cluster (uses TLS provider for certs) |
