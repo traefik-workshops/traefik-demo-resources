@@ -23,10 +23,11 @@ Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the larg
 | [`oracle/oke`](./oracle/oke) | OKE cluster (uses TLS provider for certs) |
 | [`akamai/lke`](./akamai/lke) | LKE (Linode Kubernetes Engine) |
 
-### On-prem / private cloud (Nutanix, vSphere)
+### On-prem / private cloud (Nutanix, vSphere, Proxmox)
 
 | Path | Purpose |
 |---|---|
+| [`proxmox/k3s`](./proxmox/k3s) | Single-node k3s server on a Proxmox VE VM (cloud-image clone via snippet user-data; SSH-fetched kubeconfig, AKS-style cert outputs) |
 | [`vsphere/k3s`](./vsphere/k3s) | Single-node k3s server on a vSphere VM (cloud-image clone; SSH-fetched kubeconfig, AKS-style cert outputs) |
 | [`nutanix/vpc`](./nutanix/vpc) | VPC + subnets |
 | [`nutanix/subnet`](./nutanix/subnet) | Single subnet |
