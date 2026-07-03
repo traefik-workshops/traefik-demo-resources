@@ -107,7 +107,10 @@ resource "azurerm_network_interface" "traefik" {
 }
 
 resource "azurerm_network_interface_security_group_association" "traefik" {
-  count = var.network_security_group_id != "" ? 1 : 0
+  # Gated on the config-known BOOL, not the id: the id is usually a same-run
+  # resource attribute (unknown at plan), and count can't depend on those —
+  # first-ever fresh apply of the azure demo failed exactly here (2026-07).
+  count = var.enable_network_security_group ? 1 : 0
 
   network_interface_id      = azurerm_network_interface.traefik.id
   network_security_group_id = var.network_security_group_id

@@ -3,9 +3,12 @@ locals {
   tempo_url      = var.tempo.url.override != "" ? var.tempo.url.override : "http://${var.tempo.url.service}${var.tempo.url.namespace != "" ? ".${var.tempo.url.namespace}.svc" : ""}:${var.tempo.url.port}"
   loki_url       = var.loki.url.override != "" ? var.loki.url.override : "http://${var.loki.url.service}${var.loki.url.namespace != "" ? ".${var.loki.url.namespace}.svc" : ""}:${var.loki.url.port}"
 
+  # Fixed uids so datasources can reference each other (Tempo's service graph +
+  # traces->logs links need the target datasource's uid at provisioning time).
   datasources = concat(
     var.prometheus.enabled ? [{
       name      = "Prometheus"
+      uid       = "prometheus"
       type      = "prometheus"
       url       = local.prometheus_url
       access    = "proxy"
@@ -13,18 +16,52 @@ locals {
     }] : [],
     var.tempo.enabled ? [{
       name      = "Tempo"
+      uid       = "tempo"
       type      = "tempo"
       url       = local.tempo_url
       access    = "proxy"
       isDefault = !var.prometheus.enabled
+      # Service graph: the map is drawn from traces_service_graph_* metrics that the
+      # OTel collector's servicegraph connector writes to Prometheus (the otel module
+      # enables it by default) — serviceMap points Tempo at that Prometheus datasource.
+      jsonData = merge(
+        { nodeGraph = { enabled = true } },
+        var.prometheus.enabled ? { serviceMap = { datasourceUid = "prometheus" } } : {},
+        var.loki.enabled ? {
+          tracesToLogsV2 = {
+            datasourceUid      = "loki"
+            spanStartTimeShift = "-5m"
+            spanEndTimeShift   = "5m"
+            filterByTraceID    = true
+          }
+          lokiSearch = { datasourceUid = "loki" }
+        } : {},
+      )
     }] : [],
-    var.loki.enabled ? [{
+    var.loki.enabled ? [merge({
       name      = "Loki"
+      uid       = "loki"
       type      = "loki"
       url       = local.loki_url
       access    = "proxy"
       isDefault = !var.prometheus.enabled && !var.tempo.enabled
-  }] : [])
+      },
+      # Logs -> traces (the reverse of Tempo's tracesToLogsV2): every OTLP-ingested
+      # log line carries its trace id as structured metadata (`trace_id`) — surface
+      # it as a Tempo deep link so a log line jumps straight to its trace.
+      var.tempo.enabled ? {
+        jsonData = {
+          derivedFields = [{
+            name            = "TraceID"
+            matcherType     = "label"
+            matcherRegex    = "trace_id"
+            datasourceUid   = "tempo"
+            url             = "$${__value.raw}"
+            urlDisplayLabel = "View trace"
+          }]
+        }
+      } : {},
+  )] : [])
 
   aigateway_dashboard = "aigateway-dashboards"
   aigateway_path      = "/dashboards/hub/aigateway"

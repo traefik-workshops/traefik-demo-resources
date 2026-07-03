@@ -72,7 +72,9 @@ resource "azurerm_network_interface" "whoami" {
 }
 
 resource "azurerm_network_interface_security_group_association" "whoami" {
-  for_each = local.network_security_group_id != "" ? local.instances_map : {}
+  # Gated on config-known bools, not the id (same-run ids are unknown at plan
+  # and for_each cannot depend on them — first fresh apply failed here, 2026-07).
+  for_each = (var.create_vnet || var.enable_network_security_group) ? local.instances_map : {}
 
   network_interface_id      = azurerm_network_interface.whoami[each.key].id
   network_security_group_id = local.network_security_group_id

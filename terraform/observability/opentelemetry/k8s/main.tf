@@ -11,8 +11,18 @@ locals {
   langfuse_exporter   = var.enable_langfuse ? ["otlphttp/langfuse"] : []
   prometheus_exporter = var.enable_prometheus ? ["prometheus"] : []
 
+  # Trace-derived metrics connectors: each needs BOTH a traces side (they join the
+  # trace exporters) and a metrics side to land the generated series in (prometheus).
+  # servicegraph -> traces_service_graph_* edge metrics (Grafana's Tempo service map);
+  # spanmetrics  -> traces_span_metrics_* RED metrics per service+span (golden signals
+  # per compute, straight from the spans — no extra instrumentation).
+  servicegraph_enabled   = var.enable_service_graph && var.enable_prometheus
+  servicegraph_connector = local.servicegraph_enabled ? ["servicegraph"] : []
+  spanmetrics_enabled    = var.enable_span_metrics && var.enable_prometheus
+  spanmetrics_connector  = local.spanmetrics_enabled ? ["spanmetrics"] : []
+
   log_exporters    = concat(local.loki_exporter, local.newrelic_exporter, local.dash0_exporter, local.honeycomb_exporter)
-  trace_exporters  = concat(local.tempo_exporter, local.newrelic_exporter, local.dash0_exporter, local.honeycomb_exporter, local.langsmith_exporter, local.langfuse_exporter)
+  trace_exporters  = concat(local.tempo_exporter, local.newrelic_exporter, local.dash0_exporter, local.honeycomb_exporter, local.langsmith_exporter, local.langfuse_exporter, local.servicegraph_connector, local.spanmetrics_connector)
   metric_exporters = concat(local.newrelic_exporter, local.dash0_exporter, local.honeycomb_exporter, local.prometheus_exporter)
 
   logs_pipeline = length(local.log_exporters) > 0 ? concat([
@@ -34,6 +44,11 @@ locals {
       name  = "config.service.pipelines.metrics.receivers[0]"
       value = "otlp"
     },
+    ], [for i, c in concat(local.servicegraph_connector, local.spanmetrics_connector) : {
+      # the connectors' generated series enter the metrics pipeline as receivers
+      name  = "config.service.pipelines.metrics.receivers[${i + 1}]"
+      value = c
+    }], [
     {
       name  = "config.service.pipelines.metrics.processors[0]"
       value = "batch"
@@ -119,6 +134,37 @@ resource "helm_release" "opentelemetry" {
             }
           }
         }
+        # Trace-derived metrics: connectors consume the traces pipeline (as exporters)
+        # and emit generated series into the metrics pipeline (as receivers).
+        # servicegraph -> Grafana's Tempo service map (grafana/k8s sets
+        # serviceMap.datasourceUid); spanmetrics -> RED per service+span.
+        connectors = merge(
+          local.servicegraph_enabled ? {
+            servicegraph = {
+              latency_histogram_buckets = ["10ms", "50ms", "100ms", "250ms", "1s", "5s"]
+              store = {
+                ttl       = "10s"
+                max_items = 5000
+              }
+            }
+          } : {},
+          local.spanmetrics_enabled ? {
+            spanmetrics = {
+              histogram = {
+                explicit = { buckets = ["10ms", "50ms", "100ms", "250ms", "1s", "5s"] }
+              }
+              # status_code gives the error dimension; http attrs make the RED
+              # panels sliceable by route/method without re-instrumenting.
+              dimensions = [
+                { name = "http.request.method" },
+                { name = "http.response.status_code" },
+              ]
+              exemplars                       = { enabled = true }
+              metrics_flush_interval          = "15s"
+              resource_metrics_key_attributes = ["service.name"]
+            }
+          } : {},
+        )
         processors = merge({
           batch = {
             timeout = "5s"

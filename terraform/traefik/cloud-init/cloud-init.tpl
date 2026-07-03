@@ -193,7 +193,10 @@ write_files:
         prometheus:
           config:
             scrape_configs:
-              - job_name: '${instance_name}'
+              # node-* prefix: these are HOST metrics (node/process exporters), not the
+              # gateway's own series — unprefixed they masquerade as a traefik instance
+              # in exported_job and cost real diagnosis time (aws validation, 2026-07).
+              - job_name: 'node-${instance_name}'
                 scrape_interval: 5s
                 static_configs:
                   - targets: ['localhost:9101', 'localhost:9102']
@@ -232,8 +235,10 @@ runcmd:
     # Install Node Exporter v1.10.2
     if ! [ -f /usr/local/bin/node_exporter ]; then
       echo "Installing Node Exporter..."
-      # Wait for network and retry download
-      for i in {1..5}; do
+      # Patient retry: first boot can race NAT-gateway/route readiness (observed:
+      # 5 quick retries all burned inside the not-yet-routable window and host
+      # metrics stayed dead for the VM's lifetime — aws-unified-ingress validation).
+      for i in $(seq 1 30); do
         if curl -L --connect-timeout 10 --max-time 120 "https://github.com/prometheus/node_exporter/releases/download/v1.10.2/node_exporter-1.10.2.linux-amd64.tar.gz" -o /tmp/node_exporter.tar.gz; then
           mkdir -p /tmp/node_exporter-extract
           tar xvfz /tmp/node_exporter.tar.gz -C /tmp/node_exporter-extract
@@ -245,8 +250,8 @@ runcmd:
             break
           fi
         fi
-        echo "Retrying Node Exporter download ($i/5)..."
-        sleep 5
+        echo "Retrying Node Exporter download ($i/30)..."
+        sleep 10
       done
       rm -rf /tmp/node_exporter-extract /tmp/node_exporter.tar.gz
     fi
@@ -382,6 +387,21 @@ runcmd:
     else
       echo "WARNING: dns-traefiker binary not found, skipping service start"
     fi
+%{ endif ~}
+%{ if otlp_address != "" ~}
+  - |
+    # Gate the telemetry-emitting services on the collector endpoint actually
+    # accepting OTLP writes. First boot can race the collector: the DNS record
+    # may not exist yet, or may still point at a PREVIOUS deploy's LB (stale
+    # record until dns-traefiker refreshes it) — and exporters that start
+    # against a dead endpoint were observed to stay dark long after it healed
+    # (aws-unified-ingress validation, 2026-07). Bounded: 10 min, then start anyway.
+    for i in $(seq 1 60); do
+      curl -skf --max-time 5 -X POST -H 'Content-Type: application/json' \
+        -d '{"resourceMetrics":[]}' "${otlp_address}/v1/metrics" > /dev/null && { echo "OTLP collector ready."; break; }
+      echo "Waiting for OTLP collector ${otlp_address} ($i/60)..."
+      sleep 10
+    done
 %{ endif ~}
   - systemctl enable --now traefik-hub
   - echo "Traefik Hub provisioning complete"

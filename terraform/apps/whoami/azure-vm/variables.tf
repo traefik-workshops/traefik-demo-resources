@@ -45,9 +45,15 @@ variable "subnet_id" {
 }
 
 variable "network_security_group_id" {
-  description = "NSG ID to associate with the VM NICs. Empty = no NIC-level NSG (subnet-level NSG rules still apply)."
+  description = "NSG ID to associate with the VM NICs (used only when enable_network_security_group = true or create_vnet = true; may be a same-run resource attribute). Subnet-level NSG rules still apply either way."
   type        = string
   default     = ""
+}
+
+variable "enable_network_security_group" {
+  description = "Associate network_security_group_id with the VM NICs. A separate config-known toggle because for_each cannot depend on the id when it is created in the same run."
+  type        = bool
+  default     = false
 }
 
 variable "whoami_image" {

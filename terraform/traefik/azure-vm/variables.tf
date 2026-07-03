@@ -34,9 +34,15 @@ variable "subnet_id" {
 }
 
 variable "network_security_group_id" {
-  description = "NSG ID to associate with the VM NIC. Empty = no NIC-level NSG (subnet-level NSG rules still apply; intra-vnet traffic to :9443 is allowed by Azure's default rules)."
+  description = "NSG ID to associate with the VM NIC (used only when enable_network_security_group = true; may be a same-run resource attribute). Subnet-level NSG rules still apply either way; intra-vnet traffic to :9443 is allowed by Azure's default rules."
   type        = string
   default     = ""
+}
+
+variable "enable_network_security_group" {
+  description = "Associate network_security_group_id with the VM NIC. A separate config-known toggle because count cannot depend on the id when it is created in the same run."
+  type        = bool
+  default     = false
 }
 
 variable "admin_username" {

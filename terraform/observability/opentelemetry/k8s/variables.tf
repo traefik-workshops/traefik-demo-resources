@@ -201,3 +201,15 @@ variable "ingress_annotations" {
   description = "Additional metadata annotations merged onto the Ingress. Useful for custom router options beyond the three observability toggles."
   default     = {}
 }
+
+variable "enable_service_graph" {
+  type        = bool
+  default     = true
+  description = "Generate service-graph metrics (traces_service_graph_*) from the traces flowing through the collector via the servicegraph connector, feeding Grafana's Tempo service map. Requires enable_prometheus (the generated series need a metrics exporter)."
+}
+
+variable "enable_span_metrics" {
+  type        = bool
+  default     = true
+  description = "Generate RED metrics (traces_span_metrics_calls_total / _duration_*) per service+span from the traces flowing through the collector via the spanmetrics connector — golden-signals dashboards without extra instrumentation. Requires enable_prometheus."
+}
