@@ -6,14 +6,15 @@
 # hub.providers.ociContainerInstances provider enabled; the parent dials the
 # instance's private VNIC IP on :9443.
 #
-# AUTH — honest limitation: the ocici provider (like the oci one) implements
-# useInstancePrincipal via the OCI SDK's IMDS-backed instance-principal flow,
-# which container instances do NOT provide (they inject RESOURCE-principal
-# credentials instead, which the provider doesn't consume yet). Until it grows
-# resource-principal support, the default here is CONFIG-FILE auth: an ~/.oci
-# style config + API key delivered as a CONFIGFILE volume (the ACI sibling's
-# secret-volume mechanism), with use_instance_principal exposed as a toggle
-# for when the gap closes.
+# AUTH — the default is RESOURCE principals (useResourcePrincipal=true), the
+# credential container instances actually inject: keyless, backed by a dynamic
+# group + policy this module creates (enable_resource_principal, needs
+# tenancy_id — dynamic groups are tenancy-level). Container instances do NOT
+# provide the IMDS instance-principal flow (use_instance_principal is kept
+# only as an escape hatch; the gateway rejects combining the two flags). With
+# the toggle off, auth falls back to CONFIG-FILE: an ~/.oci style config + API
+# key delivered as a CONFIGFILE volume (the ACI sibling's secret-volume
+# mechanism).
 # =============================================================================
 
 locals {
@@ -24,6 +25,10 @@ locals {
   # config-file path.
   oci_config_dir = dirname(var.ocici_provider.config_file_path)
 
+  # The config-file volume only rides along when it's the active auth path
+  # (see the header note) — resource principal is keyless, no secret to mount.
+  mount_oci_config = !var.enable_resource_principal && var.oci_config != ""
+
   # hub.providers.ociContainerInstances static config as CLI flags (same
   # delivery as the aci flags in traefik/aci).
   ocici_provider_args = var.ocici_provider.enabled ? concat(
@@ -33,10 +38,14 @@ locals {
       "--hub.providers.ociContainerInstances.ipMode=${var.ocici_provider.ip_mode}",
       "--hub.providers.ociContainerInstances.exposedByDefault=${var.ocici_provider.exposed_by_default}",
     ],
-    # Instance-principal is a forward-looking toggle (see the header note);
-    # the working path today is the config-file volume.
-    var.ocici_provider.use_instance_principal ? ["--hub.providers.ociContainerInstances.useInstancePrincipal=true"] : (
-      var.oci_config != "" ? ["--hub.providers.ociContainerInstances.configFilePath=${var.ocici_provider.config_file_path}"] : []
+    # Exactly one auth flag (see the header note): resource principal (the
+    # keyless default) > instance principal (escape hatch — a precondition
+    # keeps the two toggles mutually exclusive, the gateway rejects the
+    # combination) > the config-file volume.
+    var.enable_resource_principal ? ["--hub.providers.ociContainerInstances.useResourcePrincipal=true"] : (
+      var.ocici_provider.use_instance_principal ? ["--hub.providers.ociContainerInstances.useInstancePrincipal=true"] : (
+        var.oci_config != "" ? ["--hub.providers.ociContainerInstances.configFilePath=${var.ocici_provider.config_file_path}"] : []
+      )
     ),
     var.ocici_provider.region != "" ? ["--hub.providers.ociContainerInstances.region=${var.ocici_provider.region}"] : [],
     var.ocici_provider.default_rule != "" ? ["--hub.providers.ociContainerInstances.defaultRule=${var.ocici_provider.default_rule}"] : [],
@@ -91,12 +100,59 @@ data "oci_identity_availability_domains" "traefik" {
   compartment_id = var.compartment_id
 }
 
+# The ocici provider's keyless credential: resource principals via a dynamic
+# group matching every container instance in the compartment plus a read-only
+# policy (the same shape as security/oci-instance-principal for VMs). Dynamic
+# groups are tenancy-level, hence tenancy_id; both are named off var.name so
+# two instantiations don't collide — same-name instantiations still do.
+resource "oci_identity_dynamic_group" "resource_principal" {
+  count = var.enable_resource_principal ? 1 : 0
+
+  compartment_id = var.tenancy_id
+  description    = "Dynamic group for the ${var.name} container instance's ociContainerInstances resource-principal auth"
+  matching_rule  = "ALL {resource.type='computecontainerinstance', resource.compartment.id='${var.compartment_id}'}"
+  name           = "${var.name}-resource-principal"
+
+  lifecycle {
+    precondition {
+      condition     = var.tenancy_id != ""
+      error_message = "tenancy_id is required when enable_resource_principal = true (dynamic groups are tenancy-level)."
+    }
+  }
+}
+
+# Read-only: exactly what the ocici provider needs — list container instances
+# + read their VNIC IPs, nothing else.
+resource "oci_identity_policy" "resource_principal" {
+  count = var.enable_resource_principal ? 1 : 0
+
+  compartment_id = var.compartment_id
+  description    = "Policy for the ${var.name} container instance's ociContainerInstances resource-principal auth"
+  name           = "${var.name}-resource-principal"
+  statements = [
+    "Allow dynamic-group ${oci_identity_dynamic_group.resource_principal[0].name} to read compute-container-family in compartment id ${var.compartment_id}",
+    "Allow dynamic-group ${oci_identity_dynamic_group.resource_principal[0].name} to read virtual-network-family in compartment id ${var.compartment_id}",
+  ]
+}
+
 resource "oci_container_instances_container_instance" "traefik" {
   availability_domain      = local.availability_domain
   compartment_id           = var.compartment_id
   display_name             = var.name
   shape                    = var.shape
   container_restart_policy = "ALWAYS"
+
+  lifecycle {
+    precondition {
+      condition     = !(var.enable_resource_principal && var.ocici_provider.use_instance_principal)
+      error_message = "enable_resource_principal and ocici_provider.use_instance_principal are mutually exclusive — the gateway rejects combining useResourcePrincipal with useInstancePrincipal."
+    }
+
+    precondition {
+      condition     = var.enable_resource_principal || var.ocici_provider.use_instance_principal || !var.ocici_provider.enabled || (var.oci_config != "" && var.oci_private_key != "")
+      error_message = "oci_config and oci_private_key are required when enable_resource_principal = false (the ocici provider's config-file credential)."
+    }
+  }
 
   shape_config {
     ocpus         = var.container_ocpus
@@ -128,7 +184,7 @@ resource "oci_container_instances_container_instance" "traefik" {
     }
 
     dynamic "volume_mounts" {
-      for_each = var.oci_config != "" ? [1] : []
+      for_each = local.mount_oci_config ? [1] : []
       content {
         volume_name = "oci-config"
         mount_path  = local.oci_config_dir
@@ -153,7 +209,7 @@ resource "oci_container_instances_container_instance" "traefik" {
   # private key it references (its key_file must point inside the mount, e.g.
   # <config dir>/key.pem).
   dynamic "volumes" {
-    for_each = var.oci_config != "" ? [1] : []
+    for_each = local.mount_oci_config ? [1] : []
     content {
       name        = "oci-config"
       volume_type = "CONFIGFILE"

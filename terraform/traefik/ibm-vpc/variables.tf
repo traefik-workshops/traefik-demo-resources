@@ -118,10 +118,16 @@ variable "performance_tuning" {
 # -----------------------------------------------------------------------------
 
 variable "ibmcloud_api_key" {
-  description = "IBM Cloud IAM API key the ibmVPC provider authenticates with (--hub.providers.ibmVPC.apiKey). REQUIRED when the provider is enabled: IBM VSIs expose no ambient instance identity the provider can consume — there is no keyless path like EC2 instance profiles or Alibaba RAM roles. Scope the key to VPC + Global Search reader roles."
+  description = "IBM Cloud IAM API key the ibmVPC provider authenticates with (--hub.providers.ibmVPC.apiKey). Mutually exclusive with trusted_profile_id — set exactly one when the provider is enabled. Scope the key to VPC + Global Search reader roles."
   type        = string
   default     = ""
   sensitive   = true
+}
+
+variable "trusted_profile_id" {
+  description = "IAM trusted profile ID the ibmVPC provider authenticates with (--hub.providers.ibmVPC.trustedProfileID) — the KEYLESS path: the provider exchanges the VSI's instance-metadata identity token for an IAM token via the profile (VpcInstanceAuthenticator). Mutually exclusive with ibmcloud_api_key. The module enables the VSI metadata service when set; the caller links the VSI to the profile (ibm_iam_trusted_profile_link, cr_type \"VSI\") and grants the profile the reader policies (Viewer on is + global-search-tagging)."
+  type        = string
+  default     = ""
 }
 
 variable "base_config_content" {

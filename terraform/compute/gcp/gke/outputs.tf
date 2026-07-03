@@ -23,3 +23,8 @@ output "subnetwork" {
   description = "Subnetwork the cluster nodes sit on"
   value       = google_container_cluster.traefik_demo.subnetwork
 }
+
+output "workload_identity_pool" {
+  description = "Workload Identity pool of the cluster (<project>.svc.id.goog) when enable_workload_identity is true, null otherwise. Use it to build roles/iam.workloadIdentityUser members: serviceAccount:<pool>[<namespace>/<ksa>]."
+  value       = var.enable_workload_identity ? "${data.google_client_config.traefik_demo.project}.svc.id.goog" : null
+}

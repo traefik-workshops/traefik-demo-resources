@@ -1,6 +1,12 @@
 variable "apps" {
-  description = "Map of applications to deploy as Code Engine apps: { name = { port, name, environment } }. Optional `environment` (map) is merged over the module-level `environment` into the container. NO traefik config surface exists (labels/annotations are not user-settable on Code Engine) — the Hub ibmCodeEngine provider routes every ready app by its defaultRule."
+  description = "Map of applications to deploy as Code Engine apps: { name = { port, name, environment, traefik_labels } }. Optional `environment` (map) is merged over the module-level `environment` into the container; optional `traefik_labels` (map) is merged over the module-level `traefik_labels` and rendered as the TRAEFIK_LABELS env var the Hub ibmCodeEngine provider reads. Apps without labels route config-less by the provider's defaultRule."
   type        = any
+  default     = {}
+}
+
+variable "traefik_labels" {
+  description = "traefik.* labels applied to every app, rendered as ONE env var — TRAEFIK_LABELS, a JSON object — the Hub ibmCodeEngine provider parses. Full label pipeline: traefik.enable opt-in/opt-out, user-named services (traefik.http.services.<name>.loadbalancer.* — apps declaring the SAME service name are GROUPED into one load balancer), middleware references. Per-app `traefik_labels` entries win on collision."
+  type        = map(string)
   default     = {}
 }
 

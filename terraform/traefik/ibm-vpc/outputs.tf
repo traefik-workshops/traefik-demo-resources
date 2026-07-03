@@ -28,3 +28,8 @@ output "instance_id" {
   description = "ID of the Traefik virtual server instance"
   value       = ibm_is_instance.traefik.id
 }
+
+output "instance_crn" {
+  description = "CRN of the Traefik virtual server instance — what an ibm_iam_trusted_profile_link (cr_type \"VSI\") links for the keyless trusted-profile flow"
+  value       = ibm_is_instance.traefik.crn
+}

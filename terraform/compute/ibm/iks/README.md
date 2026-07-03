@@ -68,6 +68,7 @@ provider "kubernetes" {
 |------|-------------|
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | IKS cluster CA certificate (PEM) |
 | <a name="output_cluster_id"></a> [cluster\_id](#output\_cluster\_id) | IKS cluster ID |
+| <a name="output_crn"></a> [crn](#output\_crn) | IKS cluster CRN — what an IAM trusted profile's compute-resource claim rule (cr\_type "IKS\_SA") scopes on to trust in-cluster workloads |
 | <a name="output_host"></a> [host](#output\_host) | IKS cluster host (public API server endpoint) |
 | <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | IKS cluster kubeconfig (synthesized from host/CA/token) |
 | <a name="output_token"></a> [token](#output\_token) | IKS cluster auth token (IAM OAuth token — short-lived, refreshed on every terraform read) |

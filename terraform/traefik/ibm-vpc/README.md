@@ -6,7 +6,7 @@ Provisions Traefik Hub on an IBM Cloud VPC virtual server instance — the multi
 
 ## How the ibmVPC provider differs from the other VM providers
 
-- **No ambient identity.** IBM VSIs expose no metadata credential the provider consumes (no EC2 instance profile / Alibaba RAM role equivalent) — an IAM API key is required and rides the systemd unit as `--hub.providers.ibmVPC.apiKey` (`ibmcloud_api_key`, sensitive).
+- **One credential, two flows.** Either an IAM API key (`ibmcloud_api_key` → `--hub.providers.ibmVPC.apiKey`) or — **keyless** — an IAM **trusted profile** (`trusted_profile_id` → `--hub.providers.ibmVPC.trustedProfileID`): the provider exchanges the VSI's instance-metadata identity token for an IAM token via the profile (the IBM SDK `VpcInstanceAuthenticator`). The two are mutually exclusive (a precondition enforces the XOR). For the trusted-profile flow the module enables the VSI **metadata service** (`metadata_service { enabled = true }`, off by default on IBM); the caller creates the profile, links the VSI (`ibm_iam_trusted_profile_link`, `cr_type "VSI"`, `link.crn` = this module's `instance_crn` output) and grants the profile Viewer on VPC Infrastructure Services (`is`) + Global Search & Tagging (`global-search-tagging`).
 - **No per-instance `traefik.*` config.** IBM user tags are flat strings, so routers/services/middlewares live in a **base configuration file** (`base_config_content`). The module ships it to the VM via the cloud-init `extra_files` transport (the same `write_files` mechanism `traefik/ec2` uses for the file-provider config, different target path: `base_config_path`, default `/data/traefik-hub/ibmvpc.yaml` — under `/data` so the preview-mode container sees it, and deliberately **not** under `/etc/traefik-hub/dynamic`, which the file provider watches and would double-load). The provider fills each service's `servers` with the instances tagged `traefik-service-name:<service>` (one Global Search query) and fsnotify-watches the file for hot reloads.
 - **No tag-based dashboard self-discovery** — advertise the dashboard via `file_provider_config` (file rule) instead, like the serverless children do.
 
@@ -54,7 +54,7 @@ module "traefik_ibm_vpc" {
 
 ## Prerequisites
 
-- IBM Cloud API key with VPC + Global Search reader access (provider discovery) and VPC write access for Terraform itself; the region comes from the configured `ibm` provider.
+- A provider-discovery credential: an IBM Cloud API key with VPC + Global Search reader access, **or** an IAM trusted profile (linked to this VSI, same reader roles) for the keyless path. Terraform itself needs VPC write access (plus IAM Identity rights if it manages the trusted profile); the region comes from the configured `ibm` provider.
 - An existing subnet + security group (e.g. `compute/ibm/vpc`'s: opens 80/443/8080/22 + :9443 in-VPC, attaches a public gateway for image pulls, and allows egress).
 
 <!-- BEGIN_TF_DOCS -->
@@ -119,7 +119,7 @@ module "traefik_ibm_vpc" {
 | <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra user tags (flat strings) to apply to the instance | `list(string)` | `[]` | no |
 | <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML configuration for Traefik file provider | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted | `string` | `"/etc/traefik-hub/dynamic"` | no |
-| <a name="input_ibmcloud_api_key"></a> [ibmcloud\_api\_key](#input\_ibmcloud\_api\_key) | IBM Cloud IAM API key the ibmVPC provider authenticates with (--hub.providers.ibmVPC.apiKey). REQUIRED when the provider is enabled: IBM VSIs expose no ambient instance identity the provider can consume — there is no keyless path like EC2 instance profiles or Alibaba RAM roles. Scope the key to VPC + Global Search reader roles. | `string` | `""` | no |
+| <a name="input_ibmcloud_api_key"></a> [ibmcloud\_api\_key](#input\_ibmcloud\_api\_key) | IBM Cloud IAM API key the ibmVPC provider authenticates with (--hub.providers.ibmVPC.apiKey). Mutually exclusive with trusted\_profile\_id — set exactly one when the provider is enabled. Scope the key to VPC + Global Search reader roles. | `string` | `""` | no |
 | <a name="input_ibmvpc_provider"></a> [ibmvpc\_provider](#input\_ibmvpc\_provider) | Traefik Hub ibmVPC provider configuration (hub.providers.ibmVPC). region and vpc\_id default to the joined subnet's region/VPC; endpoint/search\_endpoint default to the regional/global ones; service\_name\_tag\_key defaults to the provider's own default (traefik-service-name); poll\_interval is a duration string (provider default 30s). ipv6 ip\_mode yields nothing on VPC. Credentials come from var.ibmcloud\_api\_key; the base configuration file from var.base\_config\_content. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    region               = optional(string, "")<br/>    endpoint             = optional(string, "")<br/>    search_endpoint      = optional(string, "")<br/>    vpc_id               = optional(string, "")<br/>    service_name_tag_key = optional(string, "")<br/>    ip_mode              = optional(string, "private")<br/>    poll_interval        = optional(string, "")<br/>  })</pre> | `{}` | no |
 | <a name="input_image_id"></a> [image\_id](#input\_image\_id) | Boot image ID. Empty = latest stock Ubuntu 24.04 amd64 image. | `string` | `""` | no |
 | <a name="input_instance_profile"></a> [instance\_profile](#input\_instance\_profile) | VSI profile (default: 2 vCPU / 4 GB — the smallest VPC gen2 compute profile) | `string` | `"cx2-2x4"` | no |
@@ -138,12 +138,14 @@ module "traefik_ibm_vpc" {
 | <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh. | `string` | `"v3.20.4"` | no |
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
 | <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
+| <a name="input_trusted_profile_id"></a> [trusted\_profile\_id](#input\_trusted\_profile\_id) | IAM trusted profile ID the ibmVPC provider authenticates with (--hub.providers.ibmVPC.trustedProfileID) — the KEYLESS path: the provider exchanges the VSI's instance-metadata identity token for an IAM token via the profile (VpcInstanceAuthenticator). Mutually exclusive with ibmcloud\_api\_key. The module enables the VSI metadata service when set; the caller links the VSI to the profile (ibm\_iam\_trusted\_profile\_link, cr\_type "VSI") and grants the profile the reader policies (Viewer on is + global-search-tagging). | `string` | `""` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Base name for the Traefik instance and its network resources | `string` | `"traefik"` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
+| <a name="output_instance_crn"></a> [instance\_crn](#output\_instance\_crn) | CRN of the Traefik virtual server instance — what an ibm\_iam\_trusted\_profile\_link (cr\_type "VSI") links for the keyless trusted-profile flow |
 | <a name="output_instance_id"></a> [instance\_id](#output\_instance\_id) | ID of the Traefik virtual server instance |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of the Traefik instance with its details (keyed like traefik/ec2: traefik-1) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance names to their private IP addresses (the parent dials https://<private-ip>:9443) |

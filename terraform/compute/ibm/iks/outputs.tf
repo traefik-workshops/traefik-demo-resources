@@ -60,6 +60,11 @@ output "cluster_id" {
   value       = ibm_container_vpc_cluster.traefik_demo.id
 }
 
+output "crn" {
+  description = "IKS cluster CRN — what an IAM trusted profile's compute-resource claim rule (cr_type \"IKS_SA\") scopes on to trust in-cluster workloads"
+  value       = ibm_container_vpc_cluster.traefik_demo.crn
+}
+
 output "vpc_id" {
   description = "ID of the VPC the cluster landed in — VM spokes (apps/whoami/ibm-vpc, traefik/ibm-vpc) join it"
   value       = local.vpc_id

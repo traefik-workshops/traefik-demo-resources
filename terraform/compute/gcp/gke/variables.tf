@@ -27,6 +27,12 @@ variable "cluster_node_type" {
   description = "Default machine type for cluster"
 }
 
+variable "enable_workload_identity" {
+  type        = bool
+  default     = false
+  description = "Enable GKE Workload Identity: sets the cluster workload pool (<project>.svc.id.goog) and GKE_METADATA mode on every node pool, so pods get keyless GCP credentials via annotated ServiceAccounts."
+}
+
 variable "enable_gpu" {
   type        = bool
   default     = false

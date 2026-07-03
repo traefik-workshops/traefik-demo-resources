@@ -26,6 +26,20 @@ resource "google_container_cluster" "traefik_demo" {
         effect = "NO_SCHEDULE"
       }
     }
+
+    dynamic "workload_metadata_config" {
+      for_each = var.enable_workload_identity ? [1] : []
+      content {
+        mode = "GKE_METADATA"
+      }
+    }
+  }
+
+  dynamic "workload_identity_config" {
+    for_each = var.enable_workload_identity ? [1] : []
+    content {
+      workload_pool = "${data.google_client_config.traefik_demo.project}.svc.id.goog"
+    }
   }
 
   monitoring_config {
@@ -58,6 +72,13 @@ resource "google_container_node_pool" "worker" {
         effect = "NO_SCHEDULE"
       }
     }
+
+    dynamic "workload_metadata_config" {
+      for_each = var.enable_workload_identity ? [1] : []
+      content {
+        mode = "GKE_METADATA"
+      }
+    }
   }
 }
 
@@ -74,6 +95,13 @@ resource "google_container_node_pool" "traefik_demo_gpu" {
     guest_accelerator {
       type  = var.gpu_type
       count = var.gpu_count
+    }
+
+    dynamic "workload_metadata_config" {
+      for_each = var.enable_workload_identity ? [1] : []
+      content {
+        mode = "GKE_METADATA"
+      }
     }
   }
 

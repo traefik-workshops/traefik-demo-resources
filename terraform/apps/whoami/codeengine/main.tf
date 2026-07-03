@@ -3,11 +3,16 @@
 # a project (module-created by default). Code Engine pulls public Docker Hub
 # images directly, so no registry mirror is needed (unlike Cloud Run).
 #
-# NO traefik config surface exists here — Code Engine apps have no
-# user-settable labels or annotations, so the Hub ibmCodeEngine provider is
-# CONFIG-LESS: every ready app becomes a service at its endpoint URL, routed
-# by the provider's defaultRule; constraints match only the synthesized
-# pseudo-labels `name` and `visibility`.
+# THE TRAEFIK CONFIG SURFACE IS ONE ENV VAR — Code Engine apps have no
+# user-settable labels or annotations, so the Hub ibmCodeEngine provider reads
+# its traefik.* labels from a single TRAEFIK_LABELS env var carrying a JSON
+# object (var.traefik_labels / per-app traefik_labels, rendered below). That
+# buys the full label pipeline: traefik.enable opt-in/opt-out, user-named
+# services (traefik.http.services.<name>.loadbalancer.* — apps declaring the
+# SAME service name are GROUPED into one load balancer), middleware
+# references. Apps without it still route config-less by the provider's
+# defaultRule; constraints also match the synthesized pseudo-labels `name`
+# and `visibility`.
 
 data "ibm_resource_group" "default" {
   count = var.enable_project && var.resource_group_id == "" ? 1 : 0
@@ -28,6 +33,12 @@ locals {
   # A tag is a `:` in the LAST path segment (a registry host may carry a :port).
   image_last_segment = element(split("/", var.whoami_image), length(split("/", var.whoami_image)) - 1)
   image              = length(regexall(":", local.image_last_segment)) > 0 ? var.whoami_image : "${var.whoami_image}:${var.whoami_version}"
+
+  # traefik.* labels per app: module-level merged with per-app (per-app wins),
+  # rendered as ONE TRAEFIK_LABELS env var (a JSON object) when non-empty.
+  app_traefik_labels = {
+    for name, app in var.apps : name => merge(var.traefik_labels, try(app.traefik_labels, {}))
+  }
 }
 
 resource "ibm_code_engine_app" "whoami" {
@@ -50,13 +61,18 @@ resource "ibm_code_engine_app" "whoami" {
   scale_min_instances = var.min_scale
   scale_max_instances = var.max_scale
 
-  # Built-ins first so module/per-app `environment` wins on collision.
+  # Built-ins first so module/per-app `environment` wins on collision. The
+  # traefik.* labels ride as ONE env var: TRAEFIK_LABELS = the JSON-encoded
+  # label object the ibmCodeEngine provider parses.
   dynamic "run_env_variables" {
     for_each = merge(
       {
         WHOAMI_PORT_NUMBER = tostring(try(each.value.port, 80))
         WHOAMI_NAME        = try(each.value.name, each.key)
       },
+      length(local.app_traefik_labels[each.key]) > 0 ? {
+        TRAEFIK_LABELS = jsonencode(local.app_traefik_labels[each.key])
+      } : {},
       var.environment,
       try(each.value.environment, {}),
     )

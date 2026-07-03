@@ -16,6 +16,12 @@ variable "compartment_id" {
   type        = string
 }
 
+variable "tenancy_id" {
+  description = "OCID of the tenancy — where the resource-principal dynamic group is created (dynamic groups are tenancy-level). Required when enable_resource_principal = true."
+  type        = string
+  default     = ""
+}
+
 variable "availability_domain" {
   description = "Availability domain the container instance is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke)."
   type        = string
@@ -58,18 +64,24 @@ variable "extra_tags" {
 }
 
 # -----------------------------------------------------------------------------
-# OCI credentials (config-file auth)
+# OCI credentials
 # -----------------------------------------------------------------------------
 
+variable "enable_resource_principal" {
+  description = "Authenticate the ociContainerInstances provider as a RESOURCE principal (useResourcePrincipal=true) — keyless: creates a dynamic group matching the compartment's container instances plus a read-only policy, both named `<name>-resource-principal` (requires tenancy_id and IAM rights; two same-name instantiations collide). Disable to fall back to the oci_config/oci_private_key config-file volume."
+  type        = bool
+  default     = true
+}
+
 variable "oci_config" {
-  description = "Content of an ~/.oci style config file — the ociContainerInstances provider's credential, mounted as a CONFIGFILE volume at the directory of ocici_provider.config_file_path. Its key_file MUST point inside that mount (e.g. /etc/oci/key.pem). Required unless ocici_provider.use_instance_principal is flipped on."
+  description = "Content of an ~/.oci style config file — the ociContainerInstances provider's config-file credential, mounted as a CONFIGFILE volume at the directory of ocici_provider.config_file_path. Its key_file MUST point inside that mount (e.g. /etc/oci/key.pem). Required (with oci_private_key) when enable_resource_principal = false; unused otherwise."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "oci_private_key" {
-  description = "PEM content of the API signing key the oci_config references (mounted as key.pem next to it)"
+  description = "PEM content of the API signing key the oci_config references (mounted as key.pem next to it). Required when enable_resource_principal = false; unused otherwise."
   type        = string
   default     = ""
   sensitive   = true
@@ -80,7 +92,7 @@ variable "oci_private_key" {
 # -----------------------------------------------------------------------------
 
 variable "ocici_provider" {
-  description = "Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment_id defaults to the module's compartment_id. use_instance_principal is OFF by default: container instances don't provide the IMDS instance-principal flow the provider uses (they inject resource-principal credentials it doesn't consume yet), so auth defaults to the oci_config/oci_private_key CONFIGFILE volume. Without nsg_port_discovery the provider falls back to the instance's lowest declared container port."
+  description = "Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment_id defaults to the module's compartment_id. Auth defaults to resource principal (enable_resource_principal); use_instance_principal is an escape hatch that doesn't work on container instances (no IMDS flow) and is mutually exclusive with it. Without nsg_port_discovery the provider falls back to the instance's lowest declared container port."
   type = object({
     enabled                = optional(bool, true)
     compartment_id         = optional(string, "")

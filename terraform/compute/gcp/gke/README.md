@@ -54,6 +54,7 @@ module "gke" {
 | <a name="input_cluster_node_count"></a> [cluster\_node\_count](#input\_cluster\_node\_count) | Number of nodes for the cluster. | `number` | `1` | no |
 | <a name="input_cluster_node_type"></a> [cluster\_node\_type](#input\_cluster\_node\_type) | Default machine type for cluster | `string` | `"e2-standard-2"` | no |
 | <a name="input_enable_gpu"></a> [enable\_gpu](#input\_enable\_gpu) | Enable GPU node pool | `bool` | `false` | no |
+| <a name="input_enable_workload_identity"></a> [enable\_workload\_identity](#input\_enable\_workload\_identity) | Enable GKE Workload Identity: sets the cluster workload pool (<project>.svc.id.goog) and GKE\_METADATA mode on every node pool, so pods get keyless GCP credentials via annotated ServiceAccounts. | `bool` | `false` | no |
 | <a name="input_gke_version"></a> [gke\_version](#input\_gke\_version) | GKE cluster version. | `string` | `""` | no |
 | <a name="input_gpu_count"></a> [gpu\_count](#input\_gpu\_count) | GPU count | `number` | `1` | no |
 | <a name="input_gpu_node_count"></a> [gpu\_node\_count](#input\_gpu\_node\_count) | GPU node count | `number` | `1` | no |
@@ -71,4 +72,5 @@ module "gke" {
 | <a name="output_network"></a> [network](#output\_network) | VPC network the cluster nodes sit on (the project's default network — the module doesn't create one). Join GCE/Traefik VMs to it so the cluster reaches them privately. |
 | <a name="output_subnetwork"></a> [subnetwork](#output\_subnetwork) | Subnetwork the cluster nodes sit on |
 | <a name="output_token"></a> [token](#output\_token) | GKE cluster auth token |
+| <a name="output_workload_identity_pool"></a> [workload\_identity\_pool](#output\_workload\_identity\_pool) | Workload Identity pool of the cluster (<project>.svc.id.goog) when enable\_workload\_identity is true, null otherwise. Use it to build roles/iam.workloadIdentityUser members: serviceAccount:<pool>[<namespace>/<ksa>]. |
 <!-- END_TF_DOCS -->

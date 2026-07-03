@@ -7,9 +7,14 @@
 # docker container (the cloud-init preview-image path).
 #
 # The ibmVPC provider is DIFFERENT from the other VM providers twice over:
-#   1. No ambient identity — IBM VSIs expose no metadata credential the
-#      provider consumes, so an IAM API key (var.ibmcloud_api_key) is passed
-#      honestly as --hub.providers.ibmVPC.apiKey.
+#   1. The credential is EITHER an IAM API key (var.ibmcloud_api_key ->
+#      --hub.providers.ibmVPC.apiKey) OR — keyless — an IAM trusted profile
+#      (var.trusted_profile_id -> --hub.providers.ibmVPC.trustedProfileID):
+#      the provider exchanges the VSI's instance-metadata identity token for
+#      an IAM token via the trusted profile (VpcInstanceAuthenticator). The
+#      trusted-profile flow needs the instance metadata service ENABLED on
+#      the VSI (set below) and the VSI linked to the profile
+#      (ibm_iam_trusted_profile_link, cr_type "VSI" — the caller's side).
 #   2. No per-instance traefik.* tags — routers/services/middlewares live in a
 #      BASE CONFIGURATION FILE (var.base_config_content) shipped to the VM via
 #      the cloud-init extra_files mechanism and referenced with
@@ -36,12 +41,15 @@ locals {
   ibmvpc_provider_args = var.ibmvpc_provider.enabled ? concat(
     [
       "--hub.providers.ibmVPC=true",
-      "--hub.providers.ibmVPC.apiKey=${var.ibmcloud_api_key}",
       "--hub.providers.ibmVPC.region=${local.provider_region}",
       "--hub.providers.ibmVPC.vpcID=${local.provider_vpc_id}",
       "--hub.providers.ibmVPC.ipMode=${var.ibmvpc_provider.ip_mode}",
       "--hub.providers.ibmVPC.filename=${var.base_config_path}",
     ],
+    # Exactly ONE credential (the precondition below enforces the XOR):
+    # apiKey, or the keyless trusted-profile flow.
+    var.ibmcloud_api_key != "" ? ["--hub.providers.ibmVPC.apiKey=${var.ibmcloud_api_key}"] : [],
+    var.trusted_profile_id != "" ? ["--hub.providers.ibmVPC.trustedProfileID=${var.trusted_profile_id}"] : [],
     var.ibmvpc_provider.endpoint != "" ? ["--hub.providers.ibmVPC.endpoint=${var.ibmvpc_provider.endpoint}"] : [],
     var.ibmvpc_provider.search_endpoint != "" ? ["--hub.providers.ibmVPC.searchEndpoint=${var.ibmvpc_provider.search_endpoint}"] : [],
     var.ibmvpc_provider.service_name_tag_key != "" ? ["--hub.providers.ibmVPC.serviceNameTagKey=${var.ibmvpc_provider.service_name_tag_key}"] : [],
@@ -191,10 +199,21 @@ resource "ibm_is_instance" "traefik" {
   # dashboard via file_provider_config / base_config_content instead.
   tags = var.extra_tags
 
+  # The trusted-profile flow reads the instance identity token from the VSI
+  # metadata service (disabled by default on IBM) — enable it when the
+  # provider authenticates with a trusted profile.
+  dynamic "metadata_service" {
+    for_each = var.trusted_profile_id != "" ? [1] : []
+
+    content {
+      enabled = true
+    }
+  }
+
   lifecycle {
     precondition {
-      condition     = !var.ibmvpc_provider.enabled || var.ibmcloud_api_key != ""
-      error_message = "ibmcloud_api_key must be set when the ibmVPC provider is enabled (IBM has no ambient instance identity the provider can use)."
+      condition     = !var.ibmvpc_provider.enabled || (var.ibmcloud_api_key != "") != (var.trusted_profile_id != "")
+      error_message = "Exactly one of ibmcloud_api_key or trusted_profile_id must be set when the ibmVPC provider is enabled (apiKey and trustedProfileID are mutually exclusive)."
     }
 
     precondition {
