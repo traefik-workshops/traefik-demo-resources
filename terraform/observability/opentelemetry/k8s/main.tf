@@ -1,9 +1,9 @@
 locals {
-  loki_exporter       = var.enable_loki ? ["otlphttp/loki"] : []
-  tempo_exporter      = var.enable_tempo ? ["otlphttp/tempo"] : []
-  newrelic_exporter   = var.enable_new_relic ? ["otlphttp/nri"] : []
-  dash0_exporter      = var.enable_dash0 ? ["otlphttp/dash0"] : []
-  honeycomb_exporter  = var.enable_honeycomb ? ["otlphttp/honeycomb"] : []
+  loki_exporter                = var.enable_loki ? ["otlphttp/loki"] : []
+  tempo_exporter               = var.enable_tempo ? ["otlphttp/tempo"] : []
+  newrelic_exporter            = var.enable_new_relic ? ["otlphttp/nri"] : []
+  dash0_exporter               = var.enable_dash0 ? ["otlphttp/dash0"] : []
+  honeycomb_exporter           = var.enable_honeycomb ? ["otlphttp/honeycomb"] : []
   langsmith_host_filter_active = var.enable_langsmith && length(var.langsmith_host_filter) > 0
   # When a host filter is set, LangSmith rides its own filtered traces pipeline
   # (local.langsmith_pipeline below) instead of the shared traces pipeline.

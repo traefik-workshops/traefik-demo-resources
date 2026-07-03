@@ -72,6 +72,7 @@ variable "root_volume" {
   default     = null
 }
 
+# tflint-ignore: terraform_unused_declarations # deliberate compat shim: validated-empty (HPE/hpe has no labels attribute)
 variable "morpheus_labels" {
   description = "MUST STAY EMPTY: the HPE/hpe provider's hpe_morpheus_instance exposes NO labels attribute (checked at v1.5.0; gomorpheus's morpheus_mvm_instance did), so Morpheus labels can't be applied from terraform anymore. The variable is kept (and validated empty) so existing callers passing [] keep working; set labels in the appliance instead."
   type        = list(string)

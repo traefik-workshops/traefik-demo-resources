@@ -121,8 +121,12 @@ resource "azurerm_linux_virtual_machine" "traefik" {
 
   network_interface_ids = [azurerm_network_interface.traefik.id]
 
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
+  admin_username = var.admin_username
+  admin_password = var.admin_password
+  # Demo-grade: the spoke VM is driven over password auth (admin_password var +
+  # cloud-init user-data) — no per-demo SSH key wiring exists. Suppressed inline
+  # rather than repo-wide (.tfsec.yml) to keep the blast radius to this resource.
+  #tfsec:ignore:azure-compute-disable-password-authentication
   disable_password_authentication = false
 
   custom_data = base64encode(local.user_data)
