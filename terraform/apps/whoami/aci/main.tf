@@ -58,6 +58,11 @@ resource "azurerm_container_group" "whoami" {
     cpu    = var.container_cpu
     memory = var.container_memory
 
+    # whoami's OTLP access logs are gated on --verbose (flag only, no env);
+    # every other compute passes it (k8s args, VM ExecStart). ACI `commands`
+    # replaces the image ENTRYPOINT wholesale, so the binary path leads.
+    commands = ["/whoami", "--verbose"]
+
     # The declared exposed port doubles as the aci provider's fallback when no
     # traefik.*.loadbalancer.server.port tag is set (lowest declared port).
     ports {
