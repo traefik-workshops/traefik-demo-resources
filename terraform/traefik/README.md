@@ -20,6 +20,7 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`nutanix`](./nutanix) | Traefik on a Nutanix VM (uses `cloud-init`) |
 | [`oci-ci`](./oci-ci) | Traefik Hub as an OCI Container Instance (`hub.providers.ociContainerInstances` + config-file auth) |
 | [`oci-vm`](./oci-vm) | Traefik Hub on an OCI Compute VM (uses `cloud-init`; `hub.providers.oci` + instance principal) |
+| [`vsphere-vm`](./vsphere-vm) | Traefik Hub on a vSphere VM (uses `cloud-init`; `hub.providers.vsphere` + explicit read-only vCenter credentials — no ambient identity on-prem) |
 
 ## How `shared/` works
 
