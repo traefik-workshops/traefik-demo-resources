@@ -21,6 +21,7 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/gce`](./whoami/gce) | GCP | whoami on GCE VMs (traefik config via the `traefik` JSON metadata item; uses `whoami/cloud-init`) |
 | [`whoami/ibm-vpc`](./whoami/ibm-vpc) | IBM | whoami on IBM VPC instances (one `traefik-service-name:<service>` tag each — routers live in the ibmVPC provider's base config file; uses `whoami/cloud-init`) |
 | [`whoami/k8s`](./whoami/k8s) | k8s | whoami in-cluster, with optional Traefik IngressRoute |
+| [`whoami/morpheus`](./whoami/morpheus) | Morpheus | whoami on HPE Morpheus MVM instances (traefik config via dotted `traefik.*` instance tags — the cloud-tag model on-prem; bootstrap via Morpheus provisioning workflows; composes `whoami/cloud-init`) |
 | [`whoami/nutanix`](./whoami/nutanix) | Nutanix | whoami on a Nutanix VM |
 | [`whoami/nutanix/image_builder`](./whoami/nutanix/image_builder) | Nutanix | Builds a Nutanix image baked with whoami |
 | [`whoami/oci-ci`](./whoami/oci-ci) | OCI | whoami as OCI Container Instances (private VNIC IPs; declared port via TCP health check) |
