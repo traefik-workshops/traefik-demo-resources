@@ -53,7 +53,9 @@ runcmd:
   # block — a bad pull surfaces in `cloud-init status` instead of silently leaving
   # whoami.service crash-looping on the pull at start.
   - |
-    set -euo pipefail
+    # POSIX sh only: cloud-init runs runcmd with /bin/sh (dash on Ubuntu),
+    # which rejects `set -o pipefail`. No pipelines here, so `set -eu` is enough.
+    set -eu
     for i in $(seq 1 30); do docker info >/dev/null 2>&1 && break; echo "waiting for docker ($i)"; sleep 2; done
     echo "Pulling ${image} (linux/${arch})"
     # Retry the pull (~4 min): the instance can boot before its NAT gateway is ready

@@ -279,7 +279,7 @@ runcmd:
     fi
     systemctl enable --now docker || true
     PREVIEW_IMAGE="${preview_image}"
-    for i in {1..30}; do
+    for i in $(seq 1 30); do
       docker pull "$PREVIEW_IMAGE" && break
       echo "Retrying preview image pull ($i/30)..."; sleep 10
     done
@@ -291,9 +291,9 @@ runcmd:
     # Robust download and install
     ARCH="${arch}"
     VERSION="${traefik_hub_version}"
-    [[ ! $VERSION =~ ^v ]] && VERSION="v$VERSION"
+    case "$VERSION" in v*) ;; *) VERSION="v$VERSION" ;; esac
     DOWNLOAD_ARCH="amd64"
-    [[ "$ARCH" == "aarch64" || "$ARCH" == "arm64" ]] && DOWNLOAD_ARCH="arm64"
+    case "$ARCH" in aarch64|arm64) DOWNLOAD_ARCH="arm64" ;; esac
 
     URL="https://github.com/traefik/hub/releases/download/$VERSION/traefik-hub_$${VERSION}_linux_$${DOWNLOAD_ARCH}.tar.gz"
     echo "Downloading Traefik Hub from $URL..."
@@ -302,7 +302,7 @@ runcmd:
     # (private-subnet spokes especially), so an early failure here usually just means
     # "egress not up yet" — keep retrying instead of giving up after ~75s.
     # --retry-connrefused covers transient connection refusals within each attempt.
-    for i in {1..20}; do
+    for i in $(seq 1 20); do
       if curl -fL --connect-timeout 10 --max-time 120 --retry 2 --retry-delay 5 --retry-connrefused "$URL" -o /tmp/traefik-hub.tar.gz; then
         mkdir -p /tmp/traefik-hub-extract
         tar -xzf /tmp/traefik-hub.tar.gz -C /tmp/traefik-hub-extract
@@ -339,11 +339,11 @@ runcmd:
     if ! [ -f /usr/local/bin/dns-traefiker ]; then
       echo "Installing dns-traefiker from GHCR..."
       DOWNLOAD_ARCH="amd64"
-      [[ "${arch}" == "aarch64" || "${arch}" == "arm64" ]] && DOWNLOAD_ARCH="arm64"
+      case "${arch}" in aarch64|arm64) DOWNLOAD_ARCH="arm64" ;; esac
       GHCR_REPO="traefik-workshops/dns-traefiker-bin"
       GHCR_TAG="${dns_traefiker.version}-linux-$DOWNLOAD_ARCH"
 
-      for i in {1..5}; do
+      for i in $(seq 1 5); do
         # Get anonymous pull token
         TOKEN=$(curl -sf "https://ghcr.io/token?scope=repository:$GHCR_REPO:pull" | \
           python3 -c "import sys,json;print(json.load(sys.stdin)['token'])" 2>/dev/null)
@@ -410,8 +410,21 @@ runcmd:
   # Install OTEL Collector
   - |
     echo "Installing OTEL Collector..."
-    curl -sfLO https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.118.0/otelcol-contrib_0.118.0_linux_amd64.rpm || (echo "FAILED to download OTEL collector" && exit 1)
-    rpm -ivh otelcol-contrib_0.118.0_linux_amd64.rpm || (echo "FAILED to install OTEL collector" && exit 1)
+    # Distro-aware install: the release ships both .deb and .rpm. An rpm-only
+    # install silently broke Ubuntu VMs ("rpm: not found" -> node_exporter host
+    # metrics never reached the hub); it only worked on AWS because Amazon Linux
+    # is rpm-based (azure-unified-ingress validation, 2026-07).
+    OTEL_PKG_EXT="rpm"
+    if command -v dpkg >/dev/null 2>&1; then OTEL_PKG_EXT="deb"; fi
+    curl -sfLO "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.118.0/otelcol-contrib_0.118.0_linux_amd64.$OTEL_PKG_EXT" || (echo "FAILED to download OTEL collector" && exit 1)
+    if [ "$OTEL_PKG_EXT" = "deb" ]; then
+      # --force-confold: write_files already laid down /etc/otelcol-contrib/config.yaml,
+      # which the deb ships as a conffile; without it, non-interactive dpkg aborts at
+      # the conffile prompt (exit 1, package left unpacked). confold keeps our config.
+      dpkg -i --force-confold otelcol-contrib_0.118.0_linux_amd64.deb || (echo "FAILED to install OTEL collector" && exit 1)
+    else
+      rpm -ivh otelcol-contrib_0.118.0_linux_amd64.rpm || (echo "FAILED to install OTEL collector" && exit 1)
+    fi
     systemctl enable --now otelcol-contrib
     systemctl restart otelcol-contrib
     echo "OTEL Collector status: $(systemctl is-active otelcol-contrib)"
