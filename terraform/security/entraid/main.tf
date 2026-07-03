@@ -138,3 +138,32 @@ resource "azuread_app_role_assignment" "traefik_demo" {
   principal_object_id = azuread_user.traefik_demo[each.value].object_id
   resource_object_id  = azuread_service_principal.traefik_demo.object_id
 }
+
+# Tenant admin consent, mirrored from required_resource_access above. The demo's
+# token flow is ROPC (headless, no consent screen possible) requesting
+# <client_id>/.default, which EntraID rejects with AADSTS65001 until consent for
+# the app is recorded tenant-wide.
+data "azuread_service_principal" "msgraph" {
+  client_id = "00000003-0000-0000-c000-000000000000" # Microsoft Graph
+}
+
+# The app's own exposed `groups` scope — what <client_id>/.default resolves to.
+resource "azuread_service_principal_delegated_permission_grant" "traefik_demo_self" {
+  service_principal_object_id          = azuread_service_principal.traefik_demo.object_id
+  resource_service_principal_object_id = azuread_service_principal.traefik_demo.object_id
+  claim_values                         = ["groups"]
+}
+
+# The delegated Graph scopes the app requests.
+resource "azuread_service_principal_delegated_permission_grant" "traefik_demo_msgraph" {
+  service_principal_object_id          = azuread_service_principal.traefik_demo.object_id
+  resource_service_principal_object_id = data.azuread_service_principal.msgraph.object_id
+  claim_values                         = ["User.Read", "openid", "offline_access"]
+}
+
+# The Group.Read.All application role the app requests (same id as above).
+resource "azuread_app_role_assignment" "traefik_demo_msgraph" {
+  app_role_id         = "62a82d76-70ea-41e2-9197-370581804d09" # Group.Read.All (Application)
+  principal_object_id = azuread_service_principal.traefik_demo.object_id
+  resource_object_id  = data.azuread_service_principal.msgraph.object_id
+}
