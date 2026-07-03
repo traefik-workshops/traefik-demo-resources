@@ -1,6 +1,6 @@
 # apps/whoami/ecs
 
-Provisions Traefik `whoami` services (default image: the OTel-instrumented fork `docker.io/zalbiraw/whoami`) across one or more ECS clusters, wrapping `compute/aws/ecs`.
+Provisions Traefik `whoami` services (default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) across one or more ECS clusters, wrapping `compute/aws/ecs`.
 
 ## Example usage
 
@@ -42,7 +42,7 @@ module "whoami_ecs" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 
 ## Providers
@@ -56,7 +56,7 @@ No resources.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_name"></a> [name](#input\_name) | Name of the ECS Deployment | `string` | n/a | yes |
 | <a name="input_clusters"></a> [clusters](#input\_clusters) | Map of ECS clusters with their echo applications. Each app may set an optional `environment` (map) merged over the module-level `environment` into the task's container definition. | `any` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Common labels to apply to all resources | `map(string)` | `{}` | no |
@@ -65,11 +65,11 @@ No resources.
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs for ECS resources | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs for ECS resources | `list(string)` | `[]` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID for ECS resources | `string` | `""` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every task runs. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every task runs. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_services"></a> [services](#output\_services) | Map of ECS services |
 <!-- END_TF_DOCS -->

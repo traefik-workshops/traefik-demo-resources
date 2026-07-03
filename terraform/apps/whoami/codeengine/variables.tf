@@ -55,7 +55,7 @@ variable "max_scale" {
 variable "whoami_image" {
   description = "Whoami image to run (Code Engine pulls public Docker Hub images directly). Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "docker.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/zalbiraw/whoami:latest"
 }
 
 variable "whoami_version" {

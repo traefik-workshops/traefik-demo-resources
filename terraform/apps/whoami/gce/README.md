@@ -1,6 +1,6 @@
 # apps/whoami/gce
 
-Provisions one or more Traefik `whoami` instances on GCE VMs — the GCP sibling of `apps/whoami/ec2` and `apps/whoami/azure-vm`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `docker.io/zalbiraw/whoami`). The `apps` map reads almost identically to the EC2/Azure modules — with one deliberate difference:
+Provisions one or more Traefik `whoami` instances on GCE VMs — the GCP sibling of `apps/whoami/ec2` and `apps/whoami/azure-vm`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`). The `apps` map reads almost identically to the EC2/Azure modules — with one deliberate difference:
 
 ## The workload config is JSON metadata, not tags
 
@@ -64,27 +64,27 @@ module "whoami_gce" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [google_compute_firewall.whoami](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
 | [google_compute_instance.whoami](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: `traefik_labels` is a map of dotted Traefik label -> value, JSON-encoded into the single `traefik` metadata item (GCE metadata keys can't contain dots); optional `labels` are plain (dotless) GCE labels for provider constraints only. { name = { replicas, port, name, environment, traefik\_labels, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Common GCE labels to apply to all VMs (dotless — provider constraints only, not traefik.* config) | `map(string)` | `{}` | no |
 | <a name="input_enable_firewall"></a> [enable\_firewall](#input\_enable\_firewall) | Create a firewall rule opening the app ports intra-network to these VMs (mirrors compute/azure/vnet's NSG). Disable when the network already allows it (e.g. default network's default-allow-internal). | `bool` | `true` | no |
@@ -96,13 +96,13 @@ module "whoami_gce" {
 | <a name="input_network_tags"></a> [network\_tags](#input\_network\_tags) | Network tags applied to the VMs (firewall targeting). The firewall rule name is derived from the first tag. | `list(string)` | <pre>[<br/>  "whoami"<br/>]</pre> | no |
 | <a name="input_subnetwork"></a> [subnetwork](#input\_subnetwork) | Subnetwork the VMs join. Empty = let GCP pick the network's subnet in the zone's region (works on auto-mode networks like `default`). | `string` | `""` | no |
 | <a name="input_vm_image"></a> [vm\_image](#input\_vm\_image) | Boot disk image (family or self link) | `string` | `"ubuntu-os-cloud/ubuntu-2404-lts-amd64"` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 | <a name="input_zone"></a> [zone](#input\_zone) | GCE zone the VMs are created in | `string` | `"us-central1-a"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of all echo server VMs with their details |
 <!-- END_TF_DOCS -->

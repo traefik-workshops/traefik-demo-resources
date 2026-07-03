@@ -1,6 +1,6 @@
 # apps/whoami/ec2
 
-Provisions one or more Traefik `whoami` instances on AWS EC2, wrapping `compute/aws/ec2` and the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `docker.io/zalbiraw/whoami`).
+Provisions one or more Traefik `whoami` instances on AWS EC2, wrapping `compute/aws/ec2` and the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`).
 
 ## Example usage
 
@@ -39,7 +39,7 @@ module "whoami_ec2" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 
 ## Providers
@@ -53,7 +53,7 @@ No resources.
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_ami_architecture"></a> [ami\_architecture](#input\_ami\_architecture) | The architecture (x86\_64, arm64) | `string` | `"x86_64"` | no |
 | <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to EC2. Each app can have multiple replicas. { name = { replicas, port, name, environment, ... } } — optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags to apply to all instances | `map(string)` | `{}` | no |
@@ -63,12 +63,12 @@ No resources.
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs | `list(string)` | `[]` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID | `string` | `""` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of all echo server instances with their details |
 <!-- END_TF_DOCS -->

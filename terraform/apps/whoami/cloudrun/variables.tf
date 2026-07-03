@@ -13,7 +13,7 @@ variable "location" {
 variable "whoami_image" {
   description = "Whoami image every service runs, pulled through the module's Docker Hub mirror — so it must be a docker.io reference (Cloud Run can't pull docker.io directly; use `image` for other registries). Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "docker.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/zalbiraw/whoami:latest"
 }
 
 variable "whoami_version" {

@@ -59,7 +59,7 @@ variable "common_tags" {
 variable "whoami_image" {
   description = "Whoami image to docker-run on each VM. Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "docker.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/zalbiraw/whoami:latest"
 }
 
 variable "whoami_version" {

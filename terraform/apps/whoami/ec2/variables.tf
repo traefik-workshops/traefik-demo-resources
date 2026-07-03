@@ -43,7 +43,9 @@ variable "security_group_ids" {
 variable "whoami_image" {
   description = "Whoami image to docker-run on each instance. Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "docker.io/zalbiraw/whoami:latest"
+  # ghcr, not docker.io: container platforms' anonymous Docker Hub pulls get
+  # rate-limited (ACI hit three straight 409s on first deploy, 2026-07).
+  default = "ghcr.io/zalbiraw/whoami:latest"
 }
 
 variable "whoami_version" {

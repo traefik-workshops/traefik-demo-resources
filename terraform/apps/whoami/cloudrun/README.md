@@ -2,7 +2,7 @@
 
 Provisions Traefik `whoami` as Cloud Run v2 services — the serverless GCP sibling of `apps/whoami/ecs` and `apps/whoami/aci`. Each service's **`traefik.*` annotations** (dotted keys) are the workload config a Traefik Hub `cloudRun` provider discovers; **labels** (dotless) feed the provider's `constraints` only. Cloud Run is URL-mode: the provider routes to the service's HTTPS URI — there is no IP/port discovery.
 
-Cloud Run can't pull `docker.io` images directly, so the module creates an Artifact Registry **remote repository** (a Docker Hub pull-through mirror) and runs `whoami_image` (default: the OTel-instrumented fork `docker.io/zalbiraw/whoami`) through it. Override with `image` (any AR/GCR path) and set `enable_registry_mirror = false` to skip the mirror.
+Cloud Run can't pull `docker.io` images directly, so the module creates an Artifact Registry **remote repository** (a Docker Hub pull-through mirror) and runs `whoami_image` (default: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) through it. Override with `image` (any AR/GCR path) and set `enable_registry_mirror = false` to skip the mirror.
 
 ## Optional function (`enable_function`)
 
@@ -64,7 +64,7 @@ module "whoami_cloudrun" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | ~> 2.0 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 6.0 |
@@ -72,14 +72,14 @@ module "whoami_cloudrun" {
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_archive"></a> [archive](#provider\_archive) | ~> 2.0 |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [google_artifact_registry_repository.function_images](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository) | resource |
 | [google_artifact_registry_repository.mirror](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository) | resource |
 | [google_artifact_registry_repository_iam_member.function_build_image_writer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository_iam_member) | resource |
@@ -97,7 +97,7 @@ module "whoami_cloudrun" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_apps"></a> [apps](#input\_apps) | Map of Cloud Run services to deploy. Workload config is `annotations` (dotted traefik.* keys, the cloudRun provider's config source); optional `labels` (dotless) feed provider constraints only; optional `environment` (map) is merged over the module-level `environment` into the container. No replicas — Cloud Run scales via min/max instances. { name = { port, name, environment, annotations, labels } }. | `any` | `{}` | no |
 | <a name="input_common_annotations"></a> [common\_annotations](#input\_common\_annotations) | Annotations applied to every service (dotted traefik.* keys allowed — provider workload config) | `map(string)` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Labels applied to every service (dotless — provider constraints only) | `map(string)` | `{}` | no |
@@ -115,13 +115,13 @@ module "whoami_cloudrun" {
 | <a name="input_max_instances"></a> [max\_instances](#input\_max\_instances) | Maximum instance count per service | `number` | `2` | no |
 | <a name="input_min_instances"></a> [min\_instances](#input\_min\_instances) | Minimum instance count per service (0 = scale to zero) | `number` | `0` | no |
 | <a name="input_mirror_repository_id"></a> [mirror\_repository\_id](#input\_mirror\_repository\_id) | Repository ID for the Docker Hub mirror (unique per project+location) | `string` | `"dockerhub-mirror"` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every service runs, pulled through the module's Docker Hub mirror — so it must be a docker.io reference (Cloud Run can't pull docker.io directly; use `image` for other registries). Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every service runs, pulled through the module's Docker Hub mirror — so it must be a docker.io reference (Cloud Run can't pull docker.io directly; use `image` for other registries). Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_function_service_name"></a> [function\_service\_name](#output\_function\_service\_name) | Name of the function's Cloud Run service (empty when enable\_function = false) |
 | <a name="output_function_uri"></a> [function\_uri](#output\_function\_uri) | HTTPS URI of the function's Cloud Run service (empty when enable\_function = false) |
 | <a name="output_services"></a> [services](#output\_services) | Map of all echo Cloud Run services with their details (uri is what the cloudRun provider routes to) |

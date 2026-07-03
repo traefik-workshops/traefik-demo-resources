@@ -1,6 +1,6 @@
 # apps/whoami/ibm-vpc
 
-Provisions Traefik `whoami` (default image: the OTel-instrumented fork `docker.io/zalbiraw/whoami`) on IBM Cloud VPC virtual server instances — the IBM sibling of `apps/whoami/ec2` / `apps/whoami/alibaba-ecs`. Reuses `apps/whoami/cloud-init` (docker-run systemd unit).
+Provisions Traefik `whoami` (default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) on IBM Cloud VPC virtual server instances — the IBM sibling of `apps/whoami/ec2` / `apps/whoami/alibaba-ecs`. Reuses `apps/whoami/cloud-init` (docker-run systemd unit).
 
 > **New provider**: this is one of the repo's first IBM Cloud modules and introduces the `IBM-Cloud/ibm` Terraform provider (pinned `~> 1.89`).
 
@@ -51,27 +51,27 @@ The matching router/service pair lives in the Traefik child's base configuration
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_ibm"></a> [ibm](#requirement\_ibm) | ~> 1.89 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_ibm"></a> [ibm](#provider\_ibm) | ~> 1.89 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [ibm_is_floating_ip.whoami](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/is_floating_ip) | resource |
 | [ibm_is_instance.whoami](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/is_instance) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | Security group IDs to attach to the instances (e.g. compute/ibm/vpc's security\_group\_ids — IBM security groups deny both directions by default, so attach one that allows the app port in and image pulls out) | `list(string)` | n/a | yes |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | ID of the existing subnet the instances join (e.g. compute/ibm/vpc's subnet\_id, so the Traefik child reaches these VMs in-VPC). The zone and VPC derive from it. | `string` | n/a | yes |
 | <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to VPC instances. Each app can have multiple replicas: { name = { replicas, port, name, environment, service\_name } }. Optional `environment` (map) is merged over the module-level `environment` into the container. UNLIKE the ec2/alibaba-ecs siblings there are NO dotted traefik.* tags — `service_name` (default: the app key; keep it lowercase, IBM lowercases tags) becomes the instance user tag `<service_name_tag_key>:<service_name>`, assigning the instance to that service in the ibmVPC provider's base configuration file. | `any` | `{}` | no |
@@ -83,12 +83,12 @@ The matching router/service pair lives in the Traefik child's base configuration
 | <a name="input_resource_group_id"></a> [resource\_group\_id](#input\_resource\_group\_id) | Resource group ID the instances land in. Empty = the account's default resource group. | `string` | `""` | no |
 | <a name="input_service_name_tag_key"></a> [service\_name\_tag\_key](#input\_service\_name\_tag\_key) | User-tag key assigning an instance to a base-configuration service (tag format <key>:<service>). Must match the ibmVPC provider's serviceNameTagKey. | `string` | `"traefik-service-name"` | no |
 | <a name="input_ssh_key_ids"></a> [ssh\_key\_ids](#input\_ssh\_key\_ids) | IBM Cloud SSH key IDs to inject (debugging convenience — whoami itself needs none) | `list(string)` | `[]` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of all echo server instances with their details |
 <!-- END_TF_DOCS -->

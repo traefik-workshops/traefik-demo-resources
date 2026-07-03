@@ -1,6 +1,6 @@
 # apps/whoami/alibaba-ecs
 
-Provisions Traefik `whoami` (default image: the OTel-instrumented fork `docker.io/zalbiraw/whoami`) on Alibaba Cloud ECS instances — the Alibaba sibling of `apps/whoami/ec2` / `apps/whoami/azure-vm` / `apps/whoami/oci-vm`. Reuses `apps/whoami/cloud-init` (docker-run systemd unit); the `apps` map reads identically to `apps/whoami/ec2`.
+Provisions Traefik `whoami` (default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) on Alibaba Cloud ECS instances — the Alibaba sibling of `apps/whoami/ec2` / `apps/whoami/azure-vm` / `apps/whoami/oci-vm`. Reuses `apps/whoami/cloud-init` (docker-run systemd unit); the `apps` map reads identically to `apps/whoami/ec2`.
 
 Each instance's tags (dotted `traefik.*` keys, exactly like EC2/Azure/OCI tags) are the workload config a Traefik Hub `alibabaECS` provider (`traefik/alibaba-ecs`) discovers. Per-instance IP-mode override: the `traefik.alibabaecs.ipmode` tag.
 
@@ -52,26 +52,26 @@ module "whoami_alibaba_ecs" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_alicloud"></a> [alicloud](#requirement\_alicloud) | ~> 1.220 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [alicloud_instance.whoami](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/instance) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | Security group IDs to attach to the instances (Alibaba requires at least one, e.g. compute/alibaba/vpc's security\_group\_ids). Also what the alibabaECS provider's opt-in securityGroupPortDiscovery reads ports from. | `list(string)` | n/a | yes |
 | <a name="input_vswitch_id"></a> [vswitch\_id](#input\_vswitch\_id) | ID of the existing vswitch the instances join (e.g. compute/alibaba/vpc's vswitch\_id, so the Traefik child reaches these VMs in-VPC) | `string` | n/a | yes |
 | <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to ECS instances. Each app can have multiple replicas. Same shape as apps/whoami/ec2: { name = { replicas, port, name, environment, tags } } — optional `environment` (map) is merged over the module-level `environment` into the container; `tags` become dotted-key traefik.* instance tags. | `any` | `{}` | no |
@@ -82,12 +82,12 @@ module "whoami_alibaba_ecs" {
 | <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | ECS instance type for all echo servers (default: 2 vCPU / 2 GB economy — the smallest that runs docker reliably) | `string` | `"ecs.e-c1m1.large"` | no |
 | <a name="input_system_disk_category"></a> [system\_disk\_category](#input\_system\_disk\_category) | System disk category. ESSD Entry pairs with the economy (e-series) default instance type; switch to cloud\_essd for g/c families. | `string` | `"cloud_essd_entry"` | no |
 | <a name="input_system_disk_size"></a> [system\_disk\_size](#input\_system\_disk\_size) | System disk size (GB) per instance | `number` | `40` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"docker.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each instance. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of all echo server instances with their details |
 <!-- END_TF_DOCS -->
