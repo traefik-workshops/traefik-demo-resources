@@ -2,7 +2,7 @@
 
 Traefik Hub as an Azure Container Instances container group — the Azure sibling of `traefik/ecs` and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami container groups via its own `hub.providers.aci` provider.
 
-Composes `traefik/shared` (extracted Helm config) exactly like `traefik/ecs`. The child IS a container group running the Hub image (the aci provider ships only in a preview image, `docker.io/zalbiraw/traefik-hub` — pass it via `custom_image_*`), with a private vnet-injected IP the parent dials.
+Composes `traefik/shared` (extracted Helm config) exactly like `traefik/ecs`. The child IS a container group running the Hub image (the aci provider ships only in a preview image, `ghcr.io/zalbiraw/traefik-hub` — pass it via `custom_image_*`), with a private vnet-injected IP the parent dials.
 
 Auth is the group's **system-assigned managed identity** (DefaultAzureCredential) + a `Reader` role assignment scoped to the resource group — no client secret. The module appends the provider flags (`--hub.providers.aci.subscriptionID/resourceGroup/ipMode/exposedByDefault/...`) to `custom_arguments`; `subscription_id` defaults from `data.azurerm_client_config`. The file-provider config rides a secret volume (the Hub image is scratch — no shell, so no init-sidecar trick like ECS).
 
@@ -69,27 +69,27 @@ module "aci_traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [azurerm_container_group.traefik](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/container_group) | resource |
 | [azurerm_role_assignment.reader](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group the container group is created in (also the aci provider's default discovery scope) | `string` | n/a | yes |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | ID of the existing subnet the container group joins. MUST be delegated to Microsoft.ContainerInstance (compute/azure/vnet's aci\_subnet\_id already is). The parent dials the group's private IP :9443 in-vnet. | `string` | n/a | yes |
 | <a name="input_aci_provider"></a> [aci\_provider](#input\_aci\_provider) | Traefik Hub aci provider configuration (hub.providers.aci). subscription\_id defaults to the caller's (data.azurerm\_client\_config); resource\_group defaults to resource\_group\_name. No client credentials: DefaultAzureCredential resolves the group's system-assigned managed identity. Without port\_discovery the provider falls back to the container group's lowest declared exposed port. | <pre>object({<br/>    enabled            = optional(bool, true)<br/>    subscription_id    = optional(string, "")<br/>    resource_group     = optional(string, "")<br/>    ip_mode            = optional(string, "private")<br/>    exposed_by_default = optional(bool, false)<br/>    default_rule       = optional(string, "")<br/>    constraints        = optional(string, "")<br/>    refresh_seconds    = optional(number, null)<br/>    port_discovery     = optional(bool, false)<br/>  })</pre> | `{}` | no |
@@ -138,7 +138,7 @@ module "aci_traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_container_group_id"></a> [container\_group\_id](#output\_container\_group\_id) | ID of the Traefik container group |
 | <a name="output_ip_address"></a> [ip\_address](#output\_ip\_address) | Private vnet-injected IP of the Traefik container group (the parent dials https://<ip>:9443) |
 | <a name="output_principal_id"></a> [principal\_id](#output\_principal\_id) | Principal ID of the group's system-assigned managed identity (the aci provider's credential) |

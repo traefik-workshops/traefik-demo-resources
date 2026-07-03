@@ -2,7 +2,7 @@
 
 Traefik Hub on one GCE VM — the GCP sibling of `traefik/ec2`/`traefik/azure-vm` and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami VMs via its own `hub.providers.gce` provider.
 
-Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The gce provider ships only in a preview image (`docker.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so the metadata server/ADC and the uplink work).
+Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The gce provider ships only in a preview image (`ghcr.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so the metadata server/ADC and the uplink work).
 
 Auth is a module-created **service account attached to the VM** (Application Default Credentials) + a `roles/compute.viewer` project binding (`enable_viewer_role`) — no key file. The module appends the provider flags (`--hub.providers.gce.projectID/zones/ipMode/exposedByDefault/...`) to `custom_arguments`; `project_id` defaults from `data.google_client_config`.
 
@@ -72,20 +72,20 @@ module "gce_traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 6.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [google_compute_firewall.traefik](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_firewall) | resource |
 | [google_compute_instance.traefik](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/compute_instance) | resource |
 | [google_project_iam_member.viewer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
@@ -94,7 +94,7 @@ module "gce_traefik" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_custom_arguments"></a> [custom\_arguments](#input\_custom\_arguments) | Additional CLI arguments for Traefik | `list(string)` | `[]` | no |
 | <a name="input_custom_envs"></a> [custom\_envs](#input\_custom\_envs) | Custom environment variables | <pre>list(object({<br/>    name  = string<br/>    value = string<br/>  }))</pre> | `[]` | no |
 | <a name="input_custom_image_registry"></a> [custom\_image\_registry](#input\_custom\_image\_registry) | Custom image registry | `string` | `""` | no |
@@ -150,7 +150,7 @@ module "gce_traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of the Traefik VM with its details (keyed like traefik/ec2: traefik-1) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance names to their private IP addresses (the parent dials https://<private-ip>:9443) |
 | <a name="output_public_ips"></a> [public\_ips](#output\_public\_ips) | Map of instance names to their public IP addresses (empty string when enable\_public\_ip = false) |

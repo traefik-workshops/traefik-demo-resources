@@ -2,7 +2,7 @@
 
 Traefik Hub as one Alibaba Cloud ECI container group — the Alibaba sibling of `traefik/aci` and `traefik/oci-ci`, and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami container groups via its own `hub.providers.alibabaECI` provider.
 
-Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: the Hub image (`docker.io/zalbiraw/traefik-hub` via `custom_image_*`; the alibabaECI provider ships only there) runs with `commands = ["/traefik-hub"]` and the token + extracted args as `args` (exec'd with no shell, so the token is inlined). The Hub image is scratch — a **ConfigFileVolume** (ECI's config-file volume mechanism) carries the file-provider config.
+Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: the Hub image (`ghcr.io/zalbiraw/traefik-hub` via `custom_image_*`; the alibabaECI provider ships only there) runs with `commands = ["/traefik-hub"]` and the token + extracted args as `args` (exec'd with no shell, so the token is inlined). The Hub image is scratch — a **ConfigFileVolume** (ECI's config-file volume mechanism) carries the file-provider config.
 
 **Auth — keyless by default:** ECI container groups take an instance RAM role (`ram_role_name`, trusted by `ecs.aliyuncs.com` — ECI serves the same `100.100.100.200` metadata endpoint as ECS). `enable_ram_role` (default on) creates the role + a read-only `eci:Describe*` policy and binds it, and the provider's empty-credential default chain (env → profile → RAM role via metadata) consumes it. Fallback for accounts without RAM rights: the `access_key_id`/`access_key_secret` (+ optional STS `security_token`) variables, delivered as `--hub.providers.alibabaECI.accessKey*` flags.
 
@@ -72,20 +72,20 @@ module "alibaba_eci_traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_alicloud"></a> [alicloud](#requirement\_alicloud) | ~> 1.220 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [alicloud_eci_container_group.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/eci_container_group) | resource |
 | [alicloud_ram_policy.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_policy) | resource |
 | [alicloud_ram_role.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_role) | resource |
@@ -94,7 +94,7 @@ module "alibaba_eci_traefik" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_security_group_id"></a> [security\_group\_id](#input\_security\_group\_id) | Security group ID attached to the container group (required by ECI, e.g. compute/alibaba/vpc's security\_group\_id — its extra\_ingress\_ports must cover the :9443 uplink) | `string` | n/a | yes |
 | <a name="input_vswitch_id"></a> [vswitch\_id](#input\_vswitch\_id) | ID of the existing vswitch the container group joins (the parent dials the group's private IP :9443 in-VPC, e.g. compute/alibaba/vpc's vswitch\_id) | `string` | n/a | yes |
 | <a name="input_access_key_id"></a> [access\_key\_id](#input\_access\_key\_id) | Alibaba Cloud access key ID the alibabaECI provider authenticates with — the fallback when enable\_ram\_role is off (e.g. no RAM rights). Empty = the default credential chain (the RAM role). | `string` | `""` | no |
@@ -145,7 +145,7 @@ module "alibaba_eci_traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_container_group_id"></a> [container\_group\_id](#output\_container\_group\_id) | ID of the Traefik ECI container group |
 | <a name="output_ip_address"></a> [ip\_address](#output\_ip\_address) | Private vswitch IP of the Traefik container group (the parent dials https://<ip>:9443) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance name to private IP (mirrors traefik/alibaba-ecs's consumption shape: values(...)[0]) |

@@ -2,7 +2,7 @@
 
 Traefik Hub on one OCI Compute VM — the OCI sibling of `traefik/ec2`/`traefik/azure-vm`/`traefik/gce` and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami VMs via its own `hub.providers.oci` provider.
 
-Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The oci provider ships only in a preview image (`docker.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so IMDS and the uplink work).
+Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The oci provider ships only in a preview image (`ghcr.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so IMDS and the uplink work).
 
 Auth is **instance principals** — no API keys on the VM. `enable_instance_principal` (default on) instantiates `security/oci-instance-principal`: a dynamic group matching every instance in the compartment plus a policy, so the SDK's IMDS flow (`useInstancePrincipal=true`) just works. The module appends the provider flags (`--hub.providers.oci.compartmentID/ipMode/exposedByDefault/useInstancePrincipal/...`) to `custom_arguments`; `compartment_id` defaults to the module's own.
 
@@ -72,20 +72,20 @@ module "oci_traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_oci"></a> [oci](#requirement\_oci) | ~> 7.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [oci_core_instance.traefik](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_instance) | resource |
 | [oci_core_network_security_group.traefik](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_network_security_group) | resource |
 | [oci_core_network_security_group_security_rule.ingress](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_network_security_group_security_rule) | resource |
@@ -93,7 +93,7 @@ module "oci_traefik" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_compartment_id"></a> [compartment\_id](#input\_compartment\_id) | OCID of the compartment the VM is created in (also the oci provider's default discovery scope and the instance-principal dynamic group's match) | `string` | n/a | yes |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | OCID of the existing subnet the VM VNIC joins (the parent dials the VM's private IP :9443 in-VCN, e.g. compute/oracle/oke's nodes\_subnet\_id) | `string` | n/a | yes |
 | <a name="input_availability_domain"></a> [availability\_domain](#input\_availability\_domain) | Availability domain the VM is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke). | `string` | `""` | no |
@@ -152,7 +152,7 @@ module "oci_traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instance_id"></a> [instance\_id](#output\_instance\_id) | OCID of the Traefik VM (the member security/oci-instance-principal's dynamic group matches by compartment) |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of the Traefik VM with its details (keyed like traefik/ec2: traefik-1) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance names to their private IP addresses (the parent dials https://<private-ip>:9443) |

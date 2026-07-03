@@ -63,20 +63,20 @@ module "traefik_ibm_vpc" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_ibm"></a> [ibm](#requirement\_ibm) | ~> 1.89 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_ibm"></a> [ibm](#provider\_ibm) | ~> 1.89 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [ibm_is_floating_ip.traefik](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/is_floating_ip) | resource |
 | [ibm_is_instance.traefik](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/is_instance) | resource |
 | [ibm_is_security_group.traefik](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/is_security_group) | resource |
@@ -86,7 +86,7 @@ module "traefik_ibm_vpc" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | ID of the existing subnet the instance joins (the parent dials the instance's private IP :9443 in-VPC, e.g. compute/ibm/vpc's subnet\_id). The zone, VPC and default provider region derive from it. | `string` | n/a | yes |
 | <a name="input_base_config_content"></a> [base\_config\_content](#input\_base\_config\_content) | The ibmVPC provider's BASE CONFIGURATION file content (YAML routers/services/middlewares). REQUIRED when the provider is enabled — instances carry only a '<serviceNameTagKey>:<service>' tag, and the provider fills each service's servers with the tagged instances' IPs. Shipped to the VM at base\_config\_path via cloud-init and hot-reloaded on change (fsnotify). | `string` | `""` | no |
 | <a name="input_base_config_path"></a> [base\_config\_path](#input\_base\_config\_path) | Path on the VM the base configuration file is written to and the provider reads it from (--hub.providers.ibmVPC.filename). Keep it under /data (mounted into the preview-mode container) and OUT of /etc/traefik-hub/dynamic (the file provider watches that directory and would double-load the routers). | `string` | `"/data/traefik-hub/ibmvpc.yaml"` | no |
@@ -144,7 +144,7 @@ module "traefik_ibm_vpc" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instance_crn"></a> [instance\_crn](#output\_instance\_crn) | CRN of the Traefik virtual server instance — what an ibm\_iam\_trusted\_profile\_link (cr\_type "VSI") links for the keyless trusted-profile flow |
 | <a name="output_instance_id"></a> [instance\_id](#output\_instance\_id) | ID of the Traefik virtual server instance |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of the Traefik instance with its details (keyed like traefik/ec2: traefik-1) |

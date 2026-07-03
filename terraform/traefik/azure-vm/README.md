@@ -2,7 +2,7 @@
 
 Traefik Hub on one Azure Linux VM — the Azure sibling of `traefik/ec2` and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami VMs via its own `hub.providers.azureVM` provider.
 
-Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The azureVM provider ships only in a preview image (`docker.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so IMDS/managed-identity and the uplink work).
+Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The azureVM provider ships only in a preview image (`ghcr.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so IMDS/managed-identity and the uplink work).
 
 Auth is the VM's **system-assigned managed identity** (DefaultAzureCredential) + a `Reader` role assignment scoped to the resource group — no client secret. The module appends the provider flags (`--hub.providers.azurevm.subscriptionID/resourceGroup/ipMode/exposedByDefault/...`) to `custom_arguments`; `subscription_id` defaults from `data.azurerm_client_config`.
 

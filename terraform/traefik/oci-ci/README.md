@@ -2,7 +2,7 @@
 
 Traefik Hub as one OCI Container Instance — the OCI sibling of `traefik/aci` and a **multicluster CHILD**: it joins a Hub parent over a `:9443` uplink and discovers local whoami container instances via its own `hub.providers.ociContainerInstances` provider.
 
-Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: the Hub image (`docker.io/zalbiraw/traefik-hub` via `custom_image_*`; the ocici provider ships only there) runs with `command = ["/traefik-hub"]` and the token + extracted args as `arguments` (exec'd with no shell, so the token is inlined). The Hub image is scratch — **CONFIGFILE volumes** (OCI's secret-volume mechanism) carry the file-provider config (and, with resource-principal auth off, the OCI credentials).
+Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: the Hub image (`ghcr.io/zalbiraw/traefik-hub` via `custom_image_*`; the ocici provider ships only there) runs with `command = ["/traefik-hub"]` and the token + extracted args as `arguments` (exec'd with no shell, so the token is inlined). The Hub image is scratch — **CONFIGFILE volumes** (OCI's secret-volume mechanism) carry the file-provider config (and, with resource-principal auth off, the OCI credentials).
 
 **Auth — resource principals, keyless by default:** container instances inject *resource-principal* credentials, and the ocici provider consumes them via `--hub.providers.ociContainerInstances.useResourcePrincipal=true`. `enable_resource_principal` (default on) creates a dynamic group matching the compartment's container instances plus a read-only policy (`read compute-container-family` / `read virtual-network-family` in the compartment) — the `security/oci-instance-principal` shape for container instances. Dynamic groups are tenancy-level, so it needs `tenancy_id` and IAM rights; both resources are named `<name>-resource-principal` off `var.name`, so two instantiations only collide if they share the same name. Disable the toggle to fall back to **config-file auth**: pass `oci_config` (an `~/.oci` style config whose `key_file` points inside the mount, e.g. `/etc/oci/key.pem`) + `oci_private_key`, delivered as a CONFIGFILE volume with `--hub.providers.ociContainerInstances.configFilePath` pointing at it. `ocici_provider.use_instance_principal` does **not** work on container instances (no IMDS flow) and is mutually exclusive with the resource-principal toggle (the gateway rejects combining the flags).
 
@@ -74,20 +74,20 @@ module "oci_ci_traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_oci"></a> [oci](#requirement\_oci) | ~> 7.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [oci_container_instances_container_instance.traefik](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/container_instances_container_instance) | resource |
 | [oci_identity_dynamic_group.resource_principal](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/identity_dynamic_group) | resource |
 | [oci_identity_policy.resource_principal](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/identity_policy) | resource |
@@ -95,7 +95,7 @@ module "oci_ci_traefik" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_compartment_id"></a> [compartment\_id](#input\_compartment\_id) | OCID of the compartment the container instance is created in (also the ociContainerInstances provider's default discovery scope) | `string` | n/a | yes |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | OCID of the existing subnet the container instance VNIC joins (the parent dials the instance's private IP :9443 in-VCN, e.g. compute/oracle/oke's nodes\_subnet\_id) | `string` | n/a | yes |
 | <a name="input_availability_domain"></a> [availability\_domain](#input\_availability\_domain) | Availability domain the container instance is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke). | `string` | `""` | no |
@@ -149,7 +149,7 @@ module "oci_ci_traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_container_instance_id"></a> [container\_instance\_id](#output\_container\_instance\_id) | OCID of the Traefik container instance |
 | <a name="output_ip_address"></a> [ip\_address](#output\_ip\_address) | Private VNIC IP of the Traefik container instance (the parent dials https://<ip>:9443) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance name to private IP (mirrors traefik/oci-vm's consumption shape: values(...)[0]) |
