@@ -22,6 +22,12 @@ variable "prometheus_port" {
   default     = 8889
 }
 
+variable "prometheus_scrape_configs" {
+  type        = any
+  description = "Prometheus scrape_configs the hub collector runs itself (plain scrape_config objects, e.g. spoke node_exporters reached over private networking). The scraped series join the shared metrics pipeline, so pull-only exporters flow through the single hub collector without a per-VM collector shim."
+  default     = []
+}
+
 variable "enable_loki" {
   type        = bool
   description = "Enable Grafana Loki observability module"

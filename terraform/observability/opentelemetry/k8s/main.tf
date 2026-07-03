@@ -39,23 +39,28 @@ locals {
       value = exporter
   }]) : []
 
-  metrics_pipeline = length(local.metric_exporters) > 0 ? concat([
-    {
-      name  = "config.service.pipelines.metrics.receivers[0]"
-      value = "otlp"
-    },
-    ], [for i, c in concat(local.servicegraph_connector, local.spanmetrics_connector) : {
-      # the connectors' generated series enter the metrics pipeline as receivers
-      name  = "config.service.pipelines.metrics.receivers[${i + 1}]"
-      value = c
-    }], [
-    {
-      name  = "config.service.pipelines.metrics.processors[0]"
-      value = "batch"
-    }
-    ], [for exporter in local.metric_exporters : {
-      name  = "config.service.pipelines.metrics.exporters[${index(local.metric_exporters, exporter)}]"
-      value = exporter
+  # Metrics enter from OTLP pushes, the trace-derived connectors, and (when
+  # scrape configs are set) the collector's own Prometheus scraper.
+  prom_scrape_enabled = length(var.prometheus_scrape_configs) > 0
+  metrics_receivers = concat(
+    ["otlp"],
+    local.servicegraph_connector,
+    local.spanmetrics_connector,
+    local.prom_scrape_enabled ? ["prometheus"] : [],
+  )
+
+  metrics_pipeline = length(local.metric_exporters) > 0 ? concat(
+    [for i, r in local.metrics_receivers : {
+      name  = "config.service.pipelines.metrics.receivers[${i}]"
+      value = r
+      }], [
+      {
+        name  = "config.service.pipelines.metrics.processors[0]"
+        value = "batch"
+      }
+      ], [for exporter in local.metric_exporters : {
+        name  = "config.service.pipelines.metrics.exporters[${index(local.metric_exporters, exporter)}]"
+        value = exporter
   }]) : []
 
   traces_pipeline = length(local.trace_exporters) > 0 ? concat([
@@ -122,7 +127,7 @@ resource "helm_release" "opentelemetry" {
         }
       }
       config = {
-        receivers = {
+        receivers = merge({
           otlp = {
             protocols = {
               http = {
@@ -133,7 +138,16 @@ resource "helm_release" "opentelemetry" {
               }
             }
           }
-        }
+          }, local.prom_scrape_enabled ? {
+          # Hub-side pull for exporters that can't push (spoke node_exporters):
+          # the hub collector scrapes them over private networking, so every
+          # signal still funnels through this one collector.
+          prometheus = {
+            config = {
+              scrape_configs = var.prometheus_scrape_configs
+            }
+          }
+        } : {})
         # Trace-derived metrics: connectors consume the traces pipeline (as exporters)
         # and emit generated series into the metrics pipeline (as receivers).
         # servicegraph -> Grafana's Tempo service map (grafana/k8s sets

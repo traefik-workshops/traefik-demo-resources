@@ -79,6 +79,7 @@ module "otel" {
 | <a name="input_newrelic_endpoint"></a> [newrelic\_endpoint](#input\_newrelic\_endpoint) | New Relic endpoint | `string` | `""` | no |
 | <a name="input_newrelic_license_key"></a> [newrelic\_license\_key](#input\_newrelic\_license\_key) | New Relic license key | `string` | `""` | no |
 | <a name="input_prometheus_port"></a> [prometheus\_port](#input\_prometheus\_port) | Prometheus port | `number` | `8889` | no |
+| <a name="input_prometheus_scrape_configs"></a> [prometheus\_scrape\_configs](#input\_prometheus\_scrape\_configs) | Prometheus scrape\_configs the hub collector runs itself (plain scrape\_config objects, e.g. spoke node\_exporters reached over private networking). The scraped series join the shared metrics pipeline, so pull-only exporters flow through the single hub collector without a per-VM collector shim. | `any` | `[]` | no |
 | <a name="input_tempo_endpoint"></a> [tempo\_endpoint](#input\_tempo\_endpoint) | Tempo endpoint | `string` | `""` | no |
 
 ## Outputs
