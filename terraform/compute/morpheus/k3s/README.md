@@ -54,3 +54,72 @@ provider "kubernetes" {
 - `k3s_extra_args` appends raw `k3s server` args for anything else (e.g. `--cluster-cidr`).
 - `network` is optional — the layout's default network selection applies when empty (the provider's required `network_interfaces` is passed as `[]`); when set, `network_interface_type_id` is required too (the Morpheus API wants the interface type ID).
 - MIGRATED from the community-deprecated `gomorpheus/morpheus` provider (EOL Aug 2026) to the official `HPE/hpe` provider (`~> 1.5`). One functional loss: `hpe_morpheus_instance` has **no `labels` attribute** (v1.5.0), so `morpheus_labels` must stay empty (a validation enforces it) — set Morpheus labels in the appliance instead. `plan_provision_type` is now the provision type **code** (`"kvm"`), not the name (`"KVM"`). State from gomorpheus deployments does not migrate — plan on recreating.
+
+<!-- BEGIN_TF_DOCS -->
+
+
+## Requirements
+
+| Name | Version |
+| ---- | ------- |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_external"></a> [external](#requirement\_external) | >= 2.0 |
+| <a name="requirement_hpe"></a> [hpe](#requirement\_hpe) | ~> 1.5 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
+
+## Providers
+
+| Name | Version |
+| ---- | ------- |
+| <a name="provider_external"></a> [external](#provider\_external) | >= 2.0 |
+| <a name="provider_hpe"></a> [hpe](#provider\_hpe) | ~> 1.5 |
+| <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Resources
+
+| Name | Type |
+| ---- | ---- |
+| [hpe_morpheus_instance.k3s](https://registry.terraform.io/providers/HPE/hpe/latest/docs/resources/morpheus_instance) | resource |
+| [hpe_morpheus_task_shell_script.bootstrap](https://registry.terraform.io/providers/HPE/hpe/latest/docs/resources/morpheus_task_shell_script) | resource |
+| [hpe_morpheus_workflow_provisioning.bootstrap](https://registry.terraform.io/providers/HPE/hpe/latest/docs/resources/morpheus_workflow_provisioning) | resource |
+| [null_resource.update_kubeconfig](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+
+## Inputs
+
+| Name | Description | Type | Default | Required |
+| ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_cloud"></a> [cloud](#input\_cloud) | Name of the Morpheus cloud (e.g. the MVM/HVM cloud registered on the appliance) the instance is provisioned into | `string` | n/a | yes |
+| <a name="input_group"></a> [group](#input\_group) | Name of the Morpheus group the instance belongs to | `string` | n/a | yes |
+| <a name="input_instance_layout"></a> [instance\_layout](#input\_instance\_layout) | Name of the instance layout under instance\_type (e.g. "Single KVM VM") | `string` | n/a | yes |
+| <a name="input_plan"></a> [plan](#input\_plan) | Name of the service plan — the plan IS the VM shape on Morpheus (no per-module cpu/memory knobs), so pick one that fits a demo hub (e.g. "4 CPU, 8GB Memory") | `string` | n/a | yes |
+| <a name="input_resource_pool_name"></a> [resource\_pool\_name](#input\_resource\_pool\_name) | Name of the resource pool (the MVM/HVM cluster) to provision the instance to | `string` | n/a | yes |
+| <a name="input_ssh_private_key"></a> [ssh\_private\_key](#input\_ssh\_private\_key) | PEM private key the kubeconfig fetch SSHes with. Its public half must be accepted by ssh\_user — pass ssh\_public\_key (the bootstrap authorizes it) or bake it into the virtual image. | `string` | n/a | yes |
+| <a name="input_instance_layout_version"></a> [instance\_layout\_version](#input\_instance\_layout\_version) | Version of the instance layout (e.g. "24.04") — disambiguates layouts sharing a name. Empty = match by name alone. | `string` | `""` | no |
+| <a name="input_instance_type"></a> [instance\_type](#input\_instance\_type) | Name of the Morpheus instance type to provision from (e.g. "Ubuntu"). Must be an instance type whose layout boots a cloud-init-enabled Linux image — the Morpheus agent (installed via cloud-init) is what runs the k3s bootstrap. | `string` | `"Ubuntu"` | no |
+| <a name="input_k3s_channel"></a> [k3s\_channel](#input\_k3s\_channel) | k3s release channel for the install script (stable, latest, or a minor like v1.31) | `string` | `"stable"` | no |
+| <a name="input_k3s_extra_args"></a> [k3s\_extra\_args](#input\_k3s\_extra\_args) | Extra `k3s server` arguments appended to the install. The module always sets --disable traefik (the traefik/k8s module deploys Hub instead) and --write-kubeconfig-mode 644 (the SSH kubeconfig fetch reads it without sudo); servicelb stays enabled so LoadBalancer Services get the node IP. | `list(string)` | `[]` | no |
+| <a name="input_kubeconfig_timeout"></a> [kubeconfig\_timeout](#input\_kubeconfig\_timeout) | Seconds the kubeconfig fetch waits for provisioning + the k3s bootstrap to finish | `number` | `600` | no |
+| <a name="input_morpheus_labels"></a> [morpheus\_labels](#input\_morpheus\_labels) | MUST STAY EMPTY: the HPE/hpe provider's hpe\_morpheus\_instance exposes NO labels attribute (checked at v1.5.0; gomorpheus's morpheus\_mvm\_instance did), so Morpheus labels can't be applied from terraform anymore. The variable is kept (and validated empty) so existing callers passing [] keep working; set labels in the appliance instead. | `list(string)` | `[]` | no |
+| <a name="input_network"></a> [network](#input\_network) | Name of the Morpheus network the instance NIC joins (DHCP is assumed). Empty = the layout's default network selection; set it (plus network\_interface\_type\_id) when the layout doesn't default one. | `string` | `""` | no |
+| <a name="input_network_interface_type_id"></a> [network\_interface\_type\_id](#input\_network\_interface\_type\_id) | Morpheus network interface TYPE ID for the NIC (required when network is set; the KVM virtio type on MVM clouds — look it up in the appliance) | `number` | `null` | no |
+| <a name="input_plan_provision_type"></a> [plan\_provision\_type](#input\_plan\_provision\_type) | Provision type CODE the plan is looked up under (the hpe\_morpheus\_service\_plan data source filters by provision\_type\_code; "kvm" for MVM / HPE VM Essentials clouds — the gomorpheus-era value here was the NAME "KVM"). Empty = match the plan by name alone. | `string` | `"kvm"` | no |
+| <a name="input_root_volume"></a> [root\_volume](#input\_root\_volume) | Optional explicit root volume {size (GB), datastore\_id, storage\_type, name}. null = the layout/plan defaults. | <pre>object({<br/>    size         = number<br/>    datastore_id = number<br/>    storage_type = optional(number, 1)<br/>    name         = optional(string, "root")<br/>  })</pre> | `null` | no |
+| <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | Public key the bootstrap task authorizes for ssh\_user. Empty = the image (or the Morpheus provisioning user's key pair) must already accept ssh\_private\_key. | `string` | `""` | no |
+| <a name="input_ssh_user"></a> [ssh\_user](#input\_ssh\_user) | SSH user the kubeconfig fetch logs in as. The bootstrap creates it (and authorizes ssh\_public\_key) when the image doesn't ship it. | `string` | `"ubuntu"` | no |
+| <a name="input_tls_san"></a> [tls\_san](#input\_tls\_san) | Extra Subject Alternative Name for the k3s serving cert (--tls-san). The node's own IP is a SAN by default, so this is only needed to reach the API by another name (a DNS alias, a VIP). | `string` | `""` | no |
+| <a name="input_update_kubeconfig"></a> [update\_kubeconfig](#input\_update\_kubeconfig) | Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm\_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`. | `bool` | `true` | no |
+| <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Name for the k3s instance (also its hostname, and the prefix of the bootstrap task/workflow names — unique per appliance) | `string` | `"k3s"` | no |
+
+## Outputs
+
+| Name | Description |
+| ---- | ----------- |
+| <a name="output_client_certificate"></a> [client\_certificate](#output\_client\_certificate) | Admin client certificate (PEM) — k3s auth is cert-based, AKS/k3d-style |
+| <a name="output_client_key"></a> [client\_key](#output\_client\_key) | Admin client key (PEM) |
+| <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | Cluster CA certificate (PEM) |
+| <a name="output_host"></a> [host](#output\_host) | Kubernetes API endpoint (https://<instance-ip>:6443) |
+| <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | Admin kubeconfig (server rewritten from 127.0.0.1 to the instance IP) |
+| <a name="output_node_ip"></a> [node\_ip](#output\_node\_ip) | The instance's primary connection IP (connection\_info[0]) — also where klipper (k3s servicelb) publishes LoadBalancer Services, so point demo DNS / /etc/hosts entries here |
+| <a name="output_vm_id"></a> [vm\_id](#output\_vm\_id) | Morpheus instance ID of the k3s instance |
+| <a name="output_vm_name"></a> [vm\_name](#output\_vm\_name) | Name of the k3s instance |
+<!-- END_TF_DOCS -->

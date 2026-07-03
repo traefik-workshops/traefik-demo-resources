@@ -34,38 +34,42 @@ provider "kubernetes" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_ibm"></a> [ibm](#requirement\_ibm) | ~> 1.89 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_ibm"></a> [ibm](#provider\_ibm) | ~> 1.89 |
+| <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [ibm_container_vpc_cluster.traefik_demo](https://registry.terraform.io/providers/IBM-Cloud/ibm/latest/docs/resources/container_vpc_cluster) | resource |
+| [null_resource.iks_cluster](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | IKS cluster name. | `string` | n/a | yes |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | Existing VPC subnet IDs the cluster joins (e.g. compute/ibm/vpc's subnet\_ids). One zone entry per subnet; all subnets must belong to the same VPC. The region comes from the configured ibm provider. | `list(string)` | n/a | yes |
 | <a name="input_cluster_node_count_per_zone"></a> [cluster\_node\_count\_per\_zone](#input\_cluster\_node\_count\_per\_zone) | Number of worker nodes PER ZONE (IKS semantics — one per subnet zone; two subnets x 1 = 2 workers). | `number` | `1` | no |
 | <a name="input_cluster_node_type"></a> [cluster\_node\_type](#input\_cluster\_node\_type) | Worker node flavor (4 vCPU / 16 GB — the smallest VPC gen2 flavor IKS reliably accepts). | `string` | `"bx2.4x16"` | no |
 | <a name="input_kube_version"></a> [kube\_version](#input\_kube\_version) | IKS Kubernetes version (e.g. 1.32.3). Empty = the IKS default version at create time. | `string` | `""` | no |
 | <a name="input_resource_group_id"></a> [resource\_group\_id](#input\_resource\_group\_id) | Resource group ID the cluster lands in. Empty = the account's default resource group. | `string` | `""` | no |
+| <a name="input_update_kubeconfig"></a> [update\_kubeconfig](#input\_update\_kubeconfig) | Update kubeconfig after cluster creation (`ibmcloud ks cluster config` — merges an exec-auth context into ~/.kube/config and switches to it, so kubectl mints fresh IAM tokens instead of going stale after ~1h). | `bool` | `true` | no |
 | <a name="input_wait_till"></a> [wait\_till](#input\_wait\_till) | Readiness gate the create blocks on (MasterNodeReady \| OneWorkerNodeReady \| IngressReady \| Normal). The default unblocks as soon as one worker is schedulable. | `string` | `"OneWorkerNodeReady"` | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | IKS cluster CA certificate (PEM) |
 | <a name="output_cluster_id"></a> [cluster\_id](#output\_cluster\_id) | IKS cluster ID |
 | <a name="output_crn"></a> [crn](#output\_crn) | IKS cluster CRN — what an IAM trusted profile's compute-resource claim rule (cr\_type "IKS\_SA") scopes on to trust in-cluster workloads |

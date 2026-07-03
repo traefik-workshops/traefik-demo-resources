@@ -118,3 +118,9 @@ variable "kubeconfig_timeout" {
   description = "Seconds the kubeconfig fetch waits for k3s to finish installing on first boot"
   default     = 300
 }
+
+variable "update_kubeconfig" {
+  type        = bool
+  default     = true
+  description = "Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`."
+}

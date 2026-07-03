@@ -37,3 +37,9 @@ variable "wait_till" {
   default     = "OneWorkerNodeReady"
   description = "Readiness gate the create blocks on (MasterNodeReady | OneWorkerNodeReady | IngressReady | Normal). The default unblocks as soon as one worker is schedulable."
 }
+
+variable "update_kubeconfig" {
+  type        = bool
+  default     = true
+  description = "Update kubeconfig after cluster creation (`ibmcloud ks cluster config` — merges an exec-auth context into ~/.kube/config and switches to it, so kubectl mints fresh IAM tokens instead of going stale after ~1h)."
+}

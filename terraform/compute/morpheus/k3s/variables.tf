@@ -67,6 +67,7 @@ variable "root_volume" {
   default     = null
 }
 
+# tflint-ignore: terraform_unused_declarations # deliberate compat shim: validated-empty (HPE/hpe has no labels attribute)
 variable "morpheus_labels" {
   type        = list(string)
   description = "MUST STAY EMPTY: the HPE/hpe provider's hpe_morpheus_instance exposes NO labels attribute (checked at v1.5.0; gomorpheus's morpheus_mvm_instance did), so Morpheus labels can't be applied from terraform anymore. The variable is kept (and validated empty) so existing callers passing [] keep working; set labels in the appliance instead."
@@ -127,4 +128,10 @@ variable "kubeconfig_timeout" {
   type        = number
   description = "Seconds the kubeconfig fetch waits for provisioning + the k3s bootstrap to finish"
   default     = 600
+}
+
+variable "update_kubeconfig" {
+  type        = bool
+  default     = true
+  description = "Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`."
 }

@@ -64,3 +64,23 @@ data "ibm_container_cluster_config" "traefik_demo" {
   cluster_name_id   = ibm_container_vpc_cluster.traefik_demo.id
   resource_group_id = local.resource_group_id
 }
+
+# Merge the cluster into the ambient kubeconfig — the IBM analogue of aws/eks's
+# `update-kubeconfig` local-exec. `ibmcloud ks cluster config` writes an
+# exec-auth context (kubectl mints a fresh IAM token per call, so the ambient
+# config never goes stale mid-demo, unlike a rendered token file) and switches
+# the current context to it.
+resource "null_resource" "iks_cluster" {
+  provisioner "local-exec" {
+    command = <<EOT
+      ibmcloud ks cluster config --cluster "${ibm_container_vpc_cluster.traefik_demo.id}"
+    EOT
+  }
+
+  triggers = {
+    always_run = timestamp()
+  }
+
+  count      = var.update_kubeconfig ? 1 : 0
+  depends_on = [ibm_container_vpc_cluster.traefik_demo]
+}
