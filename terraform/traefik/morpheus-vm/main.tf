@@ -3,17 +3,19 @@
 # =============================================================================
 # Uses extracted config from traefik/shared (via Helm template) and the shared
 # traefik/cloud-init template, exactly like traefik/ec2, traefik/azure-vm and
-# traefik/vsphere-vm. One morpheus_mvm_instance (MVM — the KVM compute type of
-# HPE VM Essentials / HVM) runs the Hub image; its morpheus provider
-# (--hub.providers.morpheus) discovers workload instances by their `traefik.*`
-# instance TAGS (dotted name/value pairs — the cloud-style label model).
+# traefik/vsphere-vm. One hpe_morpheus_instance on an MVM cloud (MVM — the KVM
+# compute type of HPE VM Essentials / HVM; config_hvm is the KVM placement)
+# runs the Hub image; its morpheus provider (--hub.providers.morpheus)
+# discovers workload instances by their `traefik.*` instance TAGS (dotted
+# name/value pairs — the cloud-style label model).
 # Morpheus has NO ambient identity for the gateway to lean on, so the provider
 # authenticates explicitly: an API access token (var.morpheus_access_token,
 # preferred) OR username+password (var.morpheus_provider.username +
 # var.morpheus_password) — the gateway's Init enforces exactly one.
 #
-# BOOTSTRAP: the gomorpheus terraform provider has no user-data passthrough on
-# its instance resources, so the composed traefik/cloud-init payload is
+# BOOTSTRAP: the HPE/hpe terraform provider has no user-data passthrough on
+# its instance resource (verified against the v1.5.0 schema; neither did
+# gomorpheus), so the composed traefik/cloud-init payload is
 # CONVERTED (yamldecode below: write_files -> heredocs, runcmd -> tolerated
 # sequential entries — cloud-init's own semantics) into a shell script and
 # delivered as a Morpheus shell-script task in a postProvision provisioning
@@ -140,38 +142,43 @@ locals {
   traefik_labels = merge(local.self_labels, var.extra_labels)
 }
 
-data "morpheus_cloud" "this" {
+data "hpe_morpheus_cloud" "this" {
   name = var.cloud
 }
 
-data "morpheus_group" "this" {
+data "hpe_morpheus_group" "this" {
   name = var.group
 }
 
-data "morpheus_instance_type" "this" {
+data "hpe_morpheus_instance_type" "this" {
   name = var.instance_type
 }
 
-data "morpheus_instance_layout" "this" {
+data "hpe_morpheus_instance_type_layout" "this" {
   name    = var.instance_layout
   version = var.instance_layout_version != "" ? var.instance_layout_version : null
 }
 
-data "morpheus_plan" "this" {
-  name           = var.plan
-  provision_type = var.plan_provision_type
+data "hpe_morpheus_service_plan" "this" {
+  name                = var.plan
+  provision_type_code = var.plan_provision_type != "" ? var.plan_provision_type : null
 }
 
-data "morpheus_network" "this" {
+data "hpe_morpheus_network" "this" {
   count = var.network != "" ? 1 : 0
   name  = var.network
+}
+
+data "hpe_morpheus_resource_pool" "this" {
+  cloud_id = data.hpe_morpheus_cloud.this.id
+  name     = var.resource_pool_name
 }
 
 # The Traefik install as a Morpheus library item — names derive from vm_name,
 # unique per appliance. NB the script carries the Hub token and the provider
 # credential (like the siblings' unit files) — demo-grade, appliance admins can
 # read library tasks.
-resource "morpheus_shell_script_task" "bootstrap" {
+resource "hpe_morpheus_task_shell_script" "bootstrap" {
   name           = "${var.vm_name}-traefik-bootstrap"
   source_type    = "local"
   script_content = local.bootstrap
@@ -183,56 +190,63 @@ resource "morpheus_shell_script_task" "bootstrap" {
   retry_delay_seconds = 15
 }
 
-resource "morpheus_provisioning_workflow" "bootstrap" {
+resource "hpe_morpheus_workflow_provisioning" "bootstrap" {
   name     = "${var.vm_name}-traefik-bootstrap"
   platform = "linux"
 
   task {
-    task_id    = morpheus_shell_script_task.bootstrap.id
+    # The HPE provider exposes task/workflow ids as strings but takes them as
+    # numbers here (and on task_set_id below) — hence the tonumber()s.
+    task_id    = tonumber(hpe_morpheus_task_shell_script.bootstrap.id)
     task_phase = "postProvision"
   }
 }
 
-resource "morpheus_mvm_instance" "traefik" {
-  name               = local.instance_key
-  cloud_id           = data.morpheus_cloud.this.id
-  group_id           = data.morpheus_group.this.id
-  instance_type_id   = data.morpheus_instance_type.this.id
-  instance_layout_id = data.morpheus_instance_layout.this.id
-  plan_id            = data.morpheus_plan.this.id
-  resource_pool_name = var.resource_pool_name
-  labels             = var.morpheus_labels
+resource "hpe_morpheus_instance" "traefik" {
+  name             = local.instance_key
+  cloud_id         = data.hpe_morpheus_cloud.this.id
+  group_id         = data.hpe_morpheus_group.this.id
+  instance_type_id = data.hpe_morpheus_instance_type.this.id
+  layout_id        = data.hpe_morpheus_instance_type_layout.this.id
+  plan_id          = data.hpe_morpheus_service_plan.this.id
 
-  tags = length(local.traefik_labels) > 0 ? local.traefik_labels : null
-
-  # The agent is what executes the postProvision bootstrap — never skip it.
-  skip_agent_install = false
-
-  workflow_id = morpheus_provisioning_workflow.bootstrap.id
-
-  dynamic "network_interface" {
-    for_each = var.network != "" ? [1] : []
-    content {
-      network_id                = data.morpheus_network.this[0].id
-      network_interface_type_id = var.network_interface_type_id
-    }
+  # KVM/MVM placement. no_agent defaults to TRUE on this provider (gomorpheus
+  # installed the agent by default) and the agent is what executes the
+  # postProvision bootstrap — never skip it.
+  config_hvm = {
+    resource_pool_id = tostring(data.hpe_morpheus_resource_pool.this.id)
+    no_agent         = false
   }
 
-  dynamic "storage_volume" {
-    for_each = var.root_volume != null ? [var.root_volume] : []
-    content {
-      root         = true
-      name         = storage_volume.value.name
-      size         = storage_volume.value.size
-      datastore_id = storage_volume.value.datastore_id
-      storage_type = storage_volume.value.storage_type
+  tags = length(local.traefik_labels) > 0 ? [
+    for k, v in local.traefik_labels : { name = k, value = v }
+  ] : null
+
+  task_set_id = tonumber(hpe_morpheus_workflow_provisioning.bootstrap.id)
+
+  # network_interfaces is REQUIRED by the provider schema; [] leans on the
+  # layout's default network selection (gomorpheus's optional-NIC behavior).
+  network_interfaces = var.network != "" ? [
+    {
+      network_id      = data.hpe_morpheus_network.this[0].id
+      network_type_id = var.network_interface_type_id
     }
-  }
+  ] : []
+
+  volumes = var.root_volume != null ? [
+    {
+      root_volume     = true
+      name            = var.root_volume.name
+      size            = var.root_volume.size
+      datastore_id    = var.root_volume.datastore_id
+      storage_type_id = var.root_volume.storage_type
+    }
+  ] : null
 
   lifecycle {
     # The workflow only runs at provision time — a config change must recreate
     # the instance (the same first-boot-only story as cloud-init).
-    replace_triggered_by = [morpheus_shell_script_task.bootstrap]
+    replace_triggered_by = [hpe_morpheus_task_shell_script.bootstrap]
 
     precondition {
       condition     = !var.morpheus_provider.enabled || (var.morpheus_access_token != "") != (var.morpheus_provider.username != "" && var.morpheus_password != "")

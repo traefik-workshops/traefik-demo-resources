@@ -15,7 +15,9 @@ data "external" "kubeconfig" {
   program = ["bash", "${path.module}/scripts/kubeconfig.sh"]
 
   query = {
-    host        = morpheus_mvm_instance.k3s.primary_ip_address
+    # connection_info[0] is Morpheus's primary connection address (the
+    # gomorpheus provider surfaced it as primary_ip_address).
+    host        = hpe_morpheus_instance.k3s.connection_info[0]
     user        = var.ssh_user
     private_key = var.ssh_private_key
     timeout     = tostring(var.kubeconfig_timeout)

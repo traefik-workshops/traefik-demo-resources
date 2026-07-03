@@ -1,5 +1,9 @@
 locals {
-  user_pool_name = "traefik-demo"
+  user_pool_name = var.name
+  # Cognito hosted-domain prefixes are DNS-label-shaped (hence the underscore
+  # swap) and GLOBALLY unique per region.
+  domain_prefix = var.domain_prefix != "" ? var.domain_prefix : replace(var.name, "_", "-")
+  domain        = var.enable_unique_domain ? "${local.domain_prefix}-${random_id.domain[0].hex}" : local.domain_prefix
 }
 
 resource "aws_cognito_user_pool" "pool" {
@@ -39,7 +43,7 @@ resource "aws_cognito_user_pool" "pool" {
 }
 
 resource "aws_cognito_user_pool_client" "client" {
-  name                                 = "traefik-demo"
+  name                                 = var.name
   user_pool_id                         = aws_cognito_user_pool.pool.id
   generate_secret                      = true
   allowed_oauth_flows_user_pool_client = true
@@ -53,9 +57,25 @@ resource "aws_cognito_user_pool_client" "client" {
   ]
 }
 
+# Opt-in randomness for the hosted domain (see enable_unique_domain). Kept
+# behind a default-off toggle so existing deployments see no domain replacement.
+resource "random_id" "domain" {
+  count       = var.enable_unique_domain ? 1 : 0
+  byte_length = 3
+}
+
 resource "aws_cognito_user_pool_domain" "main" {
-  domain       = replace(local.user_pool_name, "_", "-")
+  domain       = local.domain
   user_pool_id = aws_cognito_user_pool.pool.id
+
+  lifecycle {
+    precondition {
+      # AWS rejects these substrings in hosted-domain prefixes — a name like
+      # "aws-unified-ingress" needs domain_prefix to override the derived value.
+      condition     = length(regexall("aws|amazon|cognito", local.domain)) == 0
+      error_message = "Cognito hosted-domain prefixes can't contain \"aws\", \"amazon\", or \"cognito\" (AWS restriction) — set domain_prefix to override the name-derived default."
+    }
+  }
 }
 
 resource "aws_cognito_user" "users" {

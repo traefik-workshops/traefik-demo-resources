@@ -39,9 +39,9 @@ variable "plan" {
 }
 
 variable "plan_provision_type" {
-  description = "Provision type NAME the plan is looked up under (the morpheus_plan data source requires it; \"KVM\" for MVM / HPE VM Essentials clouds)"
+  description = "Provision type CODE the plan is looked up under (the hpe_morpheus_service_plan data source filters by provision_type_code; \"kvm\" for MVM / HPE VM Essentials clouds — the gomorpheus-era value here was the NAME \"KVM\"). Empty = match the plan by name alone."
   type        = string
-  default     = "KVM"
+  default     = "kvm"
 }
 
 variable "resource_pool_name" {
@@ -73,9 +73,14 @@ variable "root_volume" {
 }
 
 variable "morpheus_labels" {
-  description = "Morpheus labels attached to the instance (plain strings — org labels; also what a parent's morpheus provider constraints would match)"
+  description = "MUST STAY EMPTY: the HPE/hpe provider's hpe_morpheus_instance exposes NO labels attribute (checked at v1.5.0; gomorpheus's morpheus_mvm_instance did), so Morpheus labels can't be applied from terraform anymore. The variable is kept (and validated empty) so existing callers passing [] keep working; set labels in the appliance instead."
   type        = list(string)
   default     = []
+
+  validation {
+    condition     = length(var.morpheus_labels) == 0
+    error_message = "morpheus_labels cannot be applied: hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — the gomorpheus labels feature has no HPE equivalent yet. Leave empty and set labels via the appliance."
+  }
 }
 
 variable "vm_name" {

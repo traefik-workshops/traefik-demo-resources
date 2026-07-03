@@ -1,11 +1,11 @@
 output "host" {
   description = "Kubernetes API endpoint (https://<instance-ip>:6443)"
-  value       = "https://${morpheus_mvm_instance.k3s.primary_ip_address}:6443"
+  value       = "https://${hpe_morpheus_instance.k3s.connection_info[0]}:6443"
 }
 
 output "node_ip" {
-  description = "The instance's primary IP — also where klipper (k3s servicelb) publishes LoadBalancer Services, so point demo DNS / /etc/hosts entries here"
-  value       = morpheus_mvm_instance.k3s.primary_ip_address
+  description = "The instance's primary connection IP (connection_info[0]) — also where klipper (k3s servicelb) publishes LoadBalancer Services, so point demo DNS / /etc/hosts entries here"
+  value       = hpe_morpheus_instance.k3s.connection_info[0]
 }
 
 output "kubeconfig" {
@@ -32,10 +32,10 @@ output "client_key" {
 
 output "vm_id" {
   description = "Morpheus instance ID of the k3s instance"
-  value       = morpheus_mvm_instance.k3s.id
+  value       = hpe_morpheus_instance.k3s.id
 }
 
 output "vm_name" {
   description = "Name of the k3s instance"
-  value       = morpheus_mvm_instance.k3s.name
+  value       = hpe_morpheus_instance.k3s.name
 }

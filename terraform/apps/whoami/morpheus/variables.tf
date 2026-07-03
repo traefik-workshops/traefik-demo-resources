@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to Morpheus instances. Each app can have multiple replicas. Same shape as apps/whoami/vsphere plus `labels`: { name = { replicas, port, name, environment, traefik_labels, labels } } — `traefik_labels` (dotted Traefik label -> value) lands 1:1 as instance TAGS (the Hub morpheus provider reads every traefik.* tag); optional `labels` (list of strings) are Morpheus LABELS for the provider's constraints; optional `environment` (map) is merged over the module-level `environment` into the container."
+  description = "Map of applications to deploy to Morpheus instances. Each app can have multiple replicas. Same shape as apps/whoami/vsphere: { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (dotted Traefik label -> value) lands 1:1 as instance TAGS (the Hub morpheus provider reads every traefik.* tag); optional `environment` (map) is merged over the module-level `environment` into the container. The gomorpheus-era per-app `labels` entry (Morpheus LABELS) is NO LONGER APPLIED — hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — and a non-empty value now fails a precondition; set labels via the appliance instead."
   type        = any
   default     = {}
 }
@@ -39,8 +39,8 @@ variable "plan" {
 
 variable "plan_provision_type" {
   type        = string
-  description = "Provision type NAME the plan is looked up under (the morpheus_plan data source requires it; \"KVM\" for MVM / HPE VM Essentials clouds)"
-  default     = "KVM"
+  description = "Provision type CODE the plan is looked up under (the hpe_morpheus_service_plan data source filters by provision_type_code; \"kvm\" for MVM / HPE VM Essentials clouds — the gomorpheus-era value here was the NAME \"KVM\"). Empty = match the plan by name alone."
+  default     = "kvm"
 }
 
 variable "resource_pool_name" {
@@ -73,8 +73,13 @@ variable "root_volume" {
 
 variable "morpheus_labels" {
   type        = list(string)
-  description = "Morpheus labels attached to EVERY instance (per-app `labels` entries are appended) — what the Hub morpheus provider's constraints match, as label=true pairs plus the `name` pseudo-label"
+  description = "MUST STAY EMPTY: the HPE/hpe provider's hpe_morpheus_instance exposes NO labels attribute (checked at v1.5.0; gomorpheus's morpheus_mvm_instance did), so Morpheus labels can't be applied from terraform anymore. The variable is kept (and validated empty) so existing callers passing [] keep working; set labels in the appliance instead."
   default     = []
+
+  validation {
+    condition     = length(var.morpheus_labels) == 0
+    error_message = "morpheus_labels cannot be applied: hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — the gomorpheus labels feature has no HPE equivalent yet. Leave empty and set labels via the appliance."
+  }
 }
 
 variable "name_prefix" {
