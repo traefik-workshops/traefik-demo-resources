@@ -21,11 +21,18 @@ locals {
   image_last_segment = element(split("/", var.whoami_image), length(split("/", var.whoami_image)) - 1)
   whoami_image_ref   = length(regexall(":", local.image_last_segment)) > 0 ? var.whoami_image : "${var.whoami_image}:${var.whoami_version}"
 
-  # The mirror is a Docker Hub remote repo, so the path inside it is the
-  # docker.io repository path — strip the registry host if present.
-  mirror_path  = trimprefix(trimprefix(local.whoami_image_ref, "registry-1.docker.io/"), "docker.io/")
-  mirror_image = "${var.location}-docker.pkg.dev/${data.google_project.current.project_id}/${var.mirror_repository_id}/${local.mirror_path}"
-  image        = var.image != "" ? var.image : local.mirror_image
+  # Cloud Run pulls only from Artifact Registry, so the image is served through an
+  # AR REMOTE (pull-through) repo whose upstream is WHATEVER registry the image
+  # lives in — ghcr.io now that whoami ships there (a Docker-Hub-only mirror can't
+  # serve a ghcr path). The first path segment is the registry host when it carries
+  # a "." or ":"; otherwise the reference is a bare Docker Hub repo.
+  image_segments = split("/", local.whoami_image_ref)
+  has_host       = length(regexall("[.:]", local.image_segments[0])) > 0
+  registry_host  = local.has_host ? local.image_segments[0] : "docker.io"
+  upstream_uri   = local.registry_host == "docker.io" ? "https://registry-1.docker.io" : "https://${local.registry_host}"
+  mirror_path    = local.has_host ? join("/", slice(local.image_segments, 1, length(local.image_segments))) : local.whoami_image_ref
+  mirror_image   = "${var.location}-docker.pkg.dev/${data.google_project.current.project_id}/${var.mirror_repository_id}/${local.mirror_path}"
+  image          = var.image != "" ? var.image : local.mirror_image
 }
 
 resource "google_artifact_registry_repository" "mirror" {
@@ -35,11 +42,13 @@ resource "google_artifact_registry_repository" "mirror" {
   repository_id = var.mirror_repository_id
   format        = "DOCKER"
   mode          = "REMOTE_REPOSITORY"
-  description   = "Docker Hub pull-through mirror (Cloud Run can't pull docker.io directly)"
+  description   = "Pull-through mirror for ${local.registry_host} (Cloud Run can't pull external registries directly)"
 
   remote_repository_config {
     docker_repository {
-      public_repository = "DOCKER_HUB"
+      custom_repository {
+        uri = local.upstream_uri
+      }
     }
   }
 }
