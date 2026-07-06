@@ -73,26 +73,17 @@ module "whoami_cloudrun" {
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_archive"></a> [archive](#provider\_archive) | ~> 2.0 |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
-| [google_artifact_registry_repository.function_images](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository) | resource |
 | [google_artifact_registry_repository.mirror](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository) | resource |
-| [google_artifact_registry_repository_iam_member.function_build_image_writer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/artifact_registry_repository_iam_member) | resource |
 | [google_cloud_run_v2_service.function](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service) | resource |
 | [google_cloud_run_v2_service.whoami](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service) | resource |
 | [google_cloud_run_v2_service_iam_member.function_invoker](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service_iam_member) | resource |
 | [google_cloud_run_v2_service_iam_member.invoker](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_service_iam_member) | resource |
-| [google_project_iam_member.function_build_act_as](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
-| [google_project_iam_member.function_build_logs_writer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
-| [google_service_account.function_build](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
-| [google_storage_bucket.function_source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket) | resource |
-| [google_storage_bucket_iam_member.function_build_source_reader](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_iam_member) | resource |
-| [google_storage_bucket_object.function_source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_object) | resource |
 
 ## Inputs
 
@@ -102,13 +93,15 @@ module "whoami_cloudrun" {
 | <a name="input_common_annotations"></a> [common\_annotations](#input\_common\_annotations) | Annotations applied to every service (dotted traefik.* keys allowed — provider workload config) | `map(string)` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Labels applied to every service (dotless — provider constraints only) | `map(string)` | `{}` | no |
 | <a name="input_deletion_protection"></a> [deletion\_protection](#input\_deletion\_protection) | Cloud Run v2 deletion protection. Off — demos are torn down per-run. | `bool` | `false` | no |
-| <a name="input_enable_function"></a> [enable\_function](#input\_enable\_function) | Also deploy a whoami-ish HTTP function from inline source via Cloud Run's build\_config (the gen2 Cloud Functions path — the built function IS a Cloud Run service, discovered via the same annotations pathway). Requires the Cloud Build API. | `bool` | `false` | no |
+| <a name="input_enable_function"></a> [enable\_function](#input\_enable\_function) | Also deploy a second 'function' Cloud Run service (a gen2 Cloud Function IS a Cloud Run service, discovered via the same annotations pathway). It runs the same whoami image as the plain services — terraform's build\_config source build never persists (the Cloud Run API drops it), so a from-source build isn't reliable. | `bool` | `false` | no |
 | <a name="input_enable_registry_mirror"></a> [enable\_registry\_mirror](#input\_enable\_registry\_mirror) | Create an Artifact Registry REMOTE repository mirroring Docker Hub (how whoami\_image becomes pullable by Cloud Run). Disable only when `image` is set. | `bool` | `true` | no |
 | <a name="input_enable_unauthenticated"></a> [enable\_unauthenticated](#input\_enable\_unauthenticated) | Grant roles/run.invoker to allUsers on every service (demo-grade; the Traefik child dials the service URL unauthenticated) | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment variables added to every whoami container, e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision. | `map(string)` | `{}` | no |
 | <a name="input_function_annotations"></a> [function\_annotations](#input\_function\_annotations) | Annotations for the function's Cloud Run service (dotted traefik.* keys — same pathway as the plain services) | `map(string)` | `{}` | no |
+| <a name="input_function_environment"></a> [function\_environment](#input\_function\_environment) | Extra env for the function's whoami container, merged last (e.g. its own OTEL\_SERVICE\_NAME so it ships telemetry under a distinct name). | `map(string)` | `{}` | no |
 | <a name="input_function_labels"></a> [function\_labels](#input\_function\_labels) | Labels for the function's Cloud Run service (dotless — provider constraints only) | `map(string)` | `{}` | no |
-| <a name="input_function_name"></a> [function\_name](#input\_function\_name) | Name of the function's Cloud Run service (also prefixes its source bucket, image repository, and build SA) | `string` | `"whoami-fn"` | no |
+| <a name="input_function_name"></a> [function\_name](#input\_function\_name) | Name of the function's Cloud Run service (also its WHOAMI\_NAME, so the body reports Name: <function\_name>) | `string` | `"whoami-fn"` | no |
+| <a name="input_function_port"></a> [function\_port](#input\_function\_port) | Container port the function's whoami binds (via WHOAMI\_PORT\_NUMBER — whoami ignores Cloud Run's $PORT). | `number` | `80` | no |
 | <a name="input_image"></a> [image](#input\_image) | Full image reference override. Empty = pull whoami\_image through the module's Docker Hub mirror (requires enable\_registry\_mirror). Must be an Artifact Registry / GCR path — Cloud Run can't pull docker.io directly. | `string` | `""` | no |
 | <a name="input_ingress"></a> [ingress](#input\_ingress) | Cloud Run ingress setting (INGRESS\_TRAFFIC\_ALL, INGRESS\_TRAFFIC\_INTERNAL\_ONLY, INGRESS\_TRAFFIC\_INTERNAL\_LOAD\_BALANCER). The Traefik child dials the public service URL, so ALL is the demo default. | `string` | `"INGRESS_TRAFFIC_ALL"` | no |
 | <a name="input_location"></a> [location](#input\_location) | Cloud Run region (also used for the Artifact Registry repositories and the function source bucket) | `string` | `"us-central1"` | no |

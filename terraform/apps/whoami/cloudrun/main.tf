@@ -117,121 +117,16 @@ resource "google_cloud_run_v2_service_iam_member" "invoker" {
 }
 
 # =============================================================================
-# Optional gen2-style Cloud Function (enable_function)
+# Optional "function" endpoint (enable_function)
 # =============================================================================
-# Follows the provider's canonical "Cloudrunv2 Service Function" example:
-# inline source zipped by archive_file, uploaded to GCS, built by Cloud Build
-# with a dedicated build SA, deployed as a Cloud Run v2 service.
+# A second Cloud Run service the cloudRun provider discovers exactly like the
+# plain ones (a gen2 Cloud Function IS a Cloud Run service). It runs the same
+# whoami image rather than a source-built function image: terraform's
+# build_config never persists (the Cloud Run API silently drops it, so no build
+# is ever submitted and the service is stuck on the hello placeholder), making a
+# from-source build unreliable here (gcp-unified-ingress validation, 2026-07).
+# WHOAMI_NAME makes the body report `Name: <function_name>`.
 # =============================================================================
-
-data "archive_file" "function" {
-  count = var.enable_function ? 1 : 0
-
-  type        = "zip"
-  output_path = "${path.module}/function-source.zip"
-
-  source {
-    filename = "package.json"
-    content = jsonencode({
-      name         = "whoami-function"
-      main         = "index.js"
-      dependencies = { "@google-cloud/functions-framework" = "^3.0.0" }
-    })
-  }
-
-  source {
-    filename = "index.js"
-    content  = <<-EOT
-      const functions = require('@google-cloud/functions-framework');
-      const os = require('os');
-
-      // whoami-ish HTTP echo: name, hostname, request line, headers.
-      functions.http('whoami', (req, res) => {
-        const lines = [
-          `Name: $${process.env.WHOAMI_NAME || 'whoami-function'}`,
-          `Hostname: $${os.hostname()}`,
-          `RemoteAddr: $${req.ip}`,
-          `$${req.method} $${req.originalUrl} HTTP/$${req.httpVersion}`,
-        ];
-        for (const [key, value] of Object.entries(req.headers)) {
-          lines.push(`$${key}: $${value}`);
-        }
-        res.set('Content-Type', 'text/plain').send(lines.join('\n') + '\n');
-      });
-    EOT
-  }
-}
-
-resource "google_storage_bucket" "function_source" {
-  count = var.enable_function ? 1 : 0
-
-  # Bucket names are globally unique — prefix with the project id.
-  name                        = "${data.google_project.current.project_id}-${var.function_name}-source"
-  location                    = var.location
-  uniform_bucket_level_access = true
-  force_destroy               = true
-}
-
-resource "google_storage_bucket_object" "function_source" {
-  count = var.enable_function ? 1 : 0
-
-  # Content-addressed name so a source change uploads a new object and
-  # triggers a rebuild.
-  name   = "function-source-${data.archive_file.function[0].output_md5}.zip"
-  bucket = google_storage_bucket.function_source[0].name
-  source = data.archive_file.function[0].output_path
-}
-
-# Standard (writable) repository for the built function image — the Docker Hub
-# mirror above is REMOTE mode and can't be pushed to.
-resource "google_artifact_registry_repository" "function_images" {
-  count = var.enable_function ? 1 : 0
-
-  location      = var.location
-  repository_id = "${var.function_name}-images"
-  format        = "DOCKER"
-  description   = "Built images for the ${var.function_name} Cloud Run function"
-}
-
-resource "google_service_account" "function_build" {
-  count = var.enable_function ? 1 : 0
-
-  account_id   = "${var.function_name}-build"
-  display_name = "Cloud Build SA for the ${var.function_name} function"
-}
-
-resource "google_project_iam_member" "function_build_act_as" {
-  count = var.enable_function ? 1 : 0
-
-  project = data.google_project.current.project_id
-  role    = "roles/iam.serviceAccountUser"
-  member  = "serviceAccount:${google_service_account.function_build[0].email}"
-}
-
-resource "google_project_iam_member" "function_build_logs_writer" {
-  count = var.enable_function ? 1 : 0
-
-  project = data.google_project.current.project_id
-  role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${google_service_account.function_build[0].email}"
-}
-
-resource "google_storage_bucket_iam_member" "function_build_source_reader" {
-  count = var.enable_function ? 1 : 0
-
-  bucket = google_storage_bucket.function_source[0].name
-  role   = "roles/storage.objectViewer"
-  member = "serviceAccount:${google_service_account.function_build[0].email}"
-}
-
-resource "google_artifact_registry_repository_iam_member" "function_build_image_writer" {
-  count = var.enable_function ? 1 : 0
-
-  location   = var.location
-  repository = google_artifact_registry_repository.function_images[0].repository_id
-  role       = "roles/artifactregistry.writer"
-  member     = "serviceAccount:${google_service_account.function_build[0].email}"
-}
 
 resource "google_cloud_run_v2_service" "function" {
   count = var.enable_function ? 1 : 0
@@ -253,31 +148,34 @@ resource "google_cloud_run_v2_service" "function" {
     }
 
     containers {
-      # Placeholder until the first build completes; Cloud Run then serves the
-      # built function image.
-      image          = "us-docker.pkg.dev/cloudrun/container/hello"
-      base_image_uri = "${var.location}-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs22"
+      image = local.image
 
-      env {
-        name  = "WHOAMI_NAME"
-        value = var.function_name
+      # Cloud Run routes to container_port; WHOAMI_PORT_NUMBER makes whoami bind
+      # it (whoami ignores Cloud Run's $PORT convention).
+      ports {
+        container_port = var.function_port
+      }
+
+      # Built-ins first so module/function `environment` wins on collision.
+      dynamic "env" {
+        for_each = merge(
+          {
+            WHOAMI_PORT_NUMBER = tostring(var.function_port)
+            WHOAMI_NAME        = var.function_name
+          },
+          var.environment,
+          var.function_environment,
+        )
+
+        content {
+          name  = env.key
+          value = env.value
+        }
       }
     }
   }
 
-  build_config {
-    source_location          = "gs://${google_storage_bucket.function_source[0].name}/${google_storage_bucket_object.function_source[0].name}"
-    function_target          = "whoami"
-    image_uri                = "${var.location}-docker.pkg.dev/${data.google_project.current.project_id}/${google_artifact_registry_repository.function_images[0].repository_id}/${var.function_name}"
-    base_image               = "${var.location}-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs22"
-    enable_automatic_updates = true
-    service_account          = google_service_account.function_build[0].id
-  }
-
-  depends_on = [
-    google_project_iam_member.function_build_act_as,
-    google_project_iam_member.function_build_logs_writer,
-  ]
+  depends_on = [google_artifact_registry_repository.mirror]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "function_invoker" {

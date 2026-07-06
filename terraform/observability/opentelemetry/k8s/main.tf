@@ -160,6 +160,14 @@ resource "helm_release" "opentelemetry" {
                 ttl       = "10s"
                 max_items = 5000
               }
+              # NB: virtual_node_peer_attributes is deliberately NOT set. Cloud Run
+              # backends can't be paired to the caller's client span — Google's
+              # managed frontend re-parents the request, so the whoami server span's
+              # parent is a hop we never receive — but turning on peer-attribute
+              # virtual nodes to compensate surfaces the Traefik children's cloud-API
+              # polling (run.googleapis.com, compute.googleapis.com) as noise nodes
+              # and still only labels the backend by its opaque run.app host. The
+              # trace view shows the Cloud Run leg correctly regardless.
             }
           } : {},
           local.spanmetrics_enabled ? {

@@ -89,15 +89,21 @@ variable "common_labels" {
 }
 
 variable "enable_function" {
-  description = "Also deploy a whoami-ish HTTP function from inline source via Cloud Run's build_config (the gen2 Cloud Functions path — the built function IS a Cloud Run service, discovered via the same annotations pathway). Requires the Cloud Build API."
+  description = "Also deploy a second 'function' Cloud Run service (a gen2 Cloud Function IS a Cloud Run service, discovered via the same annotations pathway). It runs the same whoami image as the plain services — terraform's build_config source build never persists (the Cloud Run API drops it), so a from-source build isn't reliable."
   type        = bool
   default     = false
 }
 
 variable "function_name" {
-  description = "Name of the function's Cloud Run service (also prefixes its source bucket, image repository, and build SA)"
+  description = "Name of the function's Cloud Run service (also its WHOAMI_NAME, so the body reports Name: <function_name>)"
   type        = string
   default     = "whoami-fn"
+}
+
+variable "function_port" {
+  description = "Container port the function's whoami binds (via WHOAMI_PORT_NUMBER — whoami ignores Cloud Run's $PORT)."
+  type        = number
+  default     = 80
 }
 
 variable "function_annotations" {
@@ -108,6 +114,12 @@ variable "function_annotations" {
 
 variable "function_labels" {
   description = "Labels for the function's Cloud Run service (dotless — provider constraints only)"
+  type        = map(string)
+  default     = {}
+}
+
+variable "function_environment" {
+  description = "Extra env for the function's whoami container, merged last (e.g. its own OTEL_SERVICE_NAME so it ships telemetry under a distinct name)."
   type        = map(string)
   default     = {}
 }
