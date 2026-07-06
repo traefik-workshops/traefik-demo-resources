@@ -57,11 +57,12 @@ variable "ingress_annotations" {
 }
 
 variable "dashboards" {
-  description = "Bundled Traefik Hub dashboards to install via the wrapped grafana module. Toggle each topic on/off independently — AI Gateway, MCP Gateway, and API Management dashboards each pull from their own metrics source."
+  description = "Bundled Traefik Hub dashboards to install via the wrapped grafana module. Toggle each topic on/off independently — AI Gateway, MCP Gateway, API Management, and Unified Ingress dashboards each pull from their own metrics source. `unified_ingress` defaults on so existing call sites light it up without changes."
   type = object({
-    aigateway  = bool
-    mcpgateway = bool
-    apim       = bool
+    aigateway       = bool
+    mcpgateway      = bool
+    apim            = bool
+    unified_ingress = optional(bool, true)
   })
 }
 

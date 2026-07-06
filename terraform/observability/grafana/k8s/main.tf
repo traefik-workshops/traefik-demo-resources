@@ -66,6 +66,9 @@ locals {
   aigateway_dashboard = "aigateway-dashboards"
   aigateway_path      = "/dashboards/hub/aigateway"
 
+  unified_ingress_dashboard = "unified-ingress-dashboards"
+  unified_ingress_path      = "/dashboards/hub/unified-ingress"
+
   dashboard_providers = concat(
     var.dashboards.aigateway ? [{
       name                  = local.aigateway_dashboard
@@ -76,6 +79,17 @@ locals {
       updateIntervalSeconds = 10
       options = {
         path = local.aigateway_path
+      }
+    }] : [],
+    var.dashboards.unified_ingress ? [{
+      name                  = local.unified_ingress_dashboard
+      orgId                 = "1"
+      type                  = "file"
+      disableDeletion       = false
+      editable              = true
+      updateIntervalSeconds = 10
+      options = {
+        path = local.unified_ingress_path
       }
     }] : [],
     [for name, json in var.extra_dashboards : {
@@ -97,6 +111,13 @@ locals {
       mountPath = "${local.aigateway_path}/dashboard.json"
       subPath   = "dashboard.json"
       configMap = local.aigateway_dashboard
+      readOnly  = true
+    }] : [],
+    var.dashboards.unified_ingress ? [{
+      name      = local.unified_ingress_dashboard
+      mountPath = "${local.unified_ingress_path}/dashboard.json"
+      subPath   = "dashboard.json"
+      configMap = local.unified_ingress_dashboard
       readOnly  = true
     }] : [],
     [for name, json in var.extra_dashboards : {
@@ -187,6 +208,15 @@ module "aigateway_dashboard" {
   namespace = var.namespace
 
   count = var.dashboards.aigateway ? 1 : 0
+}
+
+module "unified_ingress_dashboard" {
+  source = "./dashboards/unified-ingress"
+
+  name      = local.unified_ingress_dashboard
+  namespace = var.namespace
+
+  count = var.dashboards.unified_ingress ? 1 : 0
 }
 
 resource "kubernetes_config_map_v1" "extra_dashboards" {

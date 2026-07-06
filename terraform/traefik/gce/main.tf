@@ -121,6 +121,12 @@ resource "google_compute_instance" "traefik" {
   zone         = var.zone
   tags         = [var.vm_name]
 
+  # The gce provider polls the compute API at boot via ADC. Order the VM after
+  # the roles/compute.viewer binding so the role has been granted before the
+  # container starts — otherwise the provider races IAM propagation and throws
+  # transient 403s until it self-heals.
+  depends_on = [google_project_iam_member.viewer]
+
   boot_disk {
     initialize_params {
       image = var.vm_image
