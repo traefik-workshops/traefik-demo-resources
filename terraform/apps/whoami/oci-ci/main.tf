@@ -50,10 +50,14 @@ resource "oci_container_instances_container_instance" "whoami" {
     memory_in_gbs = var.container_memory_in_gbs
   }
 
-  # Private VNIC IP — the Traefik child dials it in-VCN (ipMode=private).
+  # Dual IP: the Traefik child dials the PRIVATE VNIC IP in-VCN (ipMode=private),
+  # while the public IP is needed for egress — the OKE VCN routes through an
+  # internet gateway (not a NAT gateway), so a private-only container instance
+  # can't pull its image ("inadequate network configuration"). OKE nodes + the
+  # whoami VMs are public for the same reason.
   vnics {
     subnet_id             = var.subnet_id
-    is_public_ip_assigned = false
+    is_public_ip_assigned = true
     nsg_ids               = var.nsg_ids
   }
 

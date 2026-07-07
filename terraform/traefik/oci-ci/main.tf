@@ -71,26 +71,14 @@ locals {
     local.traefik_arguments
   )
 
-  # Build freeform tags including ports — the ociContainerInstances provider's
-  # workload config, exactly like the ACI group's Azure tags. NOTE: container
-  # instances have no "published port" list; reachability of the entrypoints
-  # (incl. the :9443 uplink) is governed by the subnet's security lists/NSGs.
-  discovery_tags = merge(var.extra_tags, {
-    for name, port in module.config.ports :
-    "traefik.http.routers.${name}.entrypoints" => name
-    if try(port.expose.default, false)
-    },
-    # Self-register the Traefik instance's own dashboard via its ocici
-    # provider (-> dashboard@ocici). Disable when the dashboard is advertised
-    # another way (e.g. a file-rule uplink): without traefik.enable the
-    # instance isn't self-discovered at all, so no redundant self-router
-    # appears.
-    var.enable_dashboard_discovery ? {
-      "traefik.enable"                                           = "true"
-      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-  } : {})
+  # The Traefik gateway is the DISCOVERER, not a discovered workload — under the
+  # nutanix model the ociContainerInstances provider finds services via the
+  # TraefikServiceName tag + base config, not dotted self-registration tags (which
+  # OCI rejects anyway: freeform tag keys can't contain dots). So the gateway
+  # carries only the caller's extra_tags; its routing comes from the base config +
+  # file-provider uplinks. (enable_dashboard_discovery is retained for API
+  # compatibility but no longer emits tags — the dashboard rides a file-rule uplink.)
+  discovery_tags = var.extra_tags
 
   availability_domain = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.traefik.availability_domains[0].name
 }
@@ -217,10 +205,13 @@ resource "oci_container_instances_container_instance" "traefik" {
     memory_in_gbs = var.container_memory_in_gbs
   }
 
-  # Private VNIC IP — the parent dials https://<ip>:9443 in-VCN.
+  # Dual IP: the parent dials the PRIVATE VNIC IP (https://<private-ip>:9443)
+  # in-VCN; the public IP is only for egress (image pull) — the OKE VCN routes
+  # through an internet gateway, so a private-only container instance can't pull
+  # its image. OKE nodes + the whoami VMs are public for the same reason.
   vnics {
     subnet_id             = var.subnet_id
-    is_public_ip_assigned = false
+    is_public_ip_assigned = true
     nsg_ids               = var.nsg_ids
   }
 
