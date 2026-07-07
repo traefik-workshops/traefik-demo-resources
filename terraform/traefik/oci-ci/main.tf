@@ -105,34 +105,93 @@ data "oci_identity_availability_domains" "traefik" {
 # policy (the same shape as security/oci-instance-principal for VMs). Dynamic
 # groups are tenancy-level, hence tenancy_id; both are named off var.name so
 # two instantiations don't collide — same-name instantiations still do.
-resource "oci_identity_dynamic_group" "resource_principal" {
+# OCI IAM is tenancy-level and only writable against the tenancy HOME region
+# (var.home_region), while the demo's default OCI provider targets the workload
+# region. The dynamic group must additionally live in the tenancy ROOT
+# compartment. Both constraints are met by creating the group + policy via the
+# OCI CLI (local-exec) against the home region and tenancy root; idempotent
+# create, destroy removes by looked-up OCID. (Mirrors security/oci-instance-principal.)
+locals {
+  rp_name          = "${var.name}-resource-principal"
+  rp_matching_rule = "ALL {resource.type='computecontainerinstance', resource.compartment.id='${var.compartment_id}'}"
+}
+
+resource "null_resource" "resource_principal_dynamic_group" {
   count = var.enable_resource_principal ? 1 : 0
 
-  compartment_id = var.tenancy_id
-  description    = "Dynamic group for the ${var.name} container instance's ociContainerInstances resource-principal auth"
-  matching_rule  = "ALL {resource.type='computecontainerinstance', resource.compartment.id='${var.compartment_id}'}"
-  name           = "${var.name}-resource-principal"
+  triggers = {
+    name        = local.rp_name
+    home_region = var.home_region
+    tenancy     = var.tenancy_id
+    rule        = local.rp_matching_rule
+  }
 
   lifecycle {
     precondition {
-      condition     = var.tenancy_id != ""
-      error_message = "tenancy_id is required when enable_resource_principal = true (dynamic groups are tenancy-level)."
+      condition     = var.tenancy_id != "" && var.home_region != ""
+      error_message = "tenancy_id and home_region are required when enable_resource_principal = true (dynamic groups are tenancy-level; IAM writes go to the home region)."
     }
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      existing=$(oci iam dynamic-group list --region ${var.home_region} --compartment-id ${var.tenancy_id} --all --query "data[?name=='${local.rp_name}'].id | [0]" --raw-output 2>/dev/null || true)
+      if [ -z "$existing" ] || [ "$existing" = "null" ]; then
+        oci iam dynamic-group create --region ${var.home_region} --compartment-id ${var.tenancy_id} \
+          --name '${local.rp_name}' --description 'Resource principal for the ${var.name} container instance (ociContainerInstances discovery)' \
+          --matching-rule "${local.rp_matching_rule}" --wait-for-state ACTIVE
+      fi
+    EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set -eu
+      id=$(oci iam dynamic-group list --region ${self.triggers.home_region} --compartment-id ${self.triggers.tenancy} --all --query "data[?name=='${self.triggers.name}'].id | [0]" --raw-output 2>/dev/null || true)
+      if [ -n "$id" ] && [ "$id" != "null" ]; then
+        oci iam dynamic-group delete --region ${self.triggers.home_region} --dynamic-group-id "$id" --force
+      fi
+    EOT
   }
 }
 
 # Read-only: exactly what the ocici provider needs — list container instances
 # + read their VNIC IPs, nothing else.
-resource "oci_identity_policy" "resource_principal" {
-  count = var.enable_resource_principal ? 1 : 0
+resource "null_resource" "resource_principal_policy" {
+  count      = var.enable_resource_principal ? 1 : 0
+  depends_on = [null_resource.resource_principal_dynamic_group]
 
-  compartment_id = var.compartment_id
-  description    = "Policy for the ${var.name} container instance's ociContainerInstances resource-principal auth"
-  name           = "${var.name}-resource-principal"
-  statements = [
-    "Allow dynamic-group ${oci_identity_dynamic_group.resource_principal[0].name} to read compute-container-family in compartment id ${var.compartment_id}",
-    "Allow dynamic-group ${oci_identity_dynamic_group.resource_principal[0].name} to read virtual-network-family in compartment id ${var.compartment_id}",
-  ]
+  triggers = {
+    name        = local.rp_name
+    home_region = var.home_region
+    tenancy     = var.tenancy_id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      existing=$(oci iam policy list --region ${var.home_region} --compartment-id ${var.tenancy_id} --all --query "data[?name=='${local.rp_name}'].id | [0]" --raw-output 2>/dev/null || true)
+      if [ -z "$existing" ] || [ "$existing" = "null" ]; then
+        oci iam policy create --region ${var.home_region} --compartment-id ${var.tenancy_id} \
+          --name '${local.rp_name}' --description 'Resource principal policy for the ${var.name} container instance' \
+          --statements '["Allow dynamic-group ${local.rp_name} to read compute-container-family in compartment id ${var.compartment_id}", "Allow dynamic-group ${local.rp_name} to read virtual-network-family in compartment id ${var.compartment_id}"]' \
+          --wait-for-state ACTIVE
+      fi
+    EOT
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = <<-EOT
+      set -eu
+      id=$(oci iam policy list --region ${self.triggers.home_region} --compartment-id ${self.triggers.tenancy} --all --query "data[?name=='${self.triggers.name}'].id | [0]" --raw-output 2>/dev/null || true)
+      if [ -n "$id" ] && [ "$id" != "null" ]; then
+        oci iam policy delete --region ${self.triggers.home_region} --policy-id "$id" --force
+      fi
+    EOT
+  }
 }
 
 resource "oci_container_instances_container_instance" "traefik" {

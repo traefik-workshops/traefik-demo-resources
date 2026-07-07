@@ -108,6 +108,8 @@ module "instance_principal" {
   source = "../../security/oci-instance-principal"
 
   compartment_id = var.compartment_id
+  tenancy_id     = var.tenancy_id
+  home_region    = var.home_region
 }
 
 # Escape hatch mirroring traefik/gce's enable_firewall: an NSG opening the

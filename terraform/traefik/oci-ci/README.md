@@ -76,21 +76,23 @@ module "oci_ci_traefik" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
 | <a name="requirement_oci"></a> [oci](#requirement\_oci) | ~> 7.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
+| <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 | <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
 
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
+| [null_resource.resource_principal_dynamic_group](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [null_resource.resource_principal_policy](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [oci_container_instances_container_instance.traefik](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/container_instances_container_instance) | resource |
-| [oci_identity_dynamic_group.resource_principal](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/identity_dynamic_group) | resource |
-| [oci_identity_policy.resource_principal](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/identity_policy) | resource |
 
 ## Inputs
 
@@ -129,6 +131,7 @@ module "oci_ci_traefik" {
 | <a name="input_extra_tags"></a> [extra\_tags](#input\_extra\_tags) | Extra freeform tags to apply to the container instance | `map(string)` | `{}` | no |
 | <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML configuration for Traefik file provider | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted | `string` | `"/etc/traefik/dynamic"` | no |
+| <a name="input_home_region"></a> [home\_region](#input\_home\_region) | Tenancy home region identifier (e.g. us-ashburn-1). OCI IAM writes only succeed against the home region, so the resource-principal dynamic group + policy are created there via the OCI CLI. Required when enable\_resource\_principal = true. | `string` | `""` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level (DEBUG, INFO, WARN, ERROR) | `string` | `"INFO"` | no |
 | <a name="input_multicluster_provider"></a> [multicluster\_provider](#input\_multicluster\_provider) | Traefik Hub multicluster provider configuration | <pre>object({<br/>    enabled      = optional(bool, false)<br/>    pollInterval = optional(number, null)<br/>    pollTimeout  = optional(number, null)<br/>    children     = optional(any, {})<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_name"></a> [name](#input\_name) | Name of the Traefik container instance | `string` | `"traefik"` | no |

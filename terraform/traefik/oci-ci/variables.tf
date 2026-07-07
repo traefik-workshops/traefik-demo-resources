@@ -22,6 +22,12 @@ variable "tenancy_id" {
   default     = ""
 }
 
+variable "home_region" {
+  description = "Tenancy home region identifier (e.g. us-ashburn-1). OCI IAM writes only succeed against the home region, so the resource-principal dynamic group + policy are created there via the OCI CLI. Required when enable_resource_principal = true."
+  type        = string
+  default     = ""
+}
+
 variable "availability_domain" {
   description = "Availability domain the container instance is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke)."
   type        = string

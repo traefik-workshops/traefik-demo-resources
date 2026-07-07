@@ -10,6 +10,18 @@ variable "compartment_id" {
   type        = string
 }
 
+variable "tenancy_id" {
+  description = "OCID of the tenancy (root compartment) — the instance-principal dynamic group is tenancy-level and must live here. Required when enable_instance_principal = true."
+  type        = string
+  default     = ""
+}
+
+variable "home_region" {
+  description = "Tenancy home region identifier (e.g. us-ashburn-1). OCI IAM writes only succeed against the home region, so the instance-principal dynamic group + policy are created there via the OCI CLI. Required when enable_instance_principal = true."
+  type        = string
+  default     = ""
+}
+
 variable "availability_domain" {
   description = "Availability domain the VM is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke)."
   type        = string
