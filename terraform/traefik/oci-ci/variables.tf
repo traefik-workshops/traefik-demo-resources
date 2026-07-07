@@ -39,6 +39,12 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "base_config" {
+  description = "The ociContainerInstances provider's base configuration (YAML): the services the discovered IPs merge into, plus routers/uplinks. Delivered as a CONFIGFILE volume mounted at dirname(ocici_provider.filename); set ocici_provider.filename to the in-container path."
+  type        = string
+  default     = ""
+}
+
 variable "nsg_ids" {
   description = "Network security group OCIDs to attach to the container instance VNIC"
   type        = list(string)
@@ -106,11 +112,11 @@ variable "ocici_provider" {
     use_instance_principal = optional(bool, false)
     config_file_path       = optional(string, "/etc/oci/config")
     ip_mode                = optional(string, "private")
-    exposed_by_default     = optional(bool, false)
-    default_rule           = optional(string, "")
-    constraints            = optional(string, "")
-    refresh_seconds        = optional(number, null)
-    nsg_port_discovery     = optional(bool, false)
+    # Base-config file the provider merges discovered IPs into (routers + services
+    # with their LB strategy live here). Delivered via the container's config volume.
+    filename             = optional(string, "")
+    service_name_tag_key = optional(string, "TraefikServiceName")
+    refresh_seconds      = optional(number, null)
   })
   default = {}
 }

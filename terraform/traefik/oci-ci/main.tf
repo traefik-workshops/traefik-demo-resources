@@ -36,7 +36,11 @@ locals {
       "--hub.providers.ociContainerInstances=true",
       "--hub.providers.ociContainerInstances.compartmentID=${local.provider_compartment}",
       "--hub.providers.ociContainerInstances.ipMode=${var.ocici_provider.ip_mode}",
-      "--hub.providers.ociContainerInstances.exposedByDefault=${var.ocici_provider.exposed_by_default}",
+      # Nutanix-style: discovery only resolves container-instance IPs and groups
+      # them by the service-name freeform tag; the services (with LB strategy)
+      # live in this base-config file.
+      "--hub.providers.ociContainerInstances.filename=${var.ocici_provider.filename}",
+      "--hub.providers.ociContainerInstances.serviceNameTagKey=${var.ocici_provider.service_name_tag_key}",
     ],
     # Exactly one auth flag (see the header note): resource principal (the
     # keyless default) > instance principal (escape hatch — a precondition
@@ -48,12 +52,7 @@ locals {
       )
     ),
     var.ocici_provider.region != "" ? ["--hub.providers.ociContainerInstances.region=${var.ocici_provider.region}"] : [],
-    var.ocici_provider.default_rule != "" ? ["--hub.providers.ociContainerInstances.defaultRule=${var.ocici_provider.default_rule}"] : [],
-    var.ocici_provider.constraints != "" ? ["--hub.providers.ociContainerInstances.constraints=${var.ocici_provider.constraints}"] : [],
     var.ocici_provider.refresh_seconds != null ? ["--hub.providers.ociContainerInstances.refreshSeconds=${var.ocici_provider.refresh_seconds}"] : [],
-    # Without nsgPortDiscovery the provider falls back to the instance's
-    # lowest declared container port (carried by the container health check).
-    var.ocici_provider.nsg_port_discovery ? ["--hub.providers.ociContainerInstances.nsgPortDiscovery=true"] : [],
   ) : []
 
   # Use extracted CLI arguments from Helm template
@@ -249,6 +248,17 @@ resource "oci_container_instances_container_instance" "traefik" {
         mount_path  = local.oci_config_dir
       }
     }
+
+    # The oci provider's base config, mounted OUTSIDE the file-provider dir so the
+    # file provider doesn't also parse it (which would create phantom serverless
+    # services). The provider reads it via --hub.providers.ociContainerInstances.filename.
+    dynamic "volume_mounts" {
+      for_each = var.base_config != "" ? [1] : []
+      content {
+        volume_name = "base-config"
+        mount_path  = dirname(var.ocici_provider.filename)
+      }
+    }
   }
 
   dynamic "volumes" {
@@ -260,6 +270,19 @@ resource "oci_container_instances_container_instance" "traefik" {
       configs {
         file_name = "dynamic.yml"
         data      = base64encode(var.file_provider_config)
+      }
+    }
+  }
+
+  dynamic "volumes" {
+    for_each = var.base_config != "" ? [1] : []
+    content {
+      name        = "base-config"
+      volume_type = "CONFIGFILE"
+
+      configs {
+        file_name = basename(var.ocici_provider.filename)
+        data      = base64encode(var.base_config)
       }
     }
   }

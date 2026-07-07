@@ -21,14 +21,15 @@ locals {
       "--hub.providers.oci=true",
       "--hub.providers.oci.compartmentID=${local.provider_compartment}",
       "--hub.providers.oci.ipMode=${var.oci_provider.ip_mode}",
-      "--hub.providers.oci.exposedByDefault=${var.oci_provider.exposed_by_default}",
+      # Nutanix-style discovery: the provider only resolves instance IPs and groups
+      # them by the service-name freeform tag, then merges them into the services
+      # defined in this base-config file (routing/LB/strategy live there).
+      "--hub.providers.oci.filename=${var.oci_provider.filename}",
+      "--hub.providers.oci.serviceNameTagKey=${var.oci_provider.service_name_tag_key}",
     ],
     var.oci_provider.use_instance_principal ? ["--hub.providers.oci.useInstancePrincipal=true"] : [],
     var.oci_provider.region != "" ? ["--hub.providers.oci.region=${var.oci_provider.region}"] : [],
-    var.oci_provider.default_rule != "" ? ["--hub.providers.oci.defaultRule=${var.oci_provider.default_rule}"] : [],
-    var.oci_provider.constraints != "" ? ["--hub.providers.oci.constraints=${var.oci_provider.constraints}"] : [],
     var.oci_provider.refresh_seconds != null ? ["--hub.providers.oci.refreshSeconds=${var.oci_provider.refresh_seconds}"] : [],
-    var.oci_provider.nsg_port_discovery ? ["--hub.providers.oci.nsgPortDiscovery=true"] : [],
   ) : []
 
   # Use extracted CLI arguments from Helm template (includes file provider if configured)

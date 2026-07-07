@@ -164,11 +164,12 @@ variable "oci_provider" {
     region                 = optional(string, "")
     use_instance_principal = optional(bool, true)
     ip_mode                = optional(string, "private")
-    exposed_by_default     = optional(bool, false)
-    default_rule           = optional(string, "")
-    constraints            = optional(string, "")
-    refresh_seconds        = optional(number, null)
-    nsg_port_discovery     = optional(bool, false)
+    # Base-config file the provider merges discovered IPs into (routers + services
+    # with their LB strategy live here). Deliver it via extra_files to a mounted
+    # path (e.g. /data/oci-base.yaml).
+    filename             = optional(string, "")
+    service_name_tag_key = optional(string, "TraefikServiceName")
+    refresh_seconds      = optional(number, null)
   })
   default = {}
 }
