@@ -186,6 +186,17 @@ resource "oci_containerengine_node_pool" "traefik_demo" {
   }
 
   ssh_public_key = tls_private_key.traefik_demo.public_key_openssh
+
+  # Pin the node image against drift: data.oci_core_images returns the LATEST
+  # Oracle Linux image, so every later apply plans an in-place image bump. Beyond
+  # the needless node churn, the kubeconfig data source depends_on this pool, so a
+  # pending pool change defers it to apply time — leaving the kubernetes/helm
+  # providers with an unknown host (they fall back to localhost and every k8s
+  # refresh fails). Ignoring image_id keeps the pool stable so the kubeconfig
+  # reads at plan.
+  lifecycle {
+    ignore_changes = [node_source_details]
+  }
 }
 
 resource "oci_containerengine_node_pool" "worker" {
@@ -220,6 +231,12 @@ resource "oci_containerengine_node_pool" "worker" {
   }
 
   ssh_public_key = tls_private_key.traefik_demo.public_key_openssh
+
+  # Pin the node image against drift (see the traefik_demo pool above): keeps the
+  # pool stable so the kubeconfig data source that depends_on it reads at plan.
+  lifecycle {
+    ignore_changes = [node_source_details]
+  }
 }
 
 # OKE does not support native taints on node pools.
