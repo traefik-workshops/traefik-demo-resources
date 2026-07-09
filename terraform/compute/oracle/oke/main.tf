@@ -31,6 +31,20 @@ resource "oci_core_internet_gateway" "traefik_demo" {
   enabled        = true
 }
 
+# NAT gateway for the PRIVATE node subnet's egress (image pulls, OTLP shipping).
+# An internet gateway only routes for instances that hold a public IP; a NAT
+# gateway lets private-only instances reach the internet outbound. This is what
+# lets the worker nodes AND the VM/CI spokes run with NO public IPs while still
+# pulling images and shipping telemetry — the multicluster data path itself is
+# entirely in-VCN (hub dials each child's private :9443, children dial whoami's
+# private :80), so no instance needs to be publicly reachable.
+resource "oci_core_nat_gateway" "traefik_demo" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.traefik_demo.id
+  display_name   = "${var.cluster_name}-natgw"
+}
+
+# Public route table: the endpoint (public API) and LB subnets egress via the IGW.
 resource "oci_core_route_table" "traefik_demo" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.traefik_demo.id
@@ -39,6 +53,18 @@ resource "oci_core_route_table" "traefik_demo" {
   route_rules {
     destination       = "0.0.0.0/0"
     network_entity_id = oci_core_internet_gateway.traefik_demo.id
+  }
+}
+
+# Private route table: the node subnet (workers + VM/CI spokes) egresses via NAT.
+resource "oci_core_route_table" "traefik_demo_private" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.traefik_demo.id
+  display_name   = "${var.cluster_name}-rt-private"
+
+  route_rules {
+    destination       = "0.0.0.0/0"
+    network_entity_id = oci_core_nat_gateway.traefik_demo.id
   }
 }
 
@@ -117,14 +143,17 @@ resource "oci_core_subnet" "traefik_demo_endpoint" {
 }
 
 resource "oci_core_subnet" "traefik_demo_nodes" {
-  compartment_id             = var.compartment_id
-  vcn_id                     = oci_core_vcn.traefik_demo.id
-  display_name               = "${var.cluster_name}-nodes-subnet"
-  cidr_block                 = "10.0.2.0/24"
-  route_table_id             = oci_core_route_table.traefik_demo.id
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.traefik_demo.id
+  display_name   = "${var.cluster_name}-nodes-subnet"
+  cidr_block     = "10.0.2.0/24"
+  # Private subnet: egress via the NAT gateway, no public IPs on any VNIC. The
+  # worker nodes and the VM/CI spokes all live here and reach each other (and the
+  # hub reaches them) over private IPs; outbound-only traffic goes through NAT.
+  route_table_id             = oci_core_route_table.traefik_demo_private.id
   security_list_ids          = [oci_core_security_list.traefik_demo.id]
   dns_label                  = "nodes"
-  prohibit_public_ip_on_vnic = false
+  prohibit_public_ip_on_vnic = true
 }
 
 resource "oci_core_subnet" "traefik_demo_lb" {

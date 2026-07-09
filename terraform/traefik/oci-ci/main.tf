@@ -205,13 +205,12 @@ resource "oci_container_instances_container_instance" "traefik" {
     memory_in_gbs = var.container_memory_in_gbs
   }
 
-  # Dual IP: the parent dials the PRIVATE VNIC IP (https://<private-ip>:9443)
-  # in-VCN; the public IP is only for egress (image pull) — the OKE VCN routes
-  # through an internet gateway, so a private-only container instance can't pull
-  # its image. OKE nodes + the whoami VMs are public for the same reason.
+  # Private VNIC: the parent dials this container instance's PRIVATE IP
+  # (https://<private-ip>:9443) in-VCN, and egress (image pull) goes through the
+  # node subnet's NAT gateway — so no public IP is needed.
   vnics {
     subnet_id             = var.subnet_id
-    is_public_ip_assigned = true
+    is_public_ip_assigned = false
     nsg_ids               = var.nsg_ids
   }
 
