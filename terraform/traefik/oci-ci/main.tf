@@ -181,6 +181,39 @@ resource "null_resource" "resource_principal_policy" {
   }
 }
 
+# Resource-principal token race: a freshly-created container instance acquires its
+# RPST at boot, which can predate dynamic-group membership propagation — so the
+# ociContainerInstances provider's ListContainerInstances calls come back 404
+# (NotAuthorizedOrNotFound, OCI's masked authz failure) and discover ZERO servers
+# until the token refreshes. Bounce the instance once — after the group + policy
+# exist and a propagation delay — so it comes up authorized on a fresh deploy (the
+# OCI analogue of the ACI verify bounce). Fires ONLY when the instance is
+# (re)created (the trigger is its id), so steady-state applies are untouched.
+resource "null_resource" "resource_principal_bounce" {
+  count = var.enable_resource_principal ? 1 : 0
+  depends_on = [
+    null_resource.resource_principal_dynamic_group,
+    null_resource.resource_principal_policy,
+  ]
+
+  triggers = {
+    instance_id = oci_container_instances_container_instance.traefik.id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      # Give dynamic-group membership time to propagate, then force a fresh RPST.
+      # NB: restart is async via a work request, so --wait-for-state takes a work-request
+      # state (SUCCEEDED), not a lifecycle state (ACTIVE).
+      sleep 120
+      oci container-instances container-instance restart \
+        --container-instance-id ${oci_container_instances_container_instance.traefik.id} \
+        --wait-for-state SUCCEEDED
+    EOT
+  }
+}
+
 resource "oci_container_instances_container_instance" "traefik" {
   availability_domain      = local.availability_domain
   compartment_id           = var.compartment_id
