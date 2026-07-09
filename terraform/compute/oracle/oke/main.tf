@@ -92,6 +92,17 @@ resource "oci_core_security_list" "traefik_demo" {
       max = 8080
     }
   }
+
+  # OKE's cloud-controller-manager co-manages this list: it injects ingress/egress
+  # rules for each LoadBalancer Service (node health :10256, the dynamically-assigned
+  # NodePort ranges). Terraform doesn't know those rules, so without this guard every
+  # apply strips them and breaks the LB ingress path until the CCM re-reconciles — the
+  # demo's own two-pass `make up` would flap the ingress on every run. Manage the base
+  # rules above at create time; leave rule drift to the CCM (same rationale as the
+  # node-pool node_source_details guard below).
+  lifecycle {
+    ignore_changes = [ingress_security_rules, egress_security_rules]
+  }
 }
 
 resource "oci_core_subnet" "traefik_demo_endpoint" {
