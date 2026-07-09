@@ -186,6 +186,19 @@ write_files:
 
 runcmd:
   - sysctl -p /etc/sysctl.d/99-traefik-perf.conf
+  - |
+    # OCI's Ubuntu images ship a default iptables INPUT chain that ACCEPTs only SSH,
+    # ICMP, loopback and established connections, then REJECTs everything else — so a
+    # Traefik started with `--network host` (see the systemd unit above) is unreachable
+    # on its entrypoints (:9443 multicluster uplink, :80/:443, :8080 api, :9100 metrics)
+    # and on node_exporter (:9102), even though the OCI security list allows them. A
+    # `docker -p` publish would add its own ACCEPT rules, but host networking does not,
+    # so open the ports explicitly. No-op on AWS/Azure/GCP images (INPUT policy already
+    # ACCEPT, no REJECT rule), which is why the sibling cloud spokes never needed it.
+    if command -v iptables >/dev/null 2>&1; then
+      iptables -I INPUT -p tcp -m multiport --dports 80,443,8080,9100,9102,9443 -j ACCEPT || true
+      iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+    fi
   - mkdir -p /etc/traefik-hub/dynamic
   - mkdir -p /data
   - echo "{}" > /data/acme.json && chmod 600 /data/acme.json
