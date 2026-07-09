@@ -350,6 +350,10 @@ variable "dashboard_insecure" {
   default     = true
 }
 
+# Retained for module-API parity with traefik/oci-vm (which still consumes it); the
+# CI child now always rides a file-rule uplink for its dashboard, so the value is no
+# longer read here — silence the unused-declaration lint rather than break the API.
+# tflint-ignore: terraform_unused_declarations
 variable "enable_dashboard_discovery" {
   description = "Self-register the Traefik container instance via freeform tags (traefik.enable + dashboard router/service) so its OWN ociContainerInstances provider discovers the dashboard as dashboard@ocici. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the instance isn't self-discovered at all."
   type        = bool

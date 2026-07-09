@@ -86,7 +86,7 @@ module "oke" {
 | <a name="output_host"></a> [host](#output\_host) | OKE cluster host |
 | <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | OKE cluster kubeconfig |
 | <a name="output_node_pool_id"></a> [node\_pool\_id](#output\_node\_pool\_id) | OKE node pool ID |
-| <a name="output_nodes_subnet_id"></a> [nodes\_subnet\_id](#output\_nodes\_subnet\_id) | OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly. |
+| <a name="output_nodes_subnet_id"></a> [nodes\_subnet\_id](#output\_nodes\_subnet\_id) | OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly. This is a PRIVATE subnet (prohibit\_public\_ip\_on\_vnic) — instances get no public IPs and egress via the VCN's NAT gateway. |
 | <a name="output_token"></a> [token](#output\_token) | OKE cluster auth token |
 | <a name="output_vcn_id"></a> [vcn\_id](#output\_vcn\_id) | OCID of the cluster's VCN — VM/container-instance spokes (apps/whoami/oci-*, traefik/oci-*) join it |
 <!-- END_TF_DOCS -->

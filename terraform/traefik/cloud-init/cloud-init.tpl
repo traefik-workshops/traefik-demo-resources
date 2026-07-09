@@ -64,11 +64,12 @@ write_files:
       CPUAffinity=numa
       %{ endif }
 %{ if enable_preview_mode ~}
-      # Preview/dev builds (e.g. the EC2 provider, not yet in a Hub release) ship only as a
-      # container image, and a dev binary extracted from it isn't reliably standalone. Run the
-      # image as a CONTAINER instead — --network host so the uplink :9443, the local whoami, and
-      # the EC2 IMDS (the provider's instance-profile creds) all work, matching how the k8s
-      # spokes run the same image. The mounted dynamic dir carries the file-provider config.
+      # Preview/dev builds (e.g. the EC2 and OCI cloud providers, not yet in a Hub release)
+      # ship only as a container image, and a dev binary extracted from it isn't reliably
+      # standalone. Run the image as a CONTAINER instead — --network host so the uplink :9443,
+      # the local whoami, and the instance metadata service (IMDS, the provider's
+      # instance/resource-principal credentials) all work, matching how the k8s spokes run the
+      # same image. The mounted dynamic dir carries the file-provider config.
       ExecStartPre=-/usr/bin/docker rm -f traefik-hub
       ExecStartPre=/usr/bin/docker pull ${preview_image}
       ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
