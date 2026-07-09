@@ -59,7 +59,7 @@ resource "null_resource" "policy" {
       if [ -z "$existing" ] || [ "$existing" = "null" ]; then
         oci iam policy create --region ${var.home_region} --compartment-id ${var.tenancy_id} \
           --name '${local.policy_name}' --description 'Instance principals policy for the Traefik OCI demo' \
-          --statements '["Allow dynamic-group ${local.dg_name} to manage all-resources in tenancy"]' \
+          --statements '["Allow dynamic-group ${local.dg_name} to read instance-family in compartment id ${var.compartment_id}", "Allow dynamic-group ${local.dg_name} to read virtual-network-family in compartment id ${var.compartment_id}"]' \
           --wait-for-state ACTIVE
       fi
     EOT
