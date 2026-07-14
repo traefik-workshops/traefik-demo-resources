@@ -28,6 +28,7 @@ Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the larg
 | Path | Purpose |
 |---|---|
 | [`morpheus/k3s`](./morpheus/k3s) | Single-node k3s server on an HPE Morpheus MVM instance (VM Essentials / HVM; bootstrap via a Morpheus provisioning workflow — no user-data passthrough in the terraform provider; SSH-fetched kubeconfig, AKS-style cert outputs) |
+| [`pnap/metal`](./pnap/metal) | On-demand phoenixNAP Bare Metal Cloud server (hourly `pnap_server`) — the native metal host UNDER the private-cloud demos, imaged per demo: `proxmox/proxmox9`, `esxi/esxi80`, or `ubuntu/noble` (Morpheus HVM base) |
 | [`proxmox/k3s`](./proxmox/k3s) | Single-node k3s server on a Proxmox VE VM (cloud-image clone via snippet user-data; SSH-fetched kubeconfig, AKS-style cert outputs) |
 | [`vsphere/k3s`](./vsphere/k3s) | Single-node k3s server on a vSphere VM (cloud-image clone; SSH-fetched kubeconfig, AKS-style cert outputs) |
 | [`nutanix/vpc`](./nutanix/vpc) | VPC + subnets |
