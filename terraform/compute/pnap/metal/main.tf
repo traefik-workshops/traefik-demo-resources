@@ -34,4 +34,20 @@ resource "pnap_server" "metal" {
 
   pricing_model = var.pricing_model
   network_type  = var.network_type
+
+  lifecycle {
+    # DO NOT REMOVE. management_access_allowed_ips is PROVISION-TIME ONLY: the
+    # provider has no in-place update path, so any diff on it REPLACES the server —
+    # i.e. re-images the live box and destroys the lab on top of it.
+    #
+    # Callers typically feed this from the operator's current public IP (the
+    # private-cloud demos use a live `data.http` lookup), which changes with a VPN,
+    # a new DHCP lease, or a different network. Without this guard, simply applying
+    # from a coffee shop silently wipes the box — and the demos run
+    # `terraform apply -auto-approve`, so the replacement never surfaces for review.
+    #
+    # Ignoring it means the whitelist is fixed at CREATE. To re-scope it, change the
+    # value and `-replace` the server deliberately (it is a re-image either way).
+    ignore_changes = [management_access_allowed_ips]
+  }
 }

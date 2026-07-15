@@ -40,7 +40,7 @@ variable "install_default_ssh_keys" {
 
 variable "management_access_allowed_ips" {
   type        = list(string)
-  description = "IPs/CIDRs allowed to reach the server's management UI, scoped at the phoenixNAP network layer (single IP, CIDR, or range). For the proxmox/proxmox9 image this is the Proxmox web UI on :8006; the BMC portal calls it 'White Listed IPs'. Empty (default) means BMC ships the image locked down (Proxmox: :8006 firewalled to SSH-only) — set it to the operator's IP so the demo's terraform can reach the API. Applied at PROVISION time (no in-place update path in the provider): changing it re-images the server, so scope it up front."
+  description = "IPs/CIDRs allowed to reach the server's management UI, scoped at the phoenixNAP network layer (single IP, CIDR, or range). For the proxmox/proxmox9 image this is the Proxmox web UI on :8006; the BMC portal calls it 'White Listed IPs'. Empty (default) means BMC ships the image locked down (Proxmox: :8006 firewalled to SSH-only) — set it to the operator's IP so the demo's terraform can reach the API. PROVISION-TIME ONLY: the provider has no in-place update path, so a diff would re-image the server. main.tf therefore pins it with `ignore_changes`, so the whitelist is fixed at CREATE and later drift (a VPN, a new DHCP lease, applying from another network) can NEVER silently destroy the box. To re-scope it, change the value and `-replace` the server deliberately."
   default     = []
 }
 
