@@ -102,6 +102,12 @@ variable "lxc_template_file_id" {
   default     = ""
 }
 
+variable "gateway" {
+  type        = string
+  description = "Default gateway for LXC apps that pin a static ip_address (the internal bridge's address, e.g. 10.10.10.1). Unused for DHCP apps and for QEMU VMs (cloud-init DHCPs those)."
+  default     = ""
+}
+
 variable "lxc_whoami_image" {
   type        = string
   description = "OCI image whose whoami binary (Entrypoint /whoami) is EXTRACTED with crane and run raw inside LXC containers — no docker-in-LXC. Default is the OTel-instrumented fork (ghcr.io/zalbiraw/whoami), so the LXC leg emits OTLP like the QEMU/k8s whoami and shows as its own service-graph node. Set to \"\" to fall back to the upstream traefik/whoami release binary (lxc_whoami_version), which has no tracing."
