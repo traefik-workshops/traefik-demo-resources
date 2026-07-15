@@ -66,6 +66,24 @@ runcmd:
       sleep 10
     done
 
+%{ if otlp_address != "" ~}
+  # Gate whoami on the collector endpoint actually accepting OTLP writes. The
+  # whoami fork resolves OTEL_EXPORTER_OTLP_ENDPOINT once at start: first boot
+  # races dns-traefiker publishing collector.<domain>, and an exporter that
+  # starts against an unresolvable endpoint stays dark for the life of the
+  # container — the backend then emits no spans, so the service map loses the
+  # whole leg (`traefik-<type> -> unknown`) while every route still serves 200
+  # (oci-unified-ingress validation, 2026-07). Skipped entirely when no OTLP
+  # endpoint is configured. Bounded: 30 min, then start anyway.
+  - |
+    for i in $(seq 1 180); do
+      curl -skf --max-time 5 -X POST -H 'Content-Type: application/json' \
+        -d '{"resourceMetrics":[]}' "${otlp_address}/v1/metrics" > /dev/null && { echo "OTLP collector ready."; break; }
+      echo "Waiting for OTLP collector ${otlp_address} ($i/180)..."
+      sleep 10
+    done
+%{ endif ~}
+
   # Start Service
   - systemctl daemon-reload
   - systemctl enable --now whoami.service
