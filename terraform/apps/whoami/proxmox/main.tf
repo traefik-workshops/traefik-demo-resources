@@ -51,13 +51,6 @@ locals {
         name           = try(app_config.name, "")
         environment    = merge(var.environment, try(app_config.environment, {}))
         traefik_labels = try(app_config.traefik_labels, {})
-        # Optional STATIC address (CIDR, e.g. "10.10.10.60/24") for type="lxc". Empty =
-        # DHCP. This exists because terraform CANNOT learn a container's DHCP lease: PVE
-        # reports QEMU IPs through the guest agent, but an LXC has no agent, so the
-        # `instances` output can only report private_ip = null for a DHCP container. Any
-        # caller that must ROUTE to the container by address (an explicitly-defined
-        # Traefik file service, rather than plugin discovery) therefore has to pin it.
-        ip_address = try(app_config.ip_address, "")
       }
     ]
   ])
@@ -209,10 +202,7 @@ resource "proxmox_virtual_environment_container" "whoami" {
 
     ip_config {
       ipv4 {
-        # Static when the app pins ip_address, else DHCP. Static is what lets a caller
-        # route to this container explicitly (see the ip_address note in locals).
-        address = each.value.ip_address != "" ? each.value.ip_address : "dhcp"
-        gateway = each.value.ip_address != "" ? var.gateway : null
+        address = "dhcp"
       }
     }
   }
@@ -229,16 +219,6 @@ resource "proxmox_virtual_environment_container" "whoami" {
     precondition {
       condition     = var.lxc_template_file_id != ""
       error_message = "lxc_template_file_id is required for apps with type = \"lxc\"."
-    }
-    precondition {
-      condition     = each.value.ip_address == "" || var.gateway != ""
-      error_message = "gateway is required when an lxc app pins ip_address (a static address with no gateway has no route off the bridge)."
-    }
-    precondition {
-      # One pinned address cannot serve N replicas — they would all boot on the same IP.
-      # Give each replica its own app entry, or leave ip_address unset and use DHCP.
-      condition     = each.value.ip_address == "" || try(var.apps[each.value.app_name].replicas, 1) == 1
-      error_message = "ip_address pins a single address, so the app must have replicas = 1 (got more). Use separate apps for additional static containers."
     }
   }
 }

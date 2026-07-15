@@ -15,20 +15,43 @@
 #    path already runs the Hub as a RAW BINARY under systemd, which is exactly what a
 #    container wants.
 #
-# 2. NO discovery plugin — routes are DEFINED, not discovered. The NX211 plugin has no
-#    node/type/tag filter: it polls the PVE API and routes EVERY guest labelled
-#    traefik.enable=true, cluster-wide. So two plugin-carrying children would each
-#    discover the other's guests and "one compute type per gateway" would be fiction.
-#    This gateway therefore carries no plugin at all: file_provider_config names the
-#    container's address outright (which is why the whoami LXC pins a static IP — a
-#    DHCP container's address is invisible to terraform). Discovery stays the VM child's
-#    story; this child is the explicit-routes one.
+# 2. SAME discovery plugin, DIFFERENT routes. This gateway runs the NX211 plugin exactly
+#    like the VM child, so it discovers every labelled guest on the node — the plugin has
+#    no node/type/tag filter and cannot be scoped, so BOTH children inevitably see BOTH
+#    compute types. That is fine and expected. The separation is not enforced at
+#    discovery; it is enforced by what each child ROUTES: this gateway's
+#    file_provider_config only ever advertises the LXC services (lxc-whoami@plugin-proxmox),
+#    and the VM child's only ever advertises the VM ones. Discovered-but-unrouted guests
+#    just sit there (the plugin also mints a useless auto-router per guest, rule
+#    Host(`<guest-name>`), which nothing resolves — harmless).
 #
 # The Hub binary comes from the same image the rest of the mesh runs (custom_image_*),
 # extracted with crane. The demo runs a pre-release build that ships only as an image,
 # and a child on a different Hub version cannot join the mesh — so pulling the released
 # tarball instead is NOT equivalent.
+#
+# The container itself DOES need a static address (var.ip_address): the hub dials this
+# child's :9443 uplink from its terraform-configured `children` map, and a container
+# reports no DHCP lease back to terraform (no guest agent). That is the one thing the
+# plugin cannot solve — it discovers backends, not the hub's view of its children.
 # =============================================================================
+
+locals {
+  # The plugin's static config as CLI flags — identical delivery to traefik/proxmox-vm.
+  # Its services surface as <name>@plugin-proxmox, which file_provider_config references.
+  proxmox_plugin_args = var.proxmox_plugin.enabled ? concat(
+    [
+      "--experimental.plugins.proxmox.moduleName=github.com/NX211/traefik-proxmox-provider",
+      "--experimental.plugins.proxmox.version=${var.proxmox_plugin.version}",
+      "--providers.plugin.proxmox.pollInterval=${var.proxmox_plugin.poll_interval}",
+      "--providers.plugin.proxmox.apiEndpoint=${var.proxmox_plugin.api_endpoint}",
+      "--providers.plugin.proxmox.apiTokenId=${var.proxmox_plugin.api_token_id}",
+      "--providers.plugin.proxmox.apiToken=${var.proxmox_api_token}",
+      "--providers.plugin.proxmox.apiValidateSSL=${var.proxmox_plugin.api_validate_ssl}",
+    ],
+    var.proxmox_plugin.api_logging != "" ? ["--providers.plugin.proxmox.apiLogging=${var.proxmox_plugin.api_logging}"] : [],
+  ) : []
+}
 
 module "config" {
   source = "../shared"
@@ -65,10 +88,10 @@ module "config" {
   enable_prometheus            = var.enable_prometheus
   enable_access_logs           = var.enable_access_logs
 
-  # Plugins & Extensions — no proxmox plugin here on purpose (see the header).
+  # Plugins & Extensions — the proxmox plugin rides here, same as the VM child.
   custom_plugins       = var.custom_plugins
   custom_ports         = var.custom_ports
-  custom_arguments     = var.custom_arguments
+  custom_arguments     = concat(var.custom_arguments, local.proxmox_plugin_args)
   custom_envs          = var.custom_envs
   file_provider_config = var.file_provider_config
   file_provider_path   = var.file_provider_path
@@ -171,7 +194,9 @@ locals {
 resource "proxmox_virtual_environment_container" "traefik" {
   node_name = var.node_name
 
-  description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Routes are DEFINED in its file provider, not discovered: it carries no proxmox plugin, so it can never pick up the VM child's guests."
+  # No traefik.enable label: this gateway must not discover ITSELF as a backend. Its
+  # dashboard is advertised over the uplink instead (a file rule), like the VM child's.
+  description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Runs the NX211 plugin (which sees every guest — it cannot be scoped) but only ROUTES the LXC services; the VM child routes the VM ones."
 
   unprivileged = true
 

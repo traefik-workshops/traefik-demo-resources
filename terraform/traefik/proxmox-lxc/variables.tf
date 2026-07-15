@@ -235,9 +235,35 @@ variable "enable_access_logs" {
   default     = true
 }
 
+# --- Guest discovery (the NX211 plugin) ---------------------------------------------
+variable "proxmox_plugin" {
+  description = "NX211 traefik-proxmox-provider config — the same runtime Yaegi plugin the VM child runs, so Traefik downloads it from plugins.traefik.io at start (the container NEEDS outbound internet or Traefik exits). It discovers EVERY guest labelled traefik.enable=true and cannot be scoped by node/type/tag, so this gateway sees the VM guests too; that is expected. What makes this the LXC gateway is that file_provider_config only advertises the LXC services."
+  type = object({
+    enabled          = optional(bool, true)
+    version          = optional(string, "v0.8.1")
+    poll_interval    = optional(string, "30s")
+    api_endpoint     = string
+    api_token_id     = string
+    api_validate_ssl = optional(bool, false)
+    api_logging      = optional(string, "")
+  })
+  default = {
+    enabled      = false
+    api_endpoint = ""
+    api_token_id = ""
+  }
+}
+
+variable "proxmox_api_token" {
+  type        = string
+  description = "Secret half of the PVE API token the plugin discovers with (Proxmox has no ambient identity, so this is explicit). Use the read-only discovery token — demo-grade in the process args either way."
+  sensitive   = true
+  default     = ""
+}
+
 # --- Config extension --------------------------------------------------------------
 variable "custom_plugins" {
-  description = "Extra Traefik plugins. NB: this gateway deliberately carries NO proxmox discovery plugin — see main.tf's header."
+  description = "Extra Traefik plugins beyond the proxmox discovery plugin (which has its own proxmox_plugin variable)."
   type        = any
   default     = {}
 }
@@ -262,7 +288,7 @@ variable "custom_envs" {
 
 variable "file_provider_config" {
   type        = string
-  description = "The file provider's dynamic config (YAML). THIS is where this gateway's routes live: it has no discovery plugin, so its services name their backends' addresses outright (which is why those backends pin static IPs). Also where uplinks are declared for the hub to surface as <uplink>@multicluster."
+  description = "The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@plugin-proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster."
   default     = ""
 }
 
