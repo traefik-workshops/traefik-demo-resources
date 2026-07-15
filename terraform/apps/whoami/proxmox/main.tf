@@ -247,17 +247,50 @@ locals {
   lxc_setup = { for k, inst in local.lxc_instances : k => <<-EOT
     #!/usr/bin/env bash
     set -euo pipefail
-    # Wait for DHCP + DNS inside the container before touching the network.
-    for i in $(seq 1 60); do getent hosts deb.debian.org >/dev/null 2>&1 && break; sleep 2; done
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -qq
-    apt-get install -y -qq curl ca-certificates
-    curl -fsSL --retry 5 "https://github.com/traefik/whoami/releases/download/${var.lxc_whoami_version}/whoami_${var.lxc_whoami_version}_linux_amd64.tar.gz" -o /tmp/whoami.tar.gz
-    tar -xzf /tmp/whoami.tar.gz -C /usr/local/bin whoami
+    IMAGE="${var.lxc_whoami_image}"
+    # Gate on apt being USABLE, not just DNS resolving: a fresh container boots while the
+    # host's DHCP/lab-DNS/NAT is still converging, so `getent` can succeed seconds before
+    # apt can actually fetch. Retry `apt-get update` until it works (up to ~5 min), and
+    # FAIL LOUD if it never does — a silent no-op here leaves whoami uninstalled and the
+    # canary v2 leg dead with a green apply.
+    apt_ready=0
+    for i in $(seq 1 60); do if apt-get update -qq 2>/dev/null; then apt_ready=1; break; fi; echo "waiting for apt ($i/60)"; sleep 5; done
+    [ "$apt_ready" = 1 ] || { echo "FATAL: apt never became usable in the container" >&2; exit 1; }
+    apt-get install -y -qq curl ca-certificates tar
+    if [ -n "$IMAGE" ]; then
+      # Instrumented path (default): the whoami fork is docker-only, so EXTRACT its binary
+      # (Entrypoint /whoami) from the OCI image with crane and run it RAW under systemd —
+      # no docker daemon in the container. crane exports the linux/amd64 rootfs by default.
+      # The fork honors the OTEL_* env below, so this LXC leg emits OTLP and earns its own
+      # service-graph node (whoami-lxc), just like the QEMU/k8s whoami.
+      dl=0
+      for i in $(seq 1 10); do if curl -fsSL --max-time 90 "https://github.com/google/go-containerregistry/releases/download/${var.crane_version}/go-containerregistry_Linux_x86_64.tar.gz" -o /tmp/gcr.tgz; then dl=1; break; fi; echo "retry crane download ($i/10)"; sleep 5; done
+      [ "$dl" = 1 ] || { echo "FATAL: could not download crane" >&2; exit 1; }
+      tar -xzf /tmp/gcr.tgz -C /usr/local/bin crane
+      chmod +x /usr/local/bin/crane
+      # Export the flattened rootfs to a FILE then extract (piping crane's stdout into
+      # `tar -xO` is unreliable — GNU tar needs an explicit `-f -` to read stdin). crane
+      # exports linux/amd64 by default; the binary is stored at the archive root as `whoami`.
+      ex=0
+      for i in $(seq 1 10); do if /usr/local/bin/crane export "$IMAGE" /tmp/whoami-rootfs.tar 2>/dev/null && tar -xf /tmp/whoami-rootfs.tar -C /usr/local/bin whoami 2>/dev/null && [ -s /usr/local/bin/whoami ]; then ex=1; break; fi; echo "retry crane export ($i/10)"; sleep 5; done
+      [ "$ex" = 1 ] || { echo "FATAL: could not extract /whoami from $IMAGE" >&2; exit 1; }
+      rm -f /tmp/whoami-rootfs.tar
+    else
+      # Fallback: the upstream traefik/whoami release binary (NO OTLP tracing).
+      dl=0
+      for i in $(seq 1 10); do if curl -fsSL --max-time 60 "https://github.com/traefik/whoami/releases/download/${var.lxc_whoami_version}/whoami_${var.lxc_whoami_version}_linux_amd64.tar.gz" -o /tmp/whoami.tar.gz; then dl=1; break; fi; echo "retry whoami download ($i/10)"; sleep 5; done
+      [ "$dl" = 1 ] || { echo "FATAL: could not download the whoami binary" >&2; exit 1; }
+      tar -xzf /tmp/whoami.tar.gz -C /usr/local/bin whoami
+    fi
     chmod +x /usr/local/bin/whoami
     echo "${base64encode(local.lxc_units[k])}" | base64 -d >/etc/systemd/system/whoami.service
     systemctl daemon-reload
-    systemctl enable --now whoami
+    systemctl enable whoami
+    # restart, not `enable --now`: on a re-provision the service is already running, and
+    # `--now` won't reload an active unit — it would leave the OLD binary/env running
+    # (the new whoami on disk but never exec'd). restart always picks up both.
+    systemctl restart whoami
     echo "whoami LXC provisioning complete"
   EOT
   }
@@ -290,8 +323,14 @@ resource "terraform_data" "lxc_whoami" {
 
   provisioner "remote-exec" {
     inline = [
-      "pct push ${proxmox_virtual_environment_container.whoami[each.key].id} /tmp/whoami-${each.key}-setup.sh /tmp/whoami-setup.sh",
-      "pct exec ${proxmox_virtual_environment_container.whoami[each.key].id} -- bash /tmp/whoami-setup.sh",
+      # pct is a root tool in /usr/sbin — NOT in the non-root proxmox user's PATH — so
+      # elevate via sudo (the same passwordless-sudo path the bpg provider uses for its
+      # snippet uploads). `set -e` makes a pct failure fail the apply instead of the
+      # trailing rm masking it with exit 0, which silently left the container on its old
+      # binary (a green apply hid an un-provisioned LXC).
+      "set -e",
+      "sudo pct push ${proxmox_virtual_environment_container.whoami[each.key].id} /tmp/whoami-${each.key}-setup.sh /tmp/whoami-setup.sh",
+      "sudo pct exec ${proxmox_virtual_environment_container.whoami[each.key].id} -- bash /tmp/whoami-setup.sh",
       "rm -f /tmp/whoami-${each.key}-setup.sh",
     ]
   }

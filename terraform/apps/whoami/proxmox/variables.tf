@@ -78,7 +78,7 @@ variable "lxc_disk_size" {
 
 # --- Workload (QEMU VMs) ------------------------------------------------------------
 variable "whoami_image" {
-  description = "Whoami image docker-run on each VM (type = \"vm\" only — LXC runs the upstream binary). Untagged references get `:` + whoami_version appended."
+  description = "Whoami image docker-run on each VM (type = \"vm\"). LXC apps run the binary EXTRACTED from lxc_whoami_image instead (no docker in the container). Untagged references get `:` + whoami_version appended."
   type        = string
   default     = "ghcr.io/zalbiraw/whoami:latest"
 }
@@ -90,7 +90,7 @@ variable "whoami_version" {
 }
 
 variable "environment" {
-  description = "Environment variables passed to every whoami (docker -e on VMs, the systemd unit on LXC), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork — NB the upstream binary on LXC ignores OTEL_* vars. Per-app `environment` entries win on collision."
+  description = "Environment variables passed to every whoami (docker -e on VMs, the systemd unit on LXC), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. With the default lxc_whoami_image (the fork), the LXC binary honors OTEL_* too; only the upstream-release fallback ignores them. Per-app `environment` entries win on collision."
   type        = map(string)
   default     = {}
 }
@@ -102,10 +102,22 @@ variable "lxc_template_file_id" {
   default     = ""
 }
 
+variable "lxc_whoami_image" {
+  type        = string
+  description = "OCI image whose whoami binary (Entrypoint /whoami) is EXTRACTED with crane and run raw inside LXC containers — no docker-in-LXC. Default is the OTel-instrumented fork (ghcr.io/zalbiraw/whoami), so the LXC leg emits OTLP like the QEMU/k8s whoami and shows as its own service-graph node. Set to \"\" to fall back to the upstream traefik/whoami release binary (lxc_whoami_version), which has no tracing."
+  default     = "ghcr.io/zalbiraw/whoami:latest"
+}
+
 variable "lxc_whoami_version" {
   type        = string
-  description = "traefik/whoami RELEASE tag whose linux_amd64 binary is installed inside LXC containers (upstream binary — the fork image is docker-only)"
+  description = "traefik/whoami RELEASE tag whose linux_amd64 binary is installed inside LXC containers ONLY when lxc_whoami_image is \"\" (the upstream binary fallback — no OTLP tracing)."
   default     = "v1.11.0"
+}
+
+variable "crane_version" {
+  type        = string
+  description = "go-containerregistry release whose static `crane` binary the LXC setup fetches to export lxc_whoami_image's rootfs (no docker needed on the node or in the container)."
+  default     = "v0.20.2"
 }
 
 variable "node_ssh" {
