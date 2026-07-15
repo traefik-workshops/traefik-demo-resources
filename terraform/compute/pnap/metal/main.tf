@@ -28,6 +28,10 @@ resource "pnap_server" "metal" {
   ssh_keys                 = var.ssh_keys
   install_default_ssh_keys = var.install_default_ssh_keys
 
+  # Scope the management UI (Proxmox :8006, etc.) to these IPs at the BMC network
+  # layer — the native 'White Listed IPs' control, set at provision time.
+  management_access_allowed_ips = var.management_access_allowed_ips
+
   pricing_model = var.pricing_model
   network_type  = var.network_type
 }
