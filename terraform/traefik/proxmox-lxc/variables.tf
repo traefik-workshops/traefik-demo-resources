@@ -57,6 +57,18 @@ variable "gateway" {
   description = "Default gateway for the static address — normally the internal bridge's own IP."
 }
 
+variable "dns_servers" {
+  type        = list(string)
+  description = "Resolvers for the container. MUST be the lab resolver (the dnsmasq on the bridge that answers *.<domain> with the INTERNAL k3s address), not a public one. Because the address is static there is no DHCP lease to carry the lab resolver, so without this the container inherits the PVE host's public resolvers, resolves collector.<domain> to the box's PUBLIC ip via dns-traefiker, hairpins, and silently ships no telemetry. Defaults to [gateway] — on the demos' bridge, dnsmasq listens on the gateway address itself."
+  default     = []
+}
+
+variable "dns_search_domain" {
+  type        = string
+  description = "Optional search domain for the container's resolver."
+  default     = ""
+}
+
 # --- Node access (the pct-exec provisioning channel) --------------------------------
 variable "node_ssh" {
   description = "SSH access to the Proxmox NODE, used to `pct push`/`pct exec` the Hub install into the container (LXC has no cloud-init user-data path). The user needs passwordless sudo — pct is root-only."

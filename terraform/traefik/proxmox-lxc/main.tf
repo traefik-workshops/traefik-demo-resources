@@ -235,6 +235,19 @@ resource "proxmox_virtual_environment_container" "traefik" {
         gateway = var.gateway
       }
     }
+
+    # REQUIRED because the address above is static. A DHCP guest is handed the lab's
+    # resolver in its lease (dnsmasq on the bridge, which answers *.<domain> with the
+    # INTERNAL k3s address). Going static opts out of DHCP entirely — and therefore out of
+    # lab DNS — so the container silently inherits the PVE host's PUBLIC resolvers. It then
+    # resolves collector.<domain> through dns-traefiker to the box's PUBLIC ip and hairpins
+    # back at the host, which refuses: the gateway serves traffic fine but ships NO
+    # telemetry, and simply never appears in the service graph. Point it at the lab
+    # resolver explicitly.
+    dns {
+      servers = length(var.dns_servers) > 0 ? var.dns_servers : [var.gateway]
+      domain  = var.dns_search_domain != "" ? var.dns_search_domain : null
+    }
   }
 
   features {
