@@ -429,3 +429,9 @@ variable "enable_provisioning_workflow" {
   description = "Wrap the bootstrap task in a Morpheus PROVISIONING WORKFLOW (a task-set) and attach it to each instance via task_set_id — the native path, which runs the bootstrap at postProvision. Requires features.workflows: HPE VM Essentials does NOT have it (POST /api/task-sets -> 403 \"Feature Not Included for the Applied License\", and the 403 fires before body validation). Set FALSE on VME and execute the task DIRECTLY instead — POST /api/tasks/{id}/execute is ungated (it answers 404 for a bogus id, not 403), and the task resource itself is fine (features.tasks=true). When false the CALLER owns triggering the bootstrap after provisioning; the module exposes bootstrap_task_ids for exactly that."
   default     = true
 }
+
+variable "private_ip" {
+  type        = string
+  description = "Fixed static IP for the gateway NIC. When set, the interface uses ip_mode=static with this address (must sit in the joined network's range, outside the appliance's DHCP pool). Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across instance recreation (the hub never dials a stale IP). Empty = DHCP (the appliance-reported primary IP)."
+  default     = ""
+}

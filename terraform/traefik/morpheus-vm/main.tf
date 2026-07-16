@@ -246,10 +246,20 @@ resource "hpe_morpheus_instance" "traefik" {
   # network_interfaces is REQUIRED by the provider schema; [] leans on the
   # layout's default network selection (gomorpheus's optional-NIC behavior).
   network_interfaces = var.network != "" ? [
-    {
-      network_id      = data.hpe_morpheus_network.this[0].id
-      network_type_id = var.network_interface_type_id
-    }
+    merge(
+      {
+        network_id      = data.hpe_morpheus_network.this[0].id
+        network_type_id = var.network_interface_type_id
+      },
+      # Static assignment when pinned: the interface's ip_mode/ip_address (verified
+      # present on hpe_morpheus_instance v1.5.0) give the gateway a plan-known,
+      # recreation-stable address the hub can dial. Empty private_ip leaves both
+      # unset -> the appliance's default (DHCP / IP pool), the prior behavior.
+      var.private_ip != "" ? {
+        ip_mode    = "static"
+        ip_address = var.private_ip
+      } : {}
+    )
   ] : []
 
   volumes = var.root_volume != null ? [
