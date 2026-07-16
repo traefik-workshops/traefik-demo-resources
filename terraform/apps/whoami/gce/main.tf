@@ -76,6 +76,21 @@ resource "google_compute_instance" "whoami" {
   # GCE labels (lowercase, dotless) — matched by the provider's `constraints`
   # expression only; they carry no traefik.* routing config.
   labels = merge(var.common_labels, each.value.labels)
+
+  lifecycle {
+    # The gce provider expects the `traefik` metadata value to be a JSON OBJECT of
+    # dotted string labels. jsonencode() above always emits valid JSON, but the
+    # wrong INPUT shape still encodes "validly" — a pre-encoded string becomes a
+    # JSON string, a nested map a JSON object of objects — and the provider then
+    # silently drops the VM from discovery (no error anywhere; the service just
+    # never gains the server). Fail the plan instead.
+    precondition {
+      condition = alltrue([
+        for k, v in each.value.traefik_labels : can(tostring(v)) && startswith(k, "traefik.")
+      ])
+      error_message = "traefik_labels must be a flat map of dotted `traefik.*` keys to STRING values (e.g. {\"traefik.enable\" = \"true\"}). A pre-jsonencode()d string or nested map encodes into a shape the gce provider silently ignores — the VM would vanish from discovery with no error."
+    }
+  }
 }
 
 # Open the app ports intra-network (mirrors compute/azure/vnet's NSG idea —
