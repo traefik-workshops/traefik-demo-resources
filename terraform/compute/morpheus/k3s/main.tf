@@ -58,7 +58,14 @@ data "hpe_morpheus_network" "this" {
   name  = var.network
 }
 
+# On HPE VM Essentials there are NO ResourcePool records at all: /api/zones/{id}/resource-pools
+# and /api/resource-pools both return total=0, and the cluster's own .resourcePool is null. VME
+# exposes the HVM cluster as a SYNTHETIC pool ("pool-<clusterId>") through the zonePools option
+# source only, so this data source can never find it ("found 0 resourcePools for <name>") — at
+# PLAN time. Pass var.resource_pool_id to bypass it; config_hvm.resource_pool_id is a string
+# anyway, which is exactly what "pool-1" is. Kept for full Morpheus, where real pools exist.
 data "hpe_morpheus_resource_pool" "this" {
+  count    = var.resource_pool_id == null ? 1 : 0
   cloud_id = data.hpe_morpheus_cloud.this.id
   name     = var.resource_pool_name
 }
@@ -131,7 +138,7 @@ resource "hpe_morpheus_instance" "k3s" {
   # installed the agent by default) and the agent is what executes the
   # postProvision bootstrap — never skip it.
   config_hvm = {
-    resource_pool_id = tostring(data.hpe_morpheus_resource_pool.this.id)
+    resource_pool_id = var.resource_pool_id != null ? var.resource_pool_id : tostring(one(data.hpe_morpheus_resource_pool.this[*].id))
     no_agent         = false
   }
 

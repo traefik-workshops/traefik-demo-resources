@@ -119,3 +119,9 @@ variable "instance_layout_id" {
   description = "Literal layout id, bypassing the name lookup. REQUIRED on HPE VM Essentials (see instance_type_id). Also disambiguates: \"Single KVM VM\" is NOT unique — Ubuntu carries several. null = resolve by name."
   default     = null
 }
+
+variable "resource_pool_id" {
+  type        = string
+  description = "Literal resource-pool id, bypassing the name lookup. REQUIRED on HPE VM Essentials: it has no ResourcePool records (/api/resource-pools -> total=0) — the HVM cluster is a synthetic \"pool-<clusterId>\" served only by the zonePools option source, so the data source fails at PLAN time with \"found 0 resourcePools\". null = resolve by name (full Morpheus)."
+  default     = null
+}
