@@ -177,6 +177,35 @@ resource "azurerm_role_assignment" "reader" {
   principal_id         = azurerm_linux_virtual_machine.traefik.identity[0].principal_id
 }
 
+# Same identity token race as traefik/aci (see its identity_bounce): the VM's
+# managed identity can mint its ARM token before the Reader grant above lands,
+# and the azurevm provider 403s until Traefik restarts. The VM child had this
+# latent (masked by slow cloud-init boots); make the bounce durable. Fires only
+# on VM (re)creation; restarts just the traefik-hub unit, not the VM.
+resource "null_resource" "identity_bounce" {
+  count      = var.enable_reader_role ? 1 : 0
+  depends_on = [azurerm_role_assignment.reader]
+
+  triggers = {
+    vm_id = azurerm_linux_virtual_machine.traefik.id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      # RBAC propagation first. Then bounce ONLY if the unit is already running —
+      # a unit that starts later (cloud-init is often still mid-boot here, behind
+      # the collector gate) starts after the grant exists and never raced it.
+      sleep 120
+      az vm run-command invoke \
+        --resource-group ${var.resource_group_name} \
+        --name ${azurerm_linux_virtual_machine.traefik.name} \
+        --command-id RunShellScript \
+        --scripts "if systemctl is-active --quiet traefik-hub; then systemctl restart traefik-hub && echo bounced; else echo 'unit not running yet - it will first start after the grant, no bounce needed'; fi"
+    EOT
+  }
+}
+
 # =============================================================================
 # Shared Configuration Module - Azure VM
 # =============================================================================

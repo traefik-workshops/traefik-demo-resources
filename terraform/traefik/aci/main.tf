@@ -141,6 +141,35 @@ resource "azurerm_role_assignment" "reader" {
   principal_id         = azurerm_container_group.traefik.identity[0].principal_id
 }
 
+# Identity token race: a freshly-created group's system-assigned identity acquires
+# its ARM token BEFORE the Reader assignment above lands (the group must exist for
+# its principal_id to exist, so the grant always loses the race on pass 1) — the
+# aci provider then 403s on every list call until the group restarts and mints a
+# fresh token. Historically masked by a manual `az container restart` during
+# validation (azure-unified-ingress 2026-07); this makes the bounce durable. Fires
+# ONLY when the group is (re)created — steady-state applies are untouched. The OCI
+# analogue is oci-ci's resource_principal_bounce (same race, resource principals).
+resource "null_resource" "identity_bounce" {
+  count      = var.enable_reader_role ? 1 : 0
+  depends_on = [azurerm_role_assignment.reader]
+
+  triggers = {
+    container_group_id = azurerm_container_group.traefik.id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -eu
+      # Give RBAC propagation time (regional AAD replication), then force a fresh
+      # identity token. `az container restart` blocks until the group is running.
+      sleep 120
+      az container restart \
+        --resource-group ${var.resource_group_name} \
+        --name ${var.name}
+    EOT
+  }
+}
+
 # =============================================================================
 # Shared Configuration Module - ACI
 # =============================================================================
