@@ -224,8 +224,15 @@ resource "hpe_morpheus_instance" "whoami" {
     replace_triggered_by = [hpe_morpheus_task_shell_script.bootstrap]
 
     precondition {
-      condition     = var.network == "" || var.network_interface_type_id != null
-      error_message = "network_interface_type_id is required when network is set (the Morpheus API needs the interface type ID, e.g. the KVM virtio type)."
+      # network_interface_type_id is OPTIONAL, despite the gomorpheus-era assumption this used to
+      # encode. VERIFIED on a live VME 9.0.0 appliance: POST /api/instances with
+      # networkInterfaces:[{"network":{"id":1}}] and NO type at all provisions fine (instance
+      # reached running). The NIC-type option sources are empty there anyway
+      # (/api/options/networkInterfaceTypes -> []), so demanding one made the module unusable on
+      # VME. Kept as a soft check only for the case where a caller sets the id to something
+      # nonsensical; a null is legitimate.
+      condition     = var.network == "" || var.network_interface_type_id == null || var.network_interface_type_id > 0
+      error_message = "network_interface_type_id must be a positive Morpheus interface-type id when set (null is fine — VME does not require one)."
     }
 
     precondition {
