@@ -101,7 +101,8 @@ resource "azurerm_network_interface" "traefik" {
   ip_configuration {
     name                          = "internal"
     subnet_id                     = var.subnet_id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = var.private_ip != "" ? "Static" : "Dynamic"
+    private_ip_address            = var.private_ip != "" ? var.private_ip : null
     public_ip_address_id          = var.enable_public_ip ? azurerm_public_ip.traefik[0].id : null
   }
 }

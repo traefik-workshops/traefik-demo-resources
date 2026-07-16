@@ -52,3 +52,8 @@ output "nodes_subnet_id" {
   description = "OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly. This is a PRIVATE subnet (prohibit_public_ip_on_vnic) — instances get no public IPs and egress via the VCN's NAT gateway."
   value       = oci_core_subnet.traefik_demo_nodes.id
 }
+
+output "nodes_subnet_cidr" {
+  description = "CIDR of the nodes subnet — plan-known (a module literal), so callers can pin spoke instance addresses with cidrhost() and reference them before anything is applied."
+  value       = local.nodes_subnet_cidr
+}

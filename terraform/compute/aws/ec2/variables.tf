@@ -121,3 +121,9 @@ variable "enable_nat_gateway" {
   type        = bool
   default     = false
 }
+
+variable "private_ips" {
+  type        = list(string)
+  description = "Fixed private IPs, one per instance index (instance idx N gets private_ips[N]; extra instances fall back to DHCP). Each address must sit in the subnet that instance lands in (subnet_ids[idx % length]) and avoid AWS's reserved first-4/last-1 hosts. Pinning makes the address plan-known AND stable across instance recreation — a hub dialing this child never goes stale."
+  default     = []
+}

@@ -383,3 +383,9 @@ variable "enable_dashboard_discovery" {
   type        = bool
   default     = true
 }
+
+variable "private_ip" {
+  type        = string
+  description = "Fixed private IP for the gateway instance. Must sit in vswitch_id's CIDR outside Alibaba's reserved first-3/last-1 hosts. Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across instance recreation (the hub never dials a stale IP). Empty = DHCP."
+  default     = ""
+}

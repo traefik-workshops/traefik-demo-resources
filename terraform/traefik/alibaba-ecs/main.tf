@@ -173,6 +173,7 @@ resource "alicloud_instance" "traefik" {
   instance_type   = var.instance_type
   image_id        = local.image_id
   vswitch_id      = var.vswitch_id
+  private_ip      = var.private_ip != "" ? var.private_ip : null
   security_groups = concat(var.security_group_ids, var.enable_security_group ? [alicloud_security_group.traefik[0].id] : [])
 
   system_disk_category = var.system_disk_category

@@ -1,3 +1,9 @@
+locals {
+  # Nodes subnet CIDR — exposed as an output so callers can pin spoke addresses
+  # with cidrhost() at plan time (the value must stay a literal).
+  nodes_subnet_cidr = "10.0.2.0/24"
+}
+
 # Generate SSH key pair
 resource "tls_private_key" "traefik_demo" {
   algorithm = "RSA"
@@ -146,7 +152,7 @@ resource "oci_core_subnet" "traefik_demo_nodes" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.traefik_demo.id
   display_name   = "${var.cluster_name}-nodes-subnet"
-  cidr_block     = "10.0.2.0/24"
+  cidr_block     = local.nodes_subnet_cidr
   # Private subnet: egress via the NAT gateway, no public IPs on any VNIC. The
   # worker nodes and the VM/CI spokes all live here and reach each other (and the
   # hub reaches them) over private IPs; outbound-only traffic goes through NAT.

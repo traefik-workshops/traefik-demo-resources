@@ -27,3 +27,8 @@ output "security_group_ids" {
   description = "Demo security group ID as a one-element list (mirrors compute/aws/vpc)"
   value       = [alicloud_security_group.demo.id]
 }
+
+output "vswitch_cidrs" {
+  description = "CIDR block per vswitch, index-aligned with vswitch_ids. Plan-known (straight from the variable), so callers can pin instance addresses with cidrhost() and reference them before anything is applied."
+  value       = var.vswitch_cidrs
+}

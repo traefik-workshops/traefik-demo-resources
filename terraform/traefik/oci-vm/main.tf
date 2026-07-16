@@ -156,6 +156,7 @@ resource "oci_core_instance" "traefik" {
   create_vnic_details {
     subnet_id        = var.subnet_id
     assign_public_ip = var.enable_public_ip
+    private_ip       = var.private_ip != "" ? var.private_ip : null
     nsg_ids          = concat(var.nsg_ids, var.enable_nsg ? [oci_core_network_security_group.traefik[0].id] : [])
   }
 

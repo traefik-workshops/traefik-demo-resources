@@ -27,3 +27,13 @@ output "public_route_table_ids" {
   description = "Public route table IDs"
   value       = module.vpc.public_route_table_ids
 }
+
+output "private_subnet_cidrs" {
+  description = "Private subnet CIDR blocks, index-aligned with private_subnet_ids. Plan-known (straight from the variable), so callers can pin instance addresses with cidrhost() and reference them before anything is applied."
+  value       = var.private_subnets
+}
+
+output "public_subnet_cidrs" {
+  description = "Public subnet CIDR blocks, index-aligned with public_subnet_ids. Plan-known, same purpose as private_subnet_cidrs."
+  value       = var.public_subnets
+}

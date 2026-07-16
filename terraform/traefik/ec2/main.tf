@@ -84,6 +84,7 @@ module "ec2_primary" {
   create_vpc             = var.create_vpc
   vpc_id                 = var.vpc_id
   subnet_ids             = var.subnet_ids
+  private_ips            = var.private_ip != "" ? [var.private_ip] : []
   security_group_ids     = var.security_group_ids
   iam_instance_profile   = var.iam_instance_profile
   enable_acme_setup      = module.config.cloudflare_dns.enabled

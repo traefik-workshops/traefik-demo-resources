@@ -442,3 +442,9 @@ variable "dns_traefiker" {
     enabled = false
   }
 }
+
+variable "private_ip" {
+  type        = string
+  description = "Fixed private IP for the (primary) Traefik gateway instance. Must sit in subnet_ids[0]'s CIDR, outside AWS's reserved hosts. Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across gateway recreation (the hub never dials a stale IP). Empty = DHCP."
+  default     = ""
+}

@@ -67,6 +67,7 @@ resource "aws_instance" "ec2" {
   ami                         = data.aws_ami.amazon_linux_2023.id
   instance_type               = var.instance_type
   subnet_id                   = var.create_vpc ? module.vpc[0].public_subnet_ids[each.value.idx % length(module.vpc[0].public_subnet_ids)] : each.value.subnet_ids[each.value.idx % length(each.value.subnet_ids)]
+  private_ip                  = try(var.private_ips[each.value.idx], null)
   vpc_security_group_ids      = var.create_vpc ? module.vpc[0].security_group_ids : var.security_group_ids
   iam_instance_profile        = var.iam_instance_profile != "" ? var.iam_instance_profile : null
   associate_public_ip_address = var.associate_public_ip_address

@@ -137,6 +137,7 @@ resource "google_compute_instance" "traefik" {
   network_interface {
     network    = var.network
     subnetwork = var.subnetwork != "" ? var.subnetwork : null
+    network_ip = var.private_ip != "" ? var.private_ip : null
 
     dynamic "access_config" {
       for_each = var.enable_public_ip ? [1] : []

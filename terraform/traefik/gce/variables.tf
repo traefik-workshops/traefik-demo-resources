@@ -374,3 +374,9 @@ variable "enable_dashboard_discovery" {
   type        = bool
   default     = true
 }
+
+variable "private_ip" {
+  type        = string
+  description = "Fixed internal IP for the gateway VM (network_interface.network_ip). Must sit in the instance's subnetwork range — on the default auto-mode network that range is region-fixed (us-central1 = 10.128.0.0/20). Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across VM recreation. Empty = ephemeral."
+  default     = ""
+}
