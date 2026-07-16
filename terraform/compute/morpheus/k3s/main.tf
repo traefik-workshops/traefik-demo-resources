@@ -29,11 +29,21 @@ data "hpe_morpheus_group" "this" {
   name = var.group
 }
 
+# LIBRARY-GATED — both of these resolve by NAME through /api/library/*, which answers 403
+# {"success":false,"msg":"Feature Not Included for the Applied License"} on an HPE VM Essentials
+# licence (features.templates=false). That fails at PLAN time, before anything can run, and the
+# by-id branch of these data sources is gated too (GetInstanceType -> /api/library/instance-types/{id},
+# GetLayout -> /api/library/layouts/{id}) — so they cannot be re-parameterised, only bypassed.
+# The escape: pass literal ids. hpe_morpheus_instance itself NEVER calls the Library API, so
+# provisioning works fine with ids alone. Kept name-based by default for full Morpheus, where the
+# Library IS licensed and names are friendlier than per-appliance ids.
 data "hpe_morpheus_instance_type" "this" {
-  name = var.instance_type
+  count = var.instance_type_id == null ? 1 : 0
+  name  = var.instance_type
 }
 
 data "hpe_morpheus_instance_type_layout" "this" {
+  count   = var.instance_layout_id == null ? 1 : 0
   name    = var.instance_layout
   version = var.instance_layout_version != "" ? var.instance_layout_version : null
 }
@@ -113,8 +123,8 @@ resource "hpe_morpheus_instance" "k3s" {
   name             = var.vm_name
   cloud_id         = data.hpe_morpheus_cloud.this.id
   group_id         = data.hpe_morpheus_group.this.id
-  instance_type_id = data.hpe_morpheus_instance_type.this.id
-  layout_id        = data.hpe_morpheus_instance_type_layout.this.id
+  instance_type_id = var.instance_type_id != null ? var.instance_type_id : one(data.hpe_morpheus_instance_type.this[*].id)
+  layout_id        = var.instance_layout_id != null ? var.instance_layout_id : one(data.hpe_morpheus_instance_type_layout.this[*].id)
   plan_id          = data.hpe_morpheus_service_plan.this.id
 
   # KVM/MVM placement. no_agent defaults to TRUE on this provider (gomorpheus

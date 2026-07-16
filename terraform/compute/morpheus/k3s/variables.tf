@@ -135,3 +135,15 @@ variable "update_kubeconfig" {
   default     = true
   description = "Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`."
 }
+
+variable "instance_type_id" {
+  type        = number
+  description = "Literal instance-type id, bypassing the name lookup. REQUIRED on HPE VM Essentials: the hpe_morpheus_instance_type data source calls /api/library/instance-types, which 403s (templates=false) at PLAN time. null = resolve by name (full Morpheus, where the Library is licensed)."
+  default     = null
+}
+
+variable "instance_layout_id" {
+  type        = number
+  description = "Literal layout id, bypassing the name lookup. REQUIRED on HPE VM Essentials (see instance_type_id). Also disambiguates: \"Single KVM VM\" is NOT unique — Ubuntu carries several. null = resolve by name."
+  default     = null
+}
