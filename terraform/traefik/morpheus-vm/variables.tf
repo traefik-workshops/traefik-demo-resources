@@ -423,3 +423,9 @@ variable "resource_pool_id" {
   description = "Literal resource-pool id, bypassing the name lookup. REQUIRED on HPE VM Essentials: it has no ResourcePool records (/api/resource-pools -> total=0) — the HVM cluster is a synthetic \"pool-<clusterId>\" served only by the zonePools option source, so the data source fails at PLAN time with \"found 0 resourcePools\". null = resolve by name (full Morpheus)."
   default     = null
 }
+
+variable "enable_provisioning_workflow" {
+  type        = bool
+  description = "Wrap the bootstrap task in a Morpheus PROVISIONING WORKFLOW (a task-set) and attach it to each instance via task_set_id — the native path, which runs the bootstrap at postProvision. Requires features.workflows: HPE VM Essentials does NOT have it (POST /api/task-sets -> 403 \"Feature Not Included for the Applied License\", and the 403 fires before body validation). Set FALSE on VME and execute the task DIRECTLY instead — POST /api/tasks/{id}/execute is ungated (it answers 404 for a bogus id, not 403), and the task resource itself is fine (features.tasks=true). When false the CALLER owns triggering the bootstrap after provisioning; the module exposes bootstrap_task_ids for exactly that."
+  default     = true
+}

@@ -23,3 +23,8 @@ output "public_ips" {
     (hpe_morpheus_instance.traefik.name) = try(hpe_morpheus_instance.traefik.connection_info[0], null)
   }
 }
+
+output "bootstrap_task_ids" {
+  description = "Bootstrap shell-script task ids, by app. Only useful when enable_provisioning_workflow=false: the caller executes these itself via POST /api/tasks/{id}/execute with {\"job\":{\"targetType\":\"instance\",\"instances\":[<id>]}} — the ungated path on HPE VM Essentials."
+  value       = { bootstrap = hpe_morpheus_task_shell_script.bootstrap.id }
+}

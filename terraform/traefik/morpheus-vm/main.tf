@@ -208,6 +208,7 @@ resource "hpe_morpheus_task_shell_script" "bootstrap" {
 }
 
 resource "hpe_morpheus_workflow_provisioning" "bootstrap" {
+  count    = var.enable_provisioning_workflow ? 1 : 0
   name     = "${var.vm_name}-traefik-bootstrap"
   platform = "linux"
 
@@ -239,7 +240,8 @@ resource "hpe_morpheus_instance" "traefik" {
     for k, v in local.traefik_labels : { name = k, value = v }
   ] : null
 
-  task_set_id = tonumber(hpe_morpheus_workflow_provisioning.bootstrap.id)
+  # null when the workflow is off (VME: /api/task-sets is 403) — see enable_provisioning_workflow.
+  task_set_id = var.enable_provisioning_workflow ? tonumber(one(hpe_morpheus_workflow_provisioning.bootstrap[*].id)) : null
 
   # network_interfaces is REQUIRED by the provider schema; [] leans on the
   # layout's default network selection (gomorpheus's optional-NIC behavior).

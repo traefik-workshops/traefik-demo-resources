@@ -154,7 +154,7 @@ resource "hpe_morpheus_task_shell_script" "bootstrap" {
 }
 
 resource "hpe_morpheus_workflow_provisioning" "bootstrap" {
-  for_each = var.apps
+  for_each = var.enable_provisioning_workflow ? var.apps : {}
 
   name     = "${var.name_prefix}-${each.key}-bootstrap"
   platform = "linux"
@@ -191,7 +191,11 @@ resource "hpe_morpheus_instance" "whoami" {
     for k, v in each.value.traefik_labels : { name = k, value = v }
   ] : null
 
-  task_set_id = tonumber(hpe_morpheus_workflow_provisioning.bootstrap[each.value.app_name].id)
+  # null when the workflow is off (VME: /api/task-sets is 403). task_set_id is OPTIONAL in the
+  # provider schema, so a null plans and applies clean — the instance simply provisions without a
+  # postProvision hook, and the caller executes the task directly instead (see
+  # bootstrap_task_ids). Do NOT "fix" this by making it required.
+  task_set_id = var.enable_provisioning_workflow ? tonumber(hpe_morpheus_workflow_provisioning.bootstrap[each.value.app_name].id) : null
 
   # network_interfaces is REQUIRED by the provider schema; [] leans on the
   # layout's default network selection (gomorpheus's optional-NIC behavior).
