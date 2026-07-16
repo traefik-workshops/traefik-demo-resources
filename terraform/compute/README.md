@@ -17,8 +17,6 @@ Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the larg
 | [`azure/aks`](./azure/aks) | AKS cluster + kubeconfig outputs |
 | [`azure/vnet`](./azure/vnet) | VNet, VM + ACI-delegated subnets, NSG |
 | [`gcp/gke`](./gcp/gke) | GKE cluster + kubeconfig outputs |
-| [`ibm/iks`](./ibm/iks) | IKS cluster on VPC gen2 (joins `ibm/vpc`'s subnets; OKE-style token outputs) |
-| [`ibm/vpc`](./ibm/vpc) | VPC gen2, zone-spread subnets + public gateways, security group |
 | [`digitalocean/doks`](./digitalocean/doks) | DOKS cluster (rich output set) |
 | [`oracle/oke`](./oracle/oke) | OKE cluster (uses TLS provider for certs) |
 | [`akamai/lke`](./akamai/lke) | LKE (Linode Kubernetes Engine) |

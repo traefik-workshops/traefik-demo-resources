@@ -15,7 +15,6 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`ec2`](./ec2) | Traefik on EC2 instances (uses `cloud-init`) |
 | [`ecs`](./ecs) | Traefik on ECS Fargate |
 | [`gce`](./gce) | Traefik Hub on a GCE VM (uses `cloud-init`; `hub.providers.gce` + attached service account) |
-| [`ibm-vpc`](./ibm-vpc) | Traefik Hub on an IBM VPC instance (uses `cloud-init`; `hub.providers.ibmVPC` + IAM API key — base-config-file discovery, no dotted tags) |
 | [`k8s`](./k8s) | Traefik on Kubernetes via Helm (CRDs, IngressRoutes) |
 | [`morpheus-vm`](./morpheus-vm) | Traefik Hub on an HPE Morpheus MVM instance (composes `cloud-init`, delivered as a Morpheus provisioning workflow; `hub.providers.morpheus` + explicit read-only credentials — API token XOR user/pass) |
 | [`nutanix`](./nutanix) | Traefik on a Nutanix VM (uses `cloud-init`) |
