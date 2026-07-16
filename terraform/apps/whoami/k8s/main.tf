@@ -47,6 +47,34 @@ resource "kubernetes_deployment_v1" "echo" {
             container_port = each.value.port
           }
 
+          # Readiness gates the pod's Endpoints membership — the k8s-native
+          # equivalent of the VM/container legs' Traefik ACTIVE health checks
+          # (GET /health; POST /health flips it for kill drills): a dead whoami
+          # leaves the Service rotation instead of eating live traffic (the
+          # azure ACI zombie served 50% 504s while its control plane said fine).
+          readiness_probe {
+            http_get {
+              path = "/health"
+              port = each.value.port
+            }
+            period_seconds    = 10
+            timeout_seconds   = 3
+            failure_threshold = 2
+          }
+
+          # Liveness restarts a container that stays dead — a higher threshold
+          # than readiness so a drill-flipped /health drops out of Endpoints
+          # first and only restarts if left unhealthy.
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = each.value.port
+            }
+            period_seconds    = 10
+            timeout_seconds   = 3
+            failure_threshold = 6
+          }
+
           # WHOAMI_NAME (env default for the `-name` flag) -> body shows `Name: <v>`.
           # Defaults to the app key; override per app (e.g. to tag a leg by its
           # compute: whoami-eks vs whoami-aks) so identical-keyed whoamis on different
