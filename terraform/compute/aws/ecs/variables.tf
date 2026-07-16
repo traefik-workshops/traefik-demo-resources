@@ -40,6 +40,19 @@ variable "clusters" {
         condition = optional(string, "START") # START | COMPLETE | SUCCESS | HEALTHY
       })), [])
 
+      # ECS container health check, exec'd INSIDE the container. Required when the
+      # discovering Traefik runs with healthyTasksOnly=true: a task with no health
+      # check reports HealthStatus=UNKNOWN and is filtered out, emptying the service.
+      # Scratch images have no curl — the whoami fork ships a self-probe for this
+      # (command = ["CMD", "/whoami", "-health-check"]).
+      health_check = optional(object({
+        command      = list(string)
+        interval     = optional(number, 10) # seconds between probes
+        timeout      = optional(number, 5)
+        retries      = optional(number, 3)
+        start_period = optional(number, 15) # grace before failures count
+      }), null)
+
       # Extra containers in the same task (sidecars: config writers, co-located
       # backends reachable on localhost, etc.).
       sidecars = optional(list(object({

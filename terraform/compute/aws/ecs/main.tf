@@ -140,6 +140,15 @@ resource "aws_ecs_task_definition" "service" {
         } : {},
         length(each.value.depends_on) > 0 ? {
           dependsOn = [for d in each.value.depends_on : { containerName = d.name, condition = d.condition }]
+        } : {},
+        each.value.health_check != null ? {
+          healthCheck = {
+            command     = each.value.health_check.command
+            interval    = each.value.health_check.interval
+            timeout     = each.value.health_check.timeout
+            retries     = each.value.health_check.retries
+            startPeriod = each.value.health_check.start_period
+          }
         } : {}
       )
     ],

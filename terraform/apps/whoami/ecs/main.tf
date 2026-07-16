@@ -20,6 +20,14 @@ locals {
                 var.environment,
                 try(app_config.environment, {}),
               )
+              # Every whoami task self-reports health: the image is FROM scratch so
+              # the check execs the binary's own -health-check self-probe (GET its
+              # /health over loopback). Discovering Traefiks run healthyTasksOnly,
+              # and a task with NO check is HealthStatus=UNKNOWN -> filtered out —
+              # so this default is load-bearing, not cosmetic. Per-app override wins.
+              health_check = try(app_config.health_check, {
+                command = ["CMD", "/whoami", "-health-check"]
+              })
             }
           )
         }
