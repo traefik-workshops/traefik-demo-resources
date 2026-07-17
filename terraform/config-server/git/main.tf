@@ -80,39 +80,47 @@ resource "kubernetes_service_v1" "git" {
   }
 }
 
-# git.<domain> on websecure -> the git service. observability annotations off: the config
-# pulls are lab plumbing, not demo request traffic, and would otherwise pollute the service
-# graph / access logs.
-resource "kubernetes_manifest" "ingressroute" {
-  manifest = {
-    apiVersion = "traefik.io/v1alpha1"
-    kind       = "IngressRoute"
-    metadata = {
-      name      = var.name
-      namespace = var.namespace
-      annotations = {
-        "traefik.ingress.kubernetes.io/router.observability.accesslogs" = "false"
-        "traefik.ingress.kubernetes.io/router.observability.metrics"    = "false"
-        "traefik.ingress.kubernetes.io/router.observability.tracing"    = "false"
-      }
-    }
-    spec = {
-      entryPoints = [var.ingress_entrypoint]
-      routes = [
-        {
-          kind  = "Rule"
-          match = "Host(`${var.ingress_host}`)"
-          services = [
-            {
-              name      = kubernetes_service_v1.git.metadata[0].name
-              namespace = var.namespace
-              port      = 80
-            }
-          ]
-        }
-      ]
-    }
+# git.<domain> on websecure -> the git service. Delivered via a local-exec `kubectl apply`, NOT
+# a kubernetes_manifest: kubernetes_manifest does a PLAN-TIME API call for the CRD schema, which
+# fails on a FRESH apply where the k3s cluster is created in the same run ("Failed to construct
+# REST client"). kubectl defers entirely to apply time, matching how the demo installs the
+# Traefik CRDs. Uses the ambient kubeconfig context (k3s-<vm_name>) the k3s module merges.
+# observability annotations off: config pulls are lab plumbing, not demo request traffic.
+resource "null_resource" "ingressroute" {
+  triggers = {
+    host = var.ingress_host
+    ns   = var.namespace
+    ep   = var.ingress_entrypoint
+    ctx  = var.kubeconfig_context
+    svc  = kubernetes_service_v1.git.metadata[0].name
   }
 
-  depends_on = [kubernetes_deployment_v1.git]
+  provisioner "local-exec" {
+    interpreter = ["bash", "-c"]
+    command     = <<-EOT
+      ctx=${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}
+      kubectl $ctx apply -f - <<'YAML'
+      apiVersion: traefik.io/v1alpha1
+      kind: IngressRoute
+      metadata:
+        name: ${var.name}
+        namespace: ${var.namespace}
+        annotations:
+          traefik.ingress.kubernetes.io/router.observability.accesslogs: "false"
+          traefik.ingress.kubernetes.io/router.observability.metrics: "false"
+          traefik.ingress.kubernetes.io/router.observability.tracing: "false"
+      spec:
+        entryPoints: ["${var.ingress_entrypoint}"]
+        routes:
+          - kind: Rule
+            match: Host(`${var.ingress_host}`)
+            services:
+              - name: ${var.name}
+                namespace: ${var.namespace}
+                port: 80
+      YAML
+    EOT
+  }
+
+  depends_on = [kubernetes_deployment_v1.git, kubernetes_service_v1.git]
 }

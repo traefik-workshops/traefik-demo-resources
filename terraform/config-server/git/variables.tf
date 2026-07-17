@@ -25,3 +25,9 @@ variable "ingress_entrypoint" {
   type        = string
   default     = "websecure"
 }
+
+variable "kubeconfig_context" {
+  description = "kubectl context for the IngressRoute local-exec apply — the ambient context the k3s module merges (k3s-<vm_name>). Empty = ambient default context."
+  type        = string
+  default     = ""
+}
