@@ -38,6 +38,10 @@ locals {
   user_data_overrides = {
     for i in range(module.config.replica_count) :
     "traefik-${i + 1}" => templatefile("${path.module}/../cloud-init/cloud-init.tpl", {
+      # Shared cloud-init snippets, rendered here and injected pre-rendered
+      # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
+      docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
+      collector_gate       = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
       traefik_hub_version  = module.config.image_tag
       arch                 = var.ami_architecture
       cli_arguments        = local.cli_arguments

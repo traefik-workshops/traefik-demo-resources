@@ -245,17 +245,9 @@ runcmd:
     # VM isn't reliable; the container carries its full runtime and (with --network host) reaches
     # the EC2 IMDS for the provider's instance-profile credentials.
     echo "Preview mode - installing Docker + pulling ${preview_image}..."
-    # Install Docker with whatever package manager the AMI ships (Amazon Linux 2023: dnf;
-    # older Amazon Linux: yum; Debian/Ubuntu: apt). The AMI may already include docker, in
-    # which case this is a no-op. NOTE: an apt-only install silently broke Amazon Linux
-    # spokes — docker was never installed, so the preview pull hit "docker: command not found".
-    if ! command -v docker >/dev/null 2>&1; then
-      if command -v dnf >/dev/null 2>&1; then dnf install -y docker || true
-      elif command -v yum >/dev/null 2>&1; then yum install -y docker || true
-      elif command -v apt-get >/dev/null 2>&1; then apt-get update || true; apt-get install -y docker.io || apt-get install -y docker-ce docker-ce-cli containerd.io || true
-      fi
-    fi
-    systemctl enable --now docker || true
+    # Shared snippet: terraform/cloud-init-snippets/docker-install.sh.tpl (rendered
+    # by the caller and injected pre-rendered — templatefile has no include).
+    ${indent(4, docker_install)}
     PREVIEW_IMAGE="${preview_image}"
     for i in $(seq 1 30); do
       docker pull "$PREVIEW_IMAGE" && break
@@ -368,18 +360,8 @@ runcmd:
 %{ endif ~}
 %{ if otlp_address != "" ~}
   - |
-    # Gate the telemetry-emitting services on the collector endpoint actually
-    # accepting OTLP writes. First boot can race the collector: the DNS record
-    # may not exist yet, or may still point at a PREVIOUS deploy's LB (stale
-    # record until dns-traefiker refreshes it) — and exporters that start
-    # against a dead endpoint were observed to stay dark long after it healed
-    # (aws-unified-ingress validation, 2026-07). Bounded: 30 min, then start anyway.
-    for i in $(seq 1 180); do
-      curl -skf --max-time 5 -X POST -H 'Content-Type: application/json' \
-        -d '{"resourceMetrics":[]}' "${otlp_address}/v1/metrics" > /dev/null && { echo "OTLP collector ready."; break; }
-      echo "Waiting for OTLP collector ${otlp_address} ($i/180)..."
-      sleep 10
-    done
+    # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
+    ${indent(4, collector_gate)}
 %{ endif ~}
   - systemctl enable --now traefik-hub
   - echo "Traefik Hub provisioning complete"

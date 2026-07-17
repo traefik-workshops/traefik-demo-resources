@@ -35,19 +35,11 @@ write_files:
     permissions: "0644"
 
 runcmd:
-  # Install Docker based on distribution
+  # Install Docker — the shared dnf/yum/apt matrix (an apt-only variant of this
+  # silently broke Amazon Linux spokes, 2026-07).
+  # Shared snippet: terraform/cloud-init-snippets/docker-install.sh.tpl.
   - |
-    if command -v apt-get >/dev/null; then
-      apt-get update -y
-      apt-get install -y docker.io
-      systemctl start docker
-      systemctl enable docker
-    elif command -v yum >/dev/null; then
-      yum update -y
-      yum install -y docker
-      systemctl start docker
-      systemctl enable docker
-    fi
+    ${indent(4, docker_install)}
 
   # Wait for Docker to be ready, then pre-pull the whoami image as one fail-fast
   # block — a bad pull surfaces in `cloud-init status` instead of silently leaving
@@ -76,12 +68,8 @@ runcmd:
   # (oci-unified-ingress validation, 2026-07). Skipped entirely when no OTLP
   # endpoint is configured. Bounded: 30 min, then start anyway.
   - |
-    for i in $(seq 1 180); do
-      curl -skf --max-time 5 -X POST -H 'Content-Type: application/json' \
-        -d '{"resourceMetrics":[]}' "${otlp_address}/v1/metrics" > /dev/null && { echo "OTLP collector ready."; break; }
-      echo "Waiting for OTLP collector ${otlp_address} ($i/180)..."
-      sleep 10
-    done
+    # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
+    ${indent(4, collector_gate)}
 %{ endif ~}
 
   # Start Service
