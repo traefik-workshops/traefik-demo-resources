@@ -3,11 +3,15 @@
 # =============================================================================
 # Uses extracted config from traefik/shared (via Helm template) and the shared
 # traefik/cloud-init template, exactly like traefik/ec2, traefik/azure-vm and
-# traefik/vsphere-vm. One hpe_morpheus_instance on an MVM cloud (MVM — the KVM
-# compute type of HPE VM Essentials / HVM; config_hvm is the KVM placement)
-# runs the Hub image; its morpheus provider (--hub.providers.morpheus)
-# discovers workload instances by their `traefik.*` instance TAGS (dotted
-# name/value pairs — the cloud-style label model).
+# traefik/vsphere-vm. The instance itself (plus its Morpheus placement lookups
+# and the bootstrap task/workflow DELIVERY infra) lives in the shared
+# compute/morpheus/vm module — the same module apps/whoami/morpheus composes,
+# exactly like traefik/ec2 + whoami/ec2 share compute/aws/ec2. One
+# hpe_morpheus_instance on an MVM cloud (MVM — the KVM compute type of HPE VM
+# Essentials / HVM; config_hvm is the KVM placement) runs the Hub image; its
+# morpheus provider (--hub.providers.morpheus) discovers workload instances by
+# their `traefik.*` instance TAGS (dotted name/value pairs — the cloud-style
+# label model).
 # Morpheus has NO ambient identity for the gateway to lean on, so the provider
 # authenticates explicitly: an API access token (var.morpheus_access_token,
 # preferred) OR username+password (var.morpheus_provider.username +
@@ -17,9 +21,10 @@
 # its instance resource (verified against the v1.5.0 schema; neither did
 # gomorpheus), so the composed traefik/cloud-init payload is
 # CONVERTED (yamldecode below: write_files -> heredocs, runcmd -> tolerated
-# sequential entries — cloud-init's own semantics) into a shell script and
-# delivered as a Morpheus shell-script task in a postProvision provisioning
-# workflow, executed on the instance by the Morpheus agent.
+# sequential entries — cloud-init's own semantics) into a shell script HERE and
+# handed to the compute module as opaque user_data; the module delivers it as a
+# Morpheus shell-script task in a postProvision provisioning workflow, executed
+# on the instance by the Morpheus agent.
 # =============================================================================
 
 locals {
@@ -34,7 +39,7 @@ locals {
       "--hub.providers.morpheus.exposedByDefault=${var.morpheus_provider.exposed_by_default}",
     ],
     # Exactly one auth method (Init enforces token XOR user/pass) — see the
-    # precondition on the instance below.
+    # precondition on terraform_data.gateway_provider_auth below.
     var.morpheus_access_token != "" ? [
       "--hub.providers.morpheus.accessToken=${var.morpheus_access_token}",
       ] : [
@@ -142,156 +147,57 @@ locals {
   traefik_labels = merge(local.self_labels, var.extra_labels)
 }
 
-data "hpe_morpheus_cloud" "this" {
-  name = var.cloud
-}
-
-data "hpe_morpheus_group" "this" {
-  name = var.group
-}
-
-# LIBRARY-GATED — both of these resolve by NAME through /api/library/*, which answers 403
-# {"success":false,"msg":"Feature Not Included for the Applied License"} on an HPE VM Essentials
-# licence (features.templates=false). That fails at PLAN time, before anything can run, and the
-# by-id branch of these data sources is gated too (GetInstanceType -> /api/library/instance-types/{id},
-# GetLayout -> /api/library/layouts/{id}) — so they cannot be re-parameterised, only bypassed.
-# The escape: pass literal ids. hpe_morpheus_instance itself NEVER calls the Library API, so
-# provisioning works fine with ids alone. Kept name-based by default for full Morpheus, where the
-# Library IS licensed and names are friendlier than per-appliance ids.
-data "hpe_morpheus_instance_type" "this" {
-  count = var.instance_type_id == null ? 1 : 0
-  name  = var.instance_type
-}
-
-data "hpe_morpheus_instance_type_layout" "this" {
-  count   = var.instance_layout_id == null ? 1 : 0
-  name    = var.instance_layout
-  version = var.instance_layout_version != "" ? var.instance_layout_version : null
-}
-
-data "hpe_morpheus_service_plan" "this" {
-  name                = var.plan
-  provision_type_code = var.plan_provision_type != "" ? var.plan_provision_type : null
-}
-
-data "hpe_morpheus_network" "this" {
-  count = var.network != "" ? 1 : 0
-  name  = var.network
-}
-
-# On HPE VM Essentials there are NO ResourcePool records at all: /api/zones/{id}/resource-pools
-# and /api/resource-pools both return total=0, and the cluster's own .resourcePool is null. VME
-# exposes the HVM cluster as a SYNTHETIC pool ("pool-<clusterId>") through the zonePools option
-# source only, so this data source can never find it ("found 0 resourcePools for <name>") — at
-# PLAN time. Pass var.resource_pool_id to bypass it; config_hvm.resource_pool_id is a string
-# anyway, which is exactly what "pool-1" is. Kept for full Morpheus, where real pools exist.
-data "hpe_morpheus_resource_pool" "this" {
-  count    = var.resource_pool_id == null ? 1 : 0
-  cloud_id = data.hpe_morpheus_cloud.this.id
-  name     = var.resource_pool_name
-}
-
-# The Traefik install as a Morpheus library item — names derive from vm_name,
-# unique per appliance. NB the script carries the Hub token and the provider
-# credential (like the siblings' unit files) — demo-grade, appliance admins can
-# read library tasks.
-resource "hpe_morpheus_task_shell_script" "bootstrap" {
-  name           = "${var.vm_name}-traefik-bootstrap"
-  source_type    = "local"
-  script_content = local.bootstrap
-  execute_target = "resource"
-  sudo           = true
-
-  retryable           = true
-  retry_count         = 3
-  retry_delay_seconds = 15
-}
-
-resource "hpe_morpheus_workflow_provisioning" "bootstrap" {
-  count    = var.enable_provisioning_workflow ? 1 : 0
-  name     = "${var.vm_name}-traefik-bootstrap"
-  platform = "linux"
-
-  task {
-    # The HPE provider exposes task/workflow ids as strings but takes them as
-    # numbers here (and on task_set_id below) — hence the tonumber()s.
-    task_id    = tonumber(hpe_morpheus_task_shell_script.bootstrap.id)
-    task_phase = "postProvision"
-  }
-}
-
-resource "hpe_morpheus_instance" "traefik" {
-  name             = local.instance_key
-  cloud_id         = data.hpe_morpheus_cloud.this.id
-  group_id         = data.hpe_morpheus_group.this.id
-  instance_type_id = var.instance_type_id != null ? var.instance_type_id : one(data.hpe_morpheus_instance_type.this[*].id)
-  layout_id        = var.instance_layout_id != null ? var.instance_layout_id : one(data.hpe_morpheus_instance_type_layout.this[*].id)
-  plan_id          = data.hpe_morpheus_service_plan.this.id
-
-  # KVM/MVM placement. no_agent defaults to TRUE on this provider (gomorpheus
-  # installed the agent by default) and the agent is what executes the
-  # postProvision bootstrap — never skip it.
-  config_hvm = {
-    resource_pool_id = var.resource_pool_id != null ? var.resource_pool_id : tostring(one(data.hpe_morpheus_resource_pool.this[*].id))
-    no_agent         = false
-  }
-
-  tags = length(local.traefik_labels) > 0 ? [
-    for k, v in local.traefik_labels : { name = k, value = v }
-  ] : null
-
-  # null when the workflow is off (VME: /api/task-sets is 403) — see enable_provisioning_workflow.
-  task_set_id = var.enable_provisioning_workflow ? tonumber(one(hpe_morpheus_workflow_provisioning.bootstrap[*].id)) : null
-
-  # network_interfaces is REQUIRED by the provider schema; [] leans on the
-  # layout's default network selection (gomorpheus's optional-NIC behavior).
-  network_interfaces = var.network != "" ? [
-    merge(
-      {
-        network_id      = data.hpe_morpheus_network.this[0].id
-        network_type_id = var.network_interface_type_id
-      },
-      # Static assignment when pinned: the interface's ip_mode/ip_address (verified
-      # present on hpe_morpheus_instance v1.5.0) give the gateway a plan-known,
-      # recreation-stable address the hub can dial. Empty private_ip leaves both
-      # unset -> the appliance's default (DHCP / IP pool), the prior behavior.
-      var.private_ip != "" ? {
-        ip_mode    = "static"
-        ip_address = var.private_ip
-      } : {}
-    )
-  ] : []
-
-  volumes = var.root_volume != null ? [
-    {
-      root_volume     = true
-      name            = var.root_volume.name
-      size            = var.root_volume.size
-      datastore_id    = var.root_volume.datastore_id
-      storage_type_id = var.root_volume.storage_type
-    }
-  ] : null
-
+# The gateway's morpheus provider auth check. This USED TO be a precondition on
+# hpe_morpheus_instance.traefik's lifecycle, but the instance now lives in the
+# role-agnostic compute/morpheus/vm module — which knows nothing about the Hub
+# provider's credentials — so the check relocates here (a no-op terraform_data
+# state object) to keep the SAME plan-time hard failure. The NIC-type
+# precondition, being pure infra, stayed with the instance in the module.
+resource "terraform_data" "gateway_provider_auth" {
   lifecycle {
-    # The workflow only runs at provision time — a config change must recreate
-    # the instance (the same first-boot-only story as cloud-init).
-    replace_triggered_by = [hpe_morpheus_task_shell_script.bootstrap]
-
     precondition {
       condition     = !var.morpheus_provider.enabled || (var.morpheus_access_token != "") != (var.morpheus_provider.username != "" && var.morpheus_password != "")
       error_message = "Configure exactly ONE auth method for the morpheus provider: morpheus_access_token OR morpheus_provider.username + morpheus_password (the gateway's Init enforces token XOR user/pass)."
     }
+  }
+}
 
-    precondition {
-      # network_interface_type_id is OPTIONAL, despite the gomorpheus-era assumption this used to
-      # encode. VERIFIED on a live VME 9.0.0 appliance: POST /api/instances with
-      # networkInterfaces:[{"network":{"id":1}}] and NO type at all provisions fine (instance
-      # reached running). The NIC-type option sources are empty there anyway
-      # (/api/options/networkInterfaceTypes -> []), so demanding one made the module unusable on
-      # VME. Kept as a soft check only for the case where a caller sets the id to something
-      # nonsensical; a null is legitimate.
-      condition     = var.network == "" || var.network_interface_type_id == null || var.network_interface_type_id > 0
-      error_message = "network_interface_type_id must be a positive Morpheus interface-type id when set (null is fine — VME does not require one)."
+# =============================================================================
+# Shared Compute Module — Morpheus VM
+# =============================================================================
+# The instance + its Morpheus placement lookups + the bootstrap task/workflow
+# delivery infra. One app (the gateway), one replica; tags carry the Traefik
+# labels; the bootstrap SCRIPT (local.bootstrap) is handed in as opaque
+# user_data; the optional static-IP pin rides private_ips. The bootstrap
+# task/workflow are named "<vm_name>-traefik-bootstrap" (unchanged).
+# =============================================================================
+
+module "compute" {
+  source = "../../compute/morpheus/vm"
+
+  cloud                        = var.cloud
+  group                        = var.group
+  instance_type                = var.instance_type
+  instance_layout              = var.instance_layout
+  instance_layout_version      = var.instance_layout_version
+  plan                         = var.plan
+  plan_provision_type          = var.plan_provision_type
+  resource_pool_name           = var.resource_pool_name
+  network                      = var.network
+  network_interface_type_id    = var.network_interface_type_id
+  root_volume                  = var.root_volume
+  instance_type_id             = var.instance_type_id
+  instance_layout_id           = var.instance_layout_id
+  resource_pool_id             = var.resource_pool_id
+  enable_provisioning_workflow = var.enable_provisioning_workflow
+
+  apps = {
+    (var.vm_name) = {
+      replicas       = 1
+      user_data      = local.bootstrap
+      bootstrap_name = "${var.vm_name}-traefik-bootstrap"
+      tags           = local.traefik_labels
+      private_ips    = var.private_ip != "" ? [var.private_ip] : []
     }
   }
 }

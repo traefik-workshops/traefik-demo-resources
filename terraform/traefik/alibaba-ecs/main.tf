@@ -83,16 +83,6 @@ locals {
     enable_preview_mode  = var.enable_preview_mode
     preview_image        = module.config.image_full
   })
-
-  image_id = var.image_id != "" ? var.image_id : data.alicloud_images.ubuntu.images[0].id
-}
-
-# Latest Ubuntu 24.04 public image — the same OS the azure-vm/oci-vm siblings
-# run (the cloud-init installs docker via apt).
-data "alicloud_images" "ubuntu" {
-  owners      = "system"
-  name_regex  = "^ubuntu_24_04_x64"
-  most_recent = true
 }
 
 # The alibabaECS provider's credential: an instance RAM role (trusted by
@@ -146,43 +136,35 @@ resource "alicloud_ram_role_policy_attachment" "traefik" {
   policy_type = "Custom"
 }
 
-# Escape hatch mirroring traefik/oci-vm's enable_nsg: a security group opening
-# the demo ports (incl. the :9443 uplink the parent dials) from
-# security_group_source_cidr. Off by default — compute/alibaba/vpc's group
-# already opens them.
-resource "alicloud_security_group" "traefik" {
-  count = var.enable_security_group ? 1 : 0
+# The shared ECS fleet. One instance — the multicluster child named
+# "<vm_name>-1". The security-group escape hatch and the static private_ip pin
+# now live in compute/alibaba/ecs; the RAM-role attachment below stays here
+# (auth/role-specific). The dashboard-discovery tags are rendered here and
+# passed in as opaque tags so no Hub logic leaks into compute.
+module "compute" {
+  source = "../../compute/alibaba/ecs"
 
-  security_group_name = "${var.vm_name}-sg"
-  vpc_id              = var.vpc_id
-}
-
-resource "alicloud_security_group_rule" "ingress" {
-  for_each = var.enable_security_group ? { for port in var.security_group_ingress_ports : tostring(port) => port } : {}
-
-  type              = "ingress"
-  ip_protocol       = "tcp"
-  policy            = "accept"
-  port_range        = "${each.value}/${each.value}"
-  cidr_ip           = var.security_group_source_cidr
-  security_group_id = alicloud_security_group.traefik[0].id
-}
-
-resource "alicloud_instance" "traefik" {
-  instance_name   = local.instance_key
-  instance_type   = var.instance_type
-  image_id        = local.image_id
-  vswitch_id      = var.vswitch_id
-  private_ip      = var.private_ip != "" ? var.private_ip : null
-  security_groups = concat(var.security_group_ids, var.enable_security_group ? [alicloud_security_group.traefik[0].id] : [])
+  name          = var.vm_name
+  instance_type = var.instance_type
+  image_id      = var.image_id
+  vswitch_id    = var.vswitch_id
 
   system_disk_category = var.system_disk_category
   system_disk_size     = var.system_disk_size
 
-  # internet_max_bandwidth_out > 0 is what allocates a public IP on Alibaba.
-  internet_max_bandwidth_out = var.enable_public_ip ? 10 : 0
+  security_group_ids = var.security_group_ids
+  enable_public_ip   = var.enable_public_ip
 
-  user_data = base64encode(local.user_data)
+  # Fixed private IP for the gateway (empty -> DHCP).
+  private_ips = var.private_ip != "" ? [var.private_ip] : []
+
+  # Escape hatch: a module-created security group opening the demo ports.
+  enable_security_group        = var.enable_security_group
+  vpc_id                       = var.vpc_id
+  security_group_ingress_ports = var.security_group_ingress_ports
+  security_group_source_cidr   = var.security_group_source_cidr
+
+  user_data = local.user_data
 
   tags = merge(
     var.extra_tags,
@@ -206,7 +188,7 @@ resource "alicloud_ecs_ram_role_attachment" "traefik" {
   count = var.enable_ram_role ? 1 : 0
 
   ram_role_name = alicloud_ram_role.traefik[0].role_name
-  instance_id   = alicloud_instance.traefik.id
+  instance_id   = module.compute.instances[local.instance_key].id
 }
 
 # =============================================================================

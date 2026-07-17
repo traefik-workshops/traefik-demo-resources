@@ -39,50 +39,49 @@ module "vnet" {
   location            = var.location
 }
 
-resource "azurerm_container_group" "whoami" {
-  for_each = local.groups_map
+# The container groups themselves live in the shared compute module (composed by
+# traefik/aci too). This module keeps the whoami-specific bits — the image tag
+# inference, the per-app replica expansion, the WHOAMI_* env, the discovery tags —
+# and hands the compute module one entry per replica.
+module "compute" {
+  source = "../../../compute/azure/aci"
 
-  name                = each.key
   resource_group_name = var.resource_group_name
   location            = var.location
-  os_type             = "Linux"
-  restart_policy      = "Always"
+  subnet_id           = local.subnet_id
 
-  # Private vnet-injected IP — the Traefik child dials it in-vnet (ipMode=private).
-  ip_address_type = "Private"
-  subnet_ids      = [local.subnet_id]
+  container_name   = "whoami"
+  image            = local.image
+  container_cpu    = var.container_cpu
+  container_memory = var.container_memory
 
-  container {
-    name   = "whoami"
-    image  = local.image
-    cpu    = var.container_cpu
-    memory = var.container_memory
-
-    # whoami's OTLP access logs are gated on --verbose (flag only, no env);
-    # every other compute passes it (k8s args, VM ExecStart). ACI `commands`
-    # replaces the image ENTRYPOINT wholesale, so the binary path leads.
-    commands = ["/whoami", "--verbose"]
-
-    # The declared exposed port doubles as the aci provider's fallback when no
-    # traefik.*.loadbalancer.server.port tag is set (lowest declared port).
-    ports {
-      port     = each.value.port
-      protocol = "TCP"
-    }
-
-    # Built-ins first so module/per-app env can override them.
-    environment_variables = merge(
-      {
-        # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-aci).
-        WHOAMI_NAME        = each.value.name
-        WHOAMI_PORT_NUMBER = tostring(each.value.port)
-      },
-      var.environment,
-      each.value.environment,
-    )
-  }
+  # whoami's OTLP access logs are gated on --verbose (flag only, no env);
+  # every other compute passes it (k8s args, VM ExecStart). ACI `commands`
+  # replaces the image ENTRYPOINT wholesale, so the binary path leads.
+  commands = ["/whoami", "--verbose"]
 
   # Dotted-key traefik.* tags — the aci provider's workload config,
   # exactly like ECS docker labels.
-  tags = merge(var.common_tags, each.value.tags)
+  common_tags = var.common_tags
+
+  container_groups = {
+    for key, grp in local.groups_map : key => {
+      # The declared exposed port doubles as the aci provider's fallback when no
+      # traefik.*.loadbalancer.server.port tag is set (lowest declared port).
+      ports = [grp.port]
+
+      # Built-ins first so module/per-app env can override them.
+      environment_variables = merge(
+        {
+          # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-aci).
+          WHOAMI_NAME        = grp.name
+          WHOAMI_PORT_NUMBER = tostring(grp.port)
+        },
+        var.environment,
+        grp.environment,
+      )
+
+      tags = grp.tags
+    }
+  }
 }

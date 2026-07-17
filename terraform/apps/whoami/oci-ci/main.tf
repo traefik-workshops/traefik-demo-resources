@@ -28,70 +28,55 @@ locals {
   ])
 
   groups_map = { for grp in local.groups : grp.key => grp }
-
-  availability_domain = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.whoami.availability_domains[0].name
 }
 
-data "oci_identity_availability_domains" "whoami" {
-  compartment_id = var.compartment_id
-}
+# The container instances themselves live in the shared compute/oracle/ci module.
+# This caller renders each replica's whoami container (image, env, health check)
+# and dotted-key freeform tags — its role logic — and hands them in as the opaque
+# per-instance payload; the module owns the resource, the AD pick and the VNIC
+# private-IP resolution.
+module "ci" {
+  source = "../../../compute/oracle/ci"
 
-resource "oci_container_instances_container_instance" "whoami" {
-  for_each = local.groups_map
+  compartment_id          = var.compartment_id
+  availability_domain     = var.availability_domain
+  subnet_id               = var.subnet_id
+  nsg_ids                 = var.nsg_ids
+  shape                   = var.shape
+  container_ocpus         = var.container_ocpus
+  container_memory_in_gbs = var.container_memory_in_gbs
 
-  availability_domain      = local.availability_domain
-  compartment_id           = var.compartment_id
-  display_name             = each.key
-  shape                    = var.shape
-  container_restart_policy = "ALWAYS"
+  instances = {
+    for key, grp in local.groups_map : key => {
+      display_name = key
 
-  shape_config {
-    ocpus         = var.container_ocpus
-    memory_in_gbs = var.container_memory_in_gbs
-  }
+      # Dotted-key traefik.* freeform tags — the ociContainerInstances provider's
+      # workload config, exactly like ACI tags / ECS docker labels.
+      freeform_tags = merge(var.common_tags, grp.tags)
 
-  # Private VNIC: the Traefik child dials this container instance's PRIVATE IP
-  # in-VCN (ipMode=private), and egress (image pull) goes through the node
-  # subnet's NAT gateway — so no public IP is needed.
-  vnics {
-    subnet_id             = var.subnet_id
-    is_public_ip_assigned = false
-    nsg_ids               = var.nsg_ids
-  }
+      containers = [{
+        display_name = "whoami"
+        image_url    = local.image
 
-  containers {
-    display_name = "whoami"
-    image_url    = local.image
+        # Built-ins first so module/per-app env can override them.
+        environment_variables = merge(
+          {
+            # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-oci-ci).
+            WHOAMI_NAME        = grp.name
+            WHOAMI_PORT_NUMBER = tostring(grp.port)
+          },
+          var.environment,
+          grp.environment,
+        )
 
-    # Built-ins first so module/per-app env can override them.
-    environment_variables = merge(
-      {
-        # WHOAMI_NAME -> body shows `Name: <name>` (e.g. whoami-oci-ci).
-        WHOAMI_NAME        = each.value.name
-        WHOAMI_PORT_NUMBER = tostring(each.value.port)
-      },
-      var.environment,
-      each.value.environment,
-    )
-
-    # The health-check port doubles as the declared container port the ocici
-    # provider falls back to when no traefik.*.loadbalancer.server.port tag is
-    # set (lowest declared port).
-    health_checks {
-      health_check_type = "TCP"
-      port              = each.value.port
+        # The health-check port doubles as the declared container port the ocici
+        # provider falls back to when no traefik.*.loadbalancer.server.port tag is
+        # set (lowest declared port).
+        health_checks = {
+          health_check_type = "TCP"
+          port              = grp.port
+        }
+      }]
     }
   }
-
-  # Dotted-key traefik.* freeform tags — the ociContainerInstances provider's
-  # workload config, exactly like ACI tags / ECS docker labels.
-  freeform_tags = merge(var.common_tags, each.value.tags)
-}
-
-# The container instance resource only exposes the VNIC OCID; the private IP
-# comes from the VNIC itself.
-data "oci_core_vnic" "whoami" {
-  for_each = local.groups_map
-
-  vnic_id = oci_container_instances_container_instance.whoami[each.key].vnics[0].vnic_id
 }

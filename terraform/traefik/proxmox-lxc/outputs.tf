@@ -10,14 +10,14 @@ output "uplink_address" {
 
 output "container_id" {
   description = "PVE id of the gateway container."
-  value       = proxmox_virtual_environment_container.traefik.id
+  value       = module.lxc.instances[var.container_name].id
 }
 
 output "instances" {
   description = "Gateway container details, shaped like the sibling gateway modules' outputs."
   value = {
     (var.container_name) = {
-      id         = proxmox_virtual_environment_container.traefik.id
+      id         = module.lxc.instances[var.container_name].id
       name       = var.container_name
       type       = "lxc"
       private_ip = split("/", var.ip_address)[0]

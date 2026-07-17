@@ -100,98 +100,35 @@ locals {
   description    = join("\n", [for k, v in local.traefik_labels : "${k}=${v}"])
 }
 
-# Resolve template_name -> VMID when the template is given by name.
-data "proxmox_virtual_environment_vms" "template" {
-  count     = var.template_name != "" ? 1 : 0
-  node_name = var.node_name
+# =============================================================================
+# The QEMU VM — the shared compute/proxmox/vm primitive
+# =============================================================================
+# One VM cloned from the cloud-init template, running the rendered user-data
+# above. The snippet upload, its content-hashed file name, and the
+# replace_triggered_by that recreates the VM on a user-data change all live in
+# the module (they are infra); this caller only renders the user-data and the
+# self-registration Notes and reads the agent-reported guest IP back out.
+module "vm" {
+  source = "../../compute/proxmox/vm"
 
-  filter {
-    name   = "name"
-    values = [var.template_name]
-  }
-}
+  node_name            = var.node_name
+  datastore_id         = var.datastore_id
+  snippet_datastore_id = var.snippet_datastore_id
+  bridge               = var.bridge
+  template_vm_id       = var.template_vm_id
+  template_name        = var.template_name
+  num_cpus             = var.num_cpus
+  cpu_type             = var.cpu_type
+  memory               = var.memory
+  disk_size            = var.disk_size
+  disk_interface       = var.disk_interface
 
-locals {
-  template_vm_id = var.template_name != "" ? data.proxmox_virtual_environment_vms.template[0].vms[0].vm_id : var.template_vm_id
-}
-
-# The cloud-config snippet (the PVE user-data channel — see compute/proxmox/k3s
-# for the snippets-over-SSH story). Hash-named so a config change replaces the
-# file and — via replace_triggered_by — the VM (cloud-init runs on first boot).
-resource "proxmox_virtual_environment_file" "user_data" {
-  content_type = "snippets"
-  datastore_id = var.snippet_datastore_id
-  node_name    = var.node_name
-
-  source_raw {
-    data      = local.user_data
-    file_name = "${local.instance_key}-${substr(md5(local.user_data), 0, 8)}.cloud-config.yaml"
-  }
-}
-
-resource "proxmox_virtual_environment_vm" "traefik" {
-  name      = local.instance_key
-  node_name = var.node_name
-
-  description = length(local.traefik_labels) > 0 ? local.description : null
-
-  clone {
-    vm_id = local.template_vm_id
-  }
-
-  cpu {
-    cores = var.num_cpus
-    type  = var.cpu_type
-  }
-
-  memory {
-    dedicated = var.memory
-  }
-
-  # Resizes the template's disk on clone — never below it (PVE can't shrink).
-  disk {
-    datastore_id = var.datastore_id
-    interface    = var.disk_interface
-    size         = var.disk_size
-  }
-
-  network_device {
-    bridge = var.bridge
-  }
-
-  initialization {
-    datastore_id      = var.datastore_id
-    interface         = "ide2"
-    user_data_file_id = proxmox_virtual_environment_file.user_data.id
-
-    ip_config {
-      ipv4 {
-        address = "dhcp"
-      }
+  instances = {
+    (local.instance_key) = {
+      user_data   = local.user_data
+      description = length(local.traefik_labels) > 0 ? local.description : null
     }
   }
-
-  # The parent dials this VM's guest IP (:9443 uplink) — reported by the QEMU
-  # guest agent, which the template must ship.
-  agent {
-    enabled = true
-  }
-
-  stop_on_destroy = true
-
-  lifecycle {
-    replace_triggered_by = [proxmox_virtual_environment_file.user_data]
-  }
-}
-
-locals {
-  # First IPv4 on a real NIC (eth*/en*) — the agent also reports lo and, once
-  # preview mode installs docker, docker0/veth*, which must not win.
-  traefik_ip = [
-    for idx, name in proxmox_virtual_environment_vm.traefik.network_interface_names :
-    proxmox_virtual_environment_vm.traefik.ipv4_addresses[idx][0]
-    if can(regex("^(eth|en)", name)) && length(proxmox_virtual_environment_vm.traefik.ipv4_addresses[idx]) > 0
-  ][0]
 }
 
 # =============================================================================

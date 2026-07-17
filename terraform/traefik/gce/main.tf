@@ -115,11 +115,13 @@ resource "google_project_iam_member" "viewer" {
   member  = "serviceAccount:${google_service_account.traefik.email}"
 }
 
-resource "google_compute_instance" "traefik" {
-  name         = local.instance_key
-  machine_type = var.machine_type
-  zone         = var.zone
-  tags         = [var.vm_name]
+# The VM (and its firewall) live in the shared compute/gcp/vm module. This
+# caller keeps everything role-specific: the rendered cloud-init and the
+# `traefik` dashboard metadata (built above into local.user_data /
+# local.dashboard_metadata), the service account, and the compute.viewer
+# binding. The compute module just materializes the instance.
+module "compute" {
+  source = "../../compute/gcp/vm"
 
   # The gce provider polls the compute API at boot via ADC. Order the VM after
   # the roles/compute.viewer binding so the role has been granted before the
@@ -127,55 +129,38 @@ resource "google_compute_instance" "traefik" {
   # transient 403s until it self-heals.
   depends_on = [google_project_iam_member.viewer]
 
-  boot_disk {
-    initialize_params {
-      image = var.vm_image
-      type  = "pd-standard"
+  instances = {
+    (local.instance_key) = {
+      metadata = merge(
+        { user-data = local.user_data },
+        local.dashboard_metadata
+      )
+      labels     = var.extra_labels
+      network_ip = var.private_ip
     }
   }
 
-  network_interface {
-    network    = var.network
-    subnetwork = var.subnetwork != "" ? var.subnetwork : null
-    network_ip = var.private_ip != "" ? var.private_ip : null
+  machine_type     = var.machine_type
+  zone             = var.zone
+  vm_image         = var.vm_image
+  network          = var.network
+  subnetwork       = var.subnetwork
+  enable_public_ip = var.enable_public_ip
+  tags             = [var.vm_name]
 
-    dynamic "access_config" {
-      for_each = var.enable_public_ip ? [1] : []
-      content {}
-    }
-  }
-
-  metadata = merge(
-    { user-data = local.user_data },
-    local.dashboard_metadata
-  )
-
-  labels = var.extra_labels
-
-  service_account {
+  service_account = {
     email = google_service_account.traefik.email
     # cloud-platform + IAM roles is Google's recommended scoping; the narrow
     # legacy scopes double-limit what the viewer role already restricts.
     scopes = ["cloud-platform"]
   }
-}
 
-# Open the demo ports (incl. the :9443 uplink the parent dials) intra-network
-# (mirrors compute/azure/vnet's NSG + extra_ingress_ports idea — GCP firewalls
-# are VPC-scoped, so the rule lives with the VM it targets).
-resource "google_compute_firewall" "traefik" {
-  count = var.enable_firewall ? 1 : 0
-
-  name    = "allow-${var.vm_name}"
-  network = var.network
-
-  allow {
-    protocol = "tcp"
-    ports    = [for port in var.firewall_ports : tostring(port)]
-  }
-
-  source_ranges = var.firewall_source_ranges
-  target_tags   = [var.vm_name]
+  # Open the demo ports (incl. the :9443 uplink the parent dials) intra-network
+  # (mirrors compute/azure/vnet's NSG + extra_ingress_ports idea — GCP firewalls
+  # are VPC-scoped, so the rule lives with the VM it targets).
+  enable_firewall        = var.enable_firewall
+  firewall_ports         = [for port in var.firewall_ports : tostring(port)]
+  firewall_source_ranges = var.firewall_source_ranges
 }
 
 # =============================================================================

@@ -80,24 +80,6 @@ locals {
     enable_preview_mode  = var.enable_preview_mode
     preview_image        = module.config.image_full
   })
-
-  availability_domain = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.traefik.availability_domains[0].name
-  image_id            = var.vm_image_ocid != "" ? var.vm_image_ocid : data.oci_core_images.ubuntu.images[0].id
-}
-
-data "oci_identity_availability_domains" "traefik" {
-  compartment_id = var.compartment_id
-}
-
-# Latest Canonical Ubuntu 24.04 platform image for the chosen shape — the same
-# OS the azure-vm/gce siblings run (the cloud-init installs docker via apt).
-data "oci_core_images" "ubuntu" {
-  compartment_id           = var.compartment_id
-  operating_system         = "Canonical Ubuntu"
-  operating_system_version = "24.04"
-  shape                    = var.shape
-  sort_by                  = "TIMECREATED"
-  sort_order               = "DESC"
 }
 
 # The oci provider's credential: instance principals via
@@ -142,32 +124,30 @@ resource "oci_core_network_security_group_security_rule" "ingress" {
   }
 }
 
-resource "oci_core_instance" "traefik" {
-  availability_domain = local.availability_domain
-  compartment_id      = var.compartment_id
-  display_name        = local.instance_key
-  shape               = var.shape
+# The VM itself lives in the shared compute module (whoami/oci-vm composes the
+# same one). Everything role-specific — the rendered cloud-init, the pinned
+# private IP, the caller-owned NSG, and the dashboard self-registration tags —
+# is computed here and passed in.
+module "compute" {
+  source = "../../compute/oracle/vm"
 
-  shape_config {
-    ocpus         = var.ocpus
-    memory_in_gbs = var.memory_in_gbs
-  }
+  name           = var.vm_name
+  replicas       = 1
+  compartment_id = var.compartment_id
 
-  create_vnic_details {
-    subnet_id        = var.subnet_id
-    assign_public_ip = var.enable_public_ip
-    private_ip       = var.private_ip != "" ? var.private_ip : null
-    nsg_ids          = concat(var.nsg_ids, var.enable_nsg ? [oci_core_network_security_group.traefik[0].id] : [])
-  }
+  availability_domain = var.availability_domain
+  subnet_id           = var.subnet_id
+  nsg_ids             = concat(var.nsg_ids, var.enable_nsg ? [oci_core_network_security_group.traefik[0].id] : [])
 
-  source_details {
-    source_type = "image"
-    source_id   = local.image_id
-  }
+  shape         = var.shape
+  ocpus         = var.ocpus
+  memory_in_gbs = var.memory_in_gbs
+  vm_image_ocid = var.vm_image_ocid
 
-  metadata = {
-    user_data = base64encode(local.user_data)
-  }
+  enable_public_ip = var.enable_public_ip
+  private_ips      = var.private_ip != "" ? [var.private_ip] : []
+
+  user_data = local.user_data
 
   freeform_tags = merge(
     var.extra_tags,

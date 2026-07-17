@@ -39,88 +39,38 @@ locals {
   instances_map = { for inst in local.instances : inst.key => inst }
 }
 
-data "vsphere_datacenter" "this" {
-  name = var.datacenter
-}
+# N workload VMs cloned from the shared compute/vsphere/vm module. This caller
+# still renders the whoami cloud-init (per app, via module.cloud_init) and
+# builds the vsphere provider's workload config (traefik_labels ->
+# guestinfo.traefik); the module owns the vsphere_virtual_machine resource and
+# its data lookups.
+module "compute" {
+  source = "../../../compute/vsphere/vm"
 
-data "vsphere_datastore" "this" {
-  name          = var.datastore
-  datacenter_id = data.vsphere_datacenter.this.id
-}
+  datacenter    = var.datacenter
+  datastore     = var.datastore
+  cluster       = var.cluster
+  resource_pool = var.resource_pool
+  network       = var.network
+  template      = var.template
+  folder        = var.folder
 
-data "vsphere_compute_cluster" "this" {
-  count         = var.resource_pool == "" ? 1 : 0
-  name          = var.cluster
-  datacenter_id = data.vsphere_datacenter.this.id
-}
+  num_cpus  = var.num_cpus
+  memory    = var.memory
+  disk_size = var.disk_size
 
-data "vsphere_resource_pool" "this" {
-  count         = var.resource_pool != "" ? 1 : 0
-  name          = var.resource_pool
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-data "vsphere_network" "this" {
-  name          = var.network
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = var.template
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-locals {
-  resource_pool_id = var.resource_pool != "" ? data.vsphere_resource_pool.this[0].id : data.vsphere_compute_cluster.this[0].resource_pool_id
-}
-
-resource "vsphere_virtual_machine" "whoami" {
-  for_each = local.instances_map
-
-  name             = each.key
-  resource_pool_id = local.resource_pool_id
-  datastore_id     = data.vsphere_datastore.this.id
-  folder           = var.folder != "" ? var.folder : null
-
-  num_cpus = var.num_cpus
-  memory   = var.memory
-
-  # Inherit the template's hardware identity so the clone boots unchanged.
-  guest_id  = data.vsphere_virtual_machine.template.guest_id
-  scsi_type = data.vsphere_virtual_machine.template.scsi_type
-  firmware  = data.vsphere_virtual_machine.template.firmware
-
-  network_interface {
-    network_id   = data.vsphere_network.this.id
-    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  apps = {
+    for app_name, app_config in var.apps : app_name => { replicas = app_config.replicas }
   }
 
-  disk {
-    label = "disk0"
-    # Never below the template's disk — vSphere refuses to shrink on clone.
-    size             = max(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size)
-    thin_provisioned = data.vsphere_virtual_machine.template.disks[0].thin_provisioned
-    eagerly_scrub    = data.vsphere_virtual_machine.template.disks[0].eagerly_scrub
+  # Per-app cloud-init, mapped onto each replica's instance key.
+  user_data = {
+    for key, inst in local.instances_map : key => module.cloud_init[inst.app_name].rendered
   }
 
-  clone {
-    template_uuid = data.vsphere_virtual_machine.template.id
+  # The vsphere provider's `guestinfo.traefik` entry per instance — omitted when
+  # an app carries no labels, exactly as before.
+  extra_config = {
+    for key, inst in local.instances_map : key => length(inst.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(inst.traefik_labels) } : {}
   }
-
-  extra_config = merge(
-    {
-      "guestinfo.userdata"          = base64encode(module.cloud_init[each.value.app_name].rendered)
-      "guestinfo.userdata.encoding" = "base64"
-      "guestinfo.metadata"          = base64encode(jsonencode({ "instance-id" = each.key, "local-hostname" = each.key }))
-      "guestinfo.metadata.encoding" = "base64"
-    },
-    # The vsphere provider's workload config: one `guestinfo.traefik` entry
-    # whose value is a JSON object of dotted Traefik labels.
-    length(each.value.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(each.value.traefik_labels) } : {}
-  )
-
-  # The `instances` output reads default_ip_address, reported by open-vm-tools
-  # (the Ubuntu cloud images ship it) — also what gates the provider's
-  # discovery: no tools, no guest IP, no route.
-  wait_for_guest_net_timeout = 10
 }

@@ -1,18 +1,16 @@
 output "container_group_id" {
   description = "ID of the Traefik ECI container group"
-  value       = alicloud_eci_container_group.traefik.id
+  value       = module.compute.instances[var.name].id
 }
 
 output "ip_address" {
   description = "Private vswitch IP of the Traefik container group (the parent dials https://<ip>:9443)"
-  value       = alicloud_eci_container_group.traefik.intranet_ip
+  value       = module.compute.private_ips[var.name]
 }
 
 output "private_ips" {
   description = "Map of instance name to private IP (mirrors traefik/alibaba-ecs's consumption shape: values(...)[0])"
-  value = {
-    (alicloud_eci_container_group.traefik.container_group_name) = alicloud_eci_container_group.traefik.intranet_ip
-  }
+  value       = module.compute.private_ips
 }
 
 output "ram_role_name" {

@@ -46,69 +46,33 @@ module "vnet" {
   location            = var.location
 }
 
-resource "azurerm_public_ip" "whoami" {
-  for_each = var.enable_public_ip ? local.instances_map : {}
+# The VMs, their NICs, optional public IPs, and optional NSG associations — the
+# shared Azure VM fleet module this backend and traefik/azure-vm both compose
+# (exactly like whoami/ec2 + traefik/ec2 share compute/aws/ec2). No identity:
+# the whoami backends carry only their dotted discovery tags.
+module "vm" {
+  source = "../../../compute/azure/vm"
 
-  name                = "${each.key}-pip"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
-resource "azurerm_network_interface" "whoami" {
-  for_each = local.instances_map
-
-  name                = "${each.key}-nic"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = local.subnet_id
-    private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = var.enable_public_ip ? azurerm_public_ip.whoami[each.key].id : null
-  }
-}
-
-resource "azurerm_network_interface_security_group_association" "whoami" {
-  # Gated on config-known bools, not the id (same-run ids are unknown at plan
-  # and for_each cannot depend on them — first fresh apply failed here, 2026-07).
-  for_each = (var.create_vnet || var.enable_network_security_group) ? local.instances_map : {}
-
-  network_interface_id      = azurerm_network_interface.whoami[each.key].id
-  network_security_group_id = local.network_security_group_id
-}
-
-resource "azurerm_linux_virtual_machine" "whoami" {
-  for_each = local.instances_map
-
-  name                = each.key
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  size                = var.vm_size
-
-  network_interface_ids = [azurerm_network_interface.whoami[each.key].id]
-
-  admin_username                  = var.admin_username
-  admin_password                  = var.admin_password
-  disable_password_authentication = false
-
-  custom_data = base64encode(module.cloud_init[each.value.app_name].rendered)
-
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+  apps = {
+    for app_name, app_config in var.apps : app_name => {
+      replicas = app_config.replicas
+      tags     = try(app_config.tags, {})
+    }
   }
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server"
-    version   = "latest"
-  }
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  vm_size             = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
+  common_tags         = var.common_tags
 
-  # Dotted-key traefik.* tags — the azureVM provider's workload config,
-  # exactly like EC2 instance tags.
-  tags = merge(var.common_tags, each.value.tags)
+  subnet_id                     = local.subnet_id
+  network_security_group_id     = local.network_security_group_id
+  enable_network_security_group = var.create_vnet || var.enable_network_security_group
+  enable_public_ip              = var.enable_public_ip
+
+  user_data = {
+    for key, inst in local.instances_map : key => module.cloud_init[inst.app_name].rendered
+  }
 }

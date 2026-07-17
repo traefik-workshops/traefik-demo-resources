@@ -73,62 +73,45 @@ locals {
   } : {})
 }
 
-resource "azurerm_container_group" "traefik" {
-  name                = var.name
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  os_type             = "Linux"
-  restart_policy      = "Always"
+# The container group itself lives in the shared compute module (composed by
+# apps/whoami/aci too). Everything role-specific — the Hub commands + token, the
+# exposed uplink ports, the aci-provider discovery tags, the file-provider secret
+# volume, the system-assigned identity — is rendered here and passed in.
+module "compute" {
+  source = "../../compute/azure/aci"
 
-  # Private vnet-injected IP — the parent dials https://<ip>:9443 in-vnet.
-  # The subnet MUST be delegated to Microsoft.ContainerInstance.
-  ip_address_type = "Private"
-  subnet_ids      = [var.subnet_id]
+  resource_group_name    = var.resource_group_name
+  location               = var.location
+  subnet_id              = var.subnet_id
+  enable_system_identity = true
 
-  # DefaultAzureCredential inside the container resolves this identity via the
-  # ACI-injected identity endpoint.
-  identity {
-    type = "SystemAssigned"
-  }
+  container_name   = "traefik"
+  image            = local.traefik_image
+  container_cpu    = var.container_cpu
+  container_memory = var.container_memory
 
-  dynamic "exposed_port" {
-    for_each = toset(local.exposed_ports)
-    content {
-      port     = exposed_port.value
-      protocol = "TCP"
+  # ACI `commands` REPLACES the image entrypoint; the token is inlined here.
+  commands = local.commands
+
+  # A private container group must declare every port it serves.
+  exposed_ports = local.exposed_ports
+
+  # The Hub image is scratch (no shell/cloud-init) — a secret volume carries the
+  # file-provider config, no init sidecar needed (unlike ECS).
+  volumes = var.file_provider_config != "" ? [{
+    name       = "dynamic"
+    mount_path = var.file_provider_path
+    secret = {
+      "dynamic.yml" = base64encode(var.file_provider_config)
+    }
+  }] : []
+
+  container_groups = {
+    (var.name) = {
+      ports = local.exposed_ports
+      tags  = local.discovery_tags
     }
   }
-
-  container {
-    name     = "traefik"
-    image    = local.traefik_image
-    cpu      = var.container_cpu
-    memory   = var.container_memory
-    commands = local.commands
-
-    dynamic "ports" {
-      for_each = toset(local.exposed_ports)
-      content {
-        port     = ports.value
-        protocol = "TCP"
-      }
-    }
-
-    # The Hub image is scratch (no shell/cloud-init) — a secret volume carries
-    # the file-provider config, no init sidecar needed (unlike ECS).
-    dynamic "volume" {
-      for_each = var.file_provider_config != "" ? [1] : []
-      content {
-        name       = "dynamic"
-        mount_path = var.file_provider_path
-        secret = {
-          "dynamic.yml" = base64encode(var.file_provider_config)
-        }
-      }
-    }
-  }
-
-  tags = local.discovery_tags
 }
 
 # Reader on the resource group: the least privilege the aci provider needs to
@@ -138,7 +121,7 @@ resource "azurerm_role_assignment" "reader" {
 
   scope                = "/subscriptions/${local.subscription_id}/resourceGroups/${local.provider_resource_group}"
   role_definition_name = "Reader"
-  principal_id         = azurerm_container_group.traefik.identity[0].principal_id
+  principal_id         = module.compute.instances[var.name].principal_id
 }
 
 # Identity token race: a freshly-created group's system-assigned identity acquires
@@ -154,7 +137,7 @@ resource "null_resource" "identity_bounce" {
   depends_on = [azurerm_role_assignment.reader]
 
   triggers = {
-    container_group_id = azurerm_container_group.traefik.id
+    container_group_id = module.compute.instances[var.name].id
   }
 
   provisioner "local-exec" {

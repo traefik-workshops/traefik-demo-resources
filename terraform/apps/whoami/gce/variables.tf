@@ -2,6 +2,21 @@ variable "apps" {
   description = "Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: `traefik_labels` is a map of dotted Traefik label -> value, JSON-encoded into the single `traefik` metadata item (GCE metadata keys can't contain dots); optional `labels` are plain (dotless) GCE labels for provider constraints only. { name = { replicas, port, name, environment, traefik_labels, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container."
   type        = any
   default     = {}
+
+  # The gce provider expects each app's `traefik` metadata value to be a JSON
+  # OBJECT of dotted string labels. jsonencode() (in main.tf) always emits valid
+  # JSON, but the wrong INPUT shape still encodes "validly" — a pre-encoded
+  # string becomes a JSON string, a nested map a JSON object of objects — and the
+  # provider then silently drops the VM from discovery (no error anywhere; the
+  # service just never gains the server). Fail the plan instead.
+  validation {
+    condition = alltrue([
+      for app in values(var.apps) : alltrue([
+        for k, v in try(app.traefik_labels, {}) : can(tostring(v)) && startswith(k, "traefik.")
+      ])
+    ])
+    error_message = "traefik_labels must be a flat map of dotted `traefik.*` keys to STRING values (e.g. {\"traefik.enable\" = \"true\"}). A pre-jsonencode()d string or nested map encodes into a shape the gce provider silently ignores — the VM would vanish from discovery with no error."
+  }
 }
 
 variable "zone" {

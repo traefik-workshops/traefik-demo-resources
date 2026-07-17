@@ -38,74 +38,41 @@ locals {
   app_ports = distinct([for app_name, app_config in var.apps : tostring(try(app_config.port, 80))])
 }
 
-resource "google_compute_instance" "whoami" {
-  for_each = local.instances_map
+# The VMs (and their firewall) live in the shared compute/gcp/vm module. This
+# caller keeps everything role-specific: the rendered cloud-init and the
+# `traefik` metadata workload item (one metadata item whose value is a JSON
+# object of dotted Traefik labels — GCE metadata keys can't contain dots), plus
+# the dotless GCE labels. The compute module just materializes the instances.
+module "compute" {
+  source = "../../../compute/gcp/vm"
 
-  name         = each.key
-  machine_type = var.machine_type
-  zone         = var.zone
+  instances = {
+    for key, inst in local.instances_map : key => {
+      metadata = merge(
+        { user-data = module.cloud_init[inst.app_name].rendered },
+        # The gce provider's workload config: one `traefik` metadata item whose
+        # value is a JSON object of dotted Traefik labels.
+        length(inst.traefik_labels) > 0 ? { traefik = jsonencode(inst.traefik_labels) } : {}
+      )
+      # GCE labels (lowercase, dotless) — matched by the provider's `constraints`
+      # expression only; they carry no traefik.* routing config.
+      labels = merge(var.common_labels, inst.labels)
+    }
+  }
+
+  machine_type     = var.machine_type
+  zone             = var.zone
+  vm_image         = var.vm_image
+  network          = var.network
+  subnetwork       = var.subnetwork
+  enable_public_ip = var.enable_public_ip
   # Network tags (dotless, firewall targeting only) — NOT the provider's
-  # workload config; that's the `traefik` metadata item below.
+  # workload config; that's the `traefik` metadata item above.
   tags = var.network_tags
 
-  boot_disk {
-    initialize_params {
-      image = var.vm_image
-      type  = "pd-standard"
-    }
-  }
-
-  network_interface {
-    network    = var.network
-    subnetwork = var.subnetwork != "" ? var.subnetwork : null
-
-    # An access_config block (even empty) allocates an ephemeral public IP.
-    dynamic "access_config" {
-      for_each = var.enable_public_ip ? [1] : []
-      content {}
-    }
-  }
-
-  metadata = merge(
-    { user-data = module.cloud_init[each.value.app_name].rendered },
-    # The gce provider's workload config: one `traefik` metadata item whose
-    # value is a JSON object of dotted Traefik labels.
-    length(each.value.traefik_labels) > 0 ? { traefik = jsonencode(each.value.traefik_labels) } : {}
-  )
-
-  # GCE labels (lowercase, dotless) — matched by the provider's `constraints`
-  # expression only; they carry no traefik.* routing config.
-  labels = merge(var.common_labels, each.value.labels)
-
-  lifecycle {
-    # The gce provider expects the `traefik` metadata value to be a JSON OBJECT of
-    # dotted string labels. jsonencode() above always emits valid JSON, but the
-    # wrong INPUT shape still encodes "validly" — a pre-encoded string becomes a
-    # JSON string, a nested map a JSON object of objects — and the provider then
-    # silently drops the VM from discovery (no error anywhere; the service just
-    # never gains the server). Fail the plan instead.
-    precondition {
-      condition = alltrue([
-        for k, v in each.value.traefik_labels : can(tostring(v)) && startswith(k, "traefik.")
-      ])
-      error_message = "traefik_labels must be a flat map of dotted `traefik.*` keys to STRING values (e.g. {\"traefik.enable\" = \"true\"}). A pre-jsonencode()d string or nested map encodes into a shape the gce provider silently ignores — the VM would vanish from discovery with no error."
-    }
-  }
-}
-
-# Open the app ports intra-network (mirrors compute/azure/vnet's NSG idea —
-# GCP firewalls are VPC-scoped, so the rule lives with the instances it targets).
-resource "google_compute_firewall" "whoami" {
-  count = var.enable_firewall ? 1 : 0
-
-  name    = "allow-${var.network_tags[0]}"
-  network = var.network
-
-  allow {
-    protocol = "tcp"
-    ports    = local.app_ports
-  }
-
-  source_ranges = var.firewall_source_ranges
-  target_tags   = var.network_tags
+  # Open the app ports intra-network (mirrors compute/azure/vnet's NSG idea —
+  # GCP firewalls are VPC-scoped, so the rule lives with the instances it targets).
+  enable_firewall        = var.enable_firewall
+  firewall_ports         = local.app_ports
+  firewall_source_ranges = var.firewall_source_ranges
 }

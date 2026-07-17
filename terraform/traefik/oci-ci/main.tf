@@ -79,12 +79,6 @@ locals {
   # file-provider uplinks. (enable_dashboard_discovery is retained for API
   # compatibility but no longer emits tags — the dashboard rides a file-rule uplink.)
   discovery_tags = var.extra_tags
-
-  availability_domain = var.availability_domain != "" ? var.availability_domain : data.oci_identity_availability_domains.traefik.availability_domains[0].name
-}
-
-data "oci_identity_availability_domains" "traefik" {
-  compartment_id = var.compartment_id
 }
 
 # The ocici provider's keyless credential: resource principals via a dynamic
@@ -197,7 +191,7 @@ resource "null_resource" "resource_principal_bounce" {
   ]
 
   triggers = {
-    instance_id = oci_container_instances_container_instance.traefik.id
+    instance_id = module.ci.instances[var.name].id
   }
 
   provisioner "local-exec" {
@@ -208,19 +202,16 @@ resource "null_resource" "resource_principal_bounce" {
       # state (SUCCEEDED), not a lifecycle state (ACTIVE).
       sleep 120
       oci container-instances container-instance restart \
-        --container-instance-id ${oci_container_instances_container_instance.traefik.id} \
+        --container-instance-id ${module.ci.instances[var.name].id} \
         --wait-for-state SUCCEEDED
     EOT
   }
 }
 
-resource "oci_container_instances_container_instance" "traefik" {
-  availability_domain      = local.availability_domain
-  compartment_id           = var.compartment_id
-  display_name             = var.name
-  shape                    = var.shape
-  container_restart_policy = "ALWAYS"
-
+# Auth guard: the two invariants that used to ride the container instance's
+# lifecycle preconditions (the resource now lives in module.ci). A state-only
+# terraform_data host — creates nothing, just fails the plan on a bad combo.
+resource "terraform_data" "auth_guard" {
   lifecycle {
     precondition {
       condition     = !(var.enable_resource_principal && var.ocici_provider.use_instance_principal)
@@ -232,112 +223,93 @@ resource "oci_container_instances_container_instance" "traefik" {
       error_message = "oci_config and oci_private_key are required when enable_resource_principal = false (the ocici provider's config-file credential)."
     }
   }
-
-  shape_config {
-    ocpus         = var.container_ocpus
-    memory_in_gbs = var.container_memory_in_gbs
-  }
-
-  # Private VNIC: the parent dials this container instance's PRIVATE IP
-  # (https://<private-ip>:9443) in-VCN, and egress (image pull) goes through the
-  # node subnet's NAT gateway — so no public IP is needed.
-  vnics {
-    subnet_id             = var.subnet_id
-    is_public_ip_assigned = false
-    nsg_ids               = var.nsg_ids
-  }
-
-  containers {
-    display_name = "traefik"
-    image_url    = local.traefik_image
-    command      = ["/traefik-hub"]
-    arguments    = local.arguments
-
-    # The Hub image is scratch (no shell/cloud-init) — CONFIGFILE volumes
-    # carry the file-provider config and the OCI credentials, no init sidecar
-    # needed (the ACI sibling's secret-volume pattern).
-    dynamic "volume_mounts" {
-      for_each = var.file_provider_config != "" ? [1] : []
-      content {
-        volume_name = "dynamic"
-        mount_path  = var.file_provider_path
-      }
-    }
-
-    dynamic "volume_mounts" {
-      for_each = local.mount_oci_config ? [1] : []
-      content {
-        volume_name = "oci-config"
-        mount_path  = local.oci_config_dir
-      }
-    }
-
-    # The oci provider's base config, mounted OUTSIDE the file-provider dir so the
-    # file provider doesn't also parse it (which would create phantom serverless
-    # services). The provider reads it via --hub.providers.ociContainerInstances.filename.
-    dynamic "volume_mounts" {
-      for_each = var.base_config != "" ? [1] : []
-      content {
-        volume_name = "base-config"
-        mount_path  = dirname(var.ocici_provider.filename)
-      }
-    }
-  }
-
-  dynamic "volumes" {
-    for_each = var.file_provider_config != "" ? [1] : []
-    content {
-      name        = "dynamic"
-      volume_type = "CONFIGFILE"
-
-      configs {
-        file_name = "dynamic.yml"
-        data      = base64encode(var.file_provider_config)
-      }
-    }
-  }
-
-  dynamic "volumes" {
-    for_each = var.base_config != "" ? [1] : []
-    content {
-      name        = "base-config"
-      volume_type = "CONFIGFILE"
-
-      configs {
-        file_name = basename(var.ocici_provider.filename)
-        data      = base64encode(var.base_config)
-      }
-    }
-  }
-
-  # The provider's config-file credential: an ~/.oci style config plus the API
-  # private key it references (its key_file must point inside the mount, e.g.
-  # <config dir>/key.pem).
-  dynamic "volumes" {
-    for_each = local.mount_oci_config ? [1] : []
-    content {
-      name        = "oci-config"
-      volume_type = "CONFIGFILE"
-
-      configs {
-        file_name = basename(var.ocici_provider.config_file_path)
-        data      = base64encode(var.oci_config)
-      }
-
-      configs {
-        file_name = "key.pem"
-        data      = base64encode(var.oci_private_key)
-      }
-    }
-  }
-
-  freeform_tags = local.discovery_tags
 }
 
-# The container instance resource only exposes the VNIC OCID; the private IP
-# comes from the VNIC itself.
-data "oci_core_vnic" "traefik" {
-  vnic_id = oci_container_instances_container_instance.traefik.vnics[0].vnic_id
+# The container instance itself lives in the shared compute/oracle/ci module. This
+# caller renders the Traefik container + CONFIGFILE volumes (its role logic) and
+# hands them in as the opaque per-instance payload; the module owns the resource,
+# the AD pick and the VNIC private-IP resolution.
+module "ci" {
+  source = "../../compute/oracle/ci"
+
+  compartment_id          = var.compartment_id
+  availability_domain     = var.availability_domain
+  subnet_id               = var.subnet_id
+  nsg_ids                 = var.nsg_ids
+  shape                   = var.shape
+  container_ocpus         = var.container_ocpus
+  container_memory_in_gbs = var.container_memory_in_gbs
+
+  instances = {
+    (var.name) = {
+      display_name  = var.name
+      freeform_tags = local.discovery_tags
+
+      containers = [{
+        display_name = "traefik"
+        image_url    = local.traefik_image
+        command      = ["/traefik-hub"]
+        arguments    = local.arguments
+
+        # The Hub image is scratch (no shell/cloud-init) — CONFIGFILE volumes
+        # carry the file-provider config and the OCI credentials, no init sidecar
+        # needed (the ACI sibling's secret-volume pattern).
+        volume_mounts = concat(
+          var.file_provider_config != "" ? [{
+            volume_name = "dynamic"
+            mount_path  = var.file_provider_path
+          }] : [],
+          local.mount_oci_config ? [{
+            volume_name = "oci-config"
+            mount_path  = local.oci_config_dir
+          }] : [],
+          # The oci provider's base config, mounted OUTSIDE the file-provider dir so the
+          # file provider doesn't also parse it (which would create phantom serverless
+          # services). The provider reads it via --hub.providers.ociContainerInstances.filename.
+          var.base_config != "" ? [{
+            volume_name = "base-config"
+            mount_path  = dirname(var.ocici_provider.filename)
+          }] : [],
+        )
+      }]
+
+      volumes = concat(
+        var.file_provider_config != "" ? [{
+          name        = "dynamic"
+          volume_type = "CONFIGFILE"
+          configs = [{
+            file_name = "dynamic.yml"
+            data      = base64encode(var.file_provider_config)
+          }]
+        }] : [],
+        var.base_config != "" ? [{
+          name        = "base-config"
+          volume_type = "CONFIGFILE"
+          configs = [{
+            file_name = basename(var.ocici_provider.filename)
+            data      = base64encode(var.base_config)
+          }]
+        }] : [],
+        # The provider's config-file credential: an ~/.oci style config plus the API
+        # private key it references (its key_file must point inside the mount, e.g.
+        # <config dir>/key.pem).
+        local.mount_oci_config ? [{
+          name        = "oci-config"
+          volume_type = "CONFIGFILE"
+          configs = [
+            {
+              file_name = basename(var.ocici_provider.config_file_path)
+              data      = base64encode(var.oci_config)
+            },
+            {
+              file_name = "key.pem"
+              data      = base64encode(var.oci_private_key)
+            },
+          ]
+        }] : [],
+      )
+    }
+  }
 }
 
 # =============================================================================

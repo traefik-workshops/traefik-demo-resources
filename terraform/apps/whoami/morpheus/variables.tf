@@ -1,7 +1,17 @@
 variable "apps" {
-  description = "Map of applications to deploy to Morpheus instances. Each app can have multiple replicas. Same shape as apps/whoami/vsphere: { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (dotted Traefik label -> value) lands 1:1 as instance TAGS (the Hub morpheus provider reads every traefik.* tag); optional `environment` (map) is merged over the module-level `environment` into the container. The gomorpheus-era per-app `labels` entry (Morpheus LABELS) is NO LONGER APPLIED — hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — and a non-empty value now fails a precondition; set labels via the appliance instead."
+  description = "Map of applications to deploy to Morpheus instances. Each app can have multiple replicas. Same shape as apps/whoami/vsphere: { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (dotted Traefik label -> value) lands 1:1 as instance TAGS (the Hub morpheus provider reads every traefik.* tag); optional `environment` (map) is merged over the module-level `environment` into the container. The gomorpheus-era per-app `labels` entry (Morpheus LABELS) is NO LONGER APPLIED — hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — and a non-empty value now fails the validation below; set labels via the appliance instead."
   type        = any
   default     = {}
+
+  # Morpheus labels can't be applied: hpe_morpheus_instance (HPE/hpe v1.5.0) has
+  # no labels attribute. This USED TO be a precondition on the instance's
+  # lifecycle, but the instance now lives in the role-agnostic compute/morpheus/vm
+  # module (which never sees the per-app `labels`), so the check relocates here
+  # to keep the SAME plan-time hard failure — fail loudly instead of dropping them.
+  validation {
+    condition     = alltrue([for app_name, app_config in var.apps : length(try(app_config.labels, [])) == 0])
+    error_message = "apps.<name>.labels cannot be applied: hpe_morpheus_instance (HPE/hpe v1.5.0) has no labels attribute — the gomorpheus labels feature has no HPE equivalent yet. Remove the labels entry and set labels via the appliance."
+  }
 }
 
 # --- Morpheus placement -------------------------------------------------------

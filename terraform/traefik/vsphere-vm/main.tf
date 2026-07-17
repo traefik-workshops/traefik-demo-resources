@@ -94,85 +94,39 @@ locals {
   traefik_labels = merge(local.self_labels, var.extra_labels)
 }
 
-data "vsphere_datacenter" "this" {
-  name = var.datacenter
-}
+# One gateway VM cloned from the shared compute/vsphere/vm module. This caller
+# still renders the cloud-init (local.user_data) and builds the vsphere
+# provider's workload config (local.traefik_labels -> guestinfo.traefik); the
+# module owns the vsphere_virtual_machine resource and its data lookups.
+module "compute" {
+  source = "../../compute/vsphere/vm"
 
-data "vsphere_datastore" "this" {
-  name          = var.datastore
-  datacenter_id = data.vsphere_datacenter.this.id
-}
+  datacenter    = var.datacenter
+  datastore     = var.datastore
+  cluster       = var.cluster
+  resource_pool = var.resource_pool
+  network       = var.network
+  template      = var.template
+  folder        = var.folder
 
-data "vsphere_compute_cluster" "this" {
-  count         = var.resource_pool == "" ? 1 : 0
-  name          = var.cluster
-  datacenter_id = data.vsphere_datacenter.this.id
-}
+  num_cpus  = var.num_cpus
+  memory    = var.memory
+  disk_size = var.disk_size
 
-data "vsphere_resource_pool" "this" {
-  count         = var.resource_pool != "" ? 1 : 0
-  name          = var.resource_pool
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-data "vsphere_network" "this" {
-  name          = var.network
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-data "vsphere_virtual_machine" "template" {
-  name          = var.template
-  datacenter_id = data.vsphere_datacenter.this.id
-}
-
-locals {
-  resource_pool_id = var.resource_pool != "" ? data.vsphere_resource_pool.this[0].id : data.vsphere_compute_cluster.this[0].resource_pool_id
-}
-
-resource "vsphere_virtual_machine" "traefik" {
-  name             = local.instance_key
-  resource_pool_id = local.resource_pool_id
-  datastore_id     = data.vsphere_datastore.this.id
-  folder           = var.folder != "" ? var.folder : null
-
-  num_cpus = var.num_cpus
-  memory   = var.memory
-
-  # Inherit the template's hardware identity so the clone boots unchanged.
-  guest_id  = data.vsphere_virtual_machine.template.guest_id
-  scsi_type = data.vsphere_virtual_machine.template.scsi_type
-  firmware  = data.vsphere_virtual_machine.template.firmware
-
-  network_interface {
-    network_id   = data.vsphere_network.this.id
-    adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  # One VM keyed "<vm_name>-1" (matches the previous single-instance name).
+  apps = {
+    (var.vm_name) = { replicas = 1 }
   }
 
-  disk {
-    label = "disk0"
-    # Never below the template's disk — vSphere refuses to shrink on clone.
-    size             = max(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size)
-    thin_provisioned = data.vsphere_virtual_machine.template.disks[0].thin_provisioned
-    eagerly_scrub    = data.vsphere_virtual_machine.template.disks[0].eagerly_scrub
+  user_data = {
+    (local.instance_key) = local.user_data
   }
 
-  clone {
-    template_uuid = data.vsphere_virtual_machine.template.id
+  # The vsphere provider's `guestinfo.traefik` entry — omitted when no labels,
+  # exactly as before.
+  extra_config = {
+    (local.instance_key) = length(local.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(local.traefik_labels) } : {}
   }
-
-  extra_config = merge(
-    {
-      "guestinfo.userdata"          = base64encode(local.user_data)
-      "guestinfo.userdata.encoding" = "base64"
-      "guestinfo.metadata"          = base64encode(jsonencode({ "instance-id" = local.instance_key, "local-hostname" = local.instance_key }))
-      "guestinfo.metadata.encoding" = "base64"
-    },
-    length(local.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(local.traefik_labels) } : {}
-  )
-
-  # The parent dials this VM's guest IP (:9443 uplink) — reported by
-  # open-vm-tools, which the Ubuntu cloud images ship.
-  wait_for_guest_net_timeout = 10
 }
 
 # =============================================================================

@@ -68,157 +68,62 @@ locals {
   }
 }
 
-# Resolve template_name -> VMID when the QEMU template is given by name.
-data "proxmox_virtual_environment_vms" "template" {
-  count     = var.template_name != "" ? 1 : 0
-  node_name = var.node_name
+# --- QEMU VMs (type = "vm") — the shared compute/proxmox/vm primitive ---------
+# The template-name->VMID lookup, the one cloud-config snippet per VM instance,
+# and the hash-named replace_triggered_by that recreates a VM on a cloud-init
+# change all live in the module (infra). This caller renders the cloud-init
+# (module.cloud_init) and the line-format Notes, and reads the agent-reported
+# guest IP back out. snippet_name_prefix reproduces the `whoami-<key>-<hash>`
+# file name the snippet used to carry.
+module "vm" {
+  source = "../../../compute/proxmox/vm"
 
-  filter {
-    name   = "name"
-    values = [var.template_name]
-  }
-}
+  node_name            = var.node_name
+  datastore_id         = var.datastore_id
+  snippet_datastore_id = var.snippet_datastore_id
+  bridge               = var.bridge
+  template_vm_id       = var.template_vm_id
+  template_name        = var.template_name
+  num_cpus             = var.num_cpus
+  cpu_type             = var.cpu_type
+  memory               = var.memory
+  disk_size            = var.disk_size
+  disk_interface       = var.disk_interface
+  snippet_name_prefix  = "whoami-"
 
-locals {
-  template_vm_id = var.template_name != "" ? data.proxmox_virtual_environment_vms.template[0].vms[0].vm_id : var.template_vm_id
-}
-
-# --- QEMU VMs (type = "vm") ---------------------------------------------------
-
-# One cloud-config snippet per VM instance (replicas render identically, but
-# per-instance files keep the replace_triggered_by below on each.key — the
-# only index terraform allows there). Hash-named so a content change replaces
-# the file — and, with it, the VM (cloud-init runs on first boot only).
-resource "proxmox_virtual_environment_file" "user_data" {
-  for_each = local.vm_instances
-
-  content_type = "snippets"
-  datastore_id = var.snippet_datastore_id
-  node_name    = var.node_name
-
-  source_raw {
-    data      = module.cloud_init[each.value.app_name].rendered
-    file_name = "whoami-${each.key}-${substr(md5(module.cloud_init[each.value.app_name].rendered), 0, 8)}.cloud-config.yaml"
-  }
-}
-
-resource "proxmox_virtual_environment_vm" "whoami" {
-  for_each = local.vm_instances
-
-  name      = each.key
-  node_name = var.node_name
-
-  # The plugin's workload config: traefik.* labels, one per line, in the Notes.
-  description = length(each.value.traefik_labels) > 0 ? local.descriptions[each.key] : null
-
-  clone {
-    vm_id = local.template_vm_id
-  }
-
-  cpu {
-    cores = var.num_cpus
-    type  = var.cpu_type
-  }
-
-  memory {
-    dedicated = var.memory
-  }
-
-  # Resizes the template's disk on clone — never below it (PVE can't shrink).
-  disk {
-    datastore_id = var.datastore_id
-    interface    = var.disk_interface
-    size         = var.disk_size
-  }
-
-  network_device {
-    bridge = var.bridge
-  }
-
-  initialization {
-    datastore_id      = var.datastore_id
-    interface         = "ide2"
-    user_data_file_id = proxmox_virtual_environment_file.user_data[each.key].id
-
-    ip_config {
-      ipv4 {
-        address = "dhcp"
-      }
+  instances = {
+    for k, inst in local.vm_instances : k => {
+      user_data = module.cloud_init[inst.app_name].rendered
+      # The plugin's workload config: traefik.* labels, one per line, in the Notes.
+      description = length(inst.traefik_labels) > 0 ? local.descriptions[k] : null
     }
   }
-
-  # The `instances` output reads the QEMU-agent-reported IP — also what gates
-  # the plugin's discovery (it queries the agent for VM addresses): no agent,
-  # no server URL. The template must ship qemu-guest-agent.
-  agent {
-    enabled = true
-  }
-
-  stop_on_destroy = true
-
-  lifecycle {
-    replace_triggered_by = [proxmox_virtual_environment_file.user_data[each.key]]
-  }
 }
 
-# --- LXC containers (type = "lxc") ----------------------------------------------
+# --- LXC containers (type = "lxc") — the shared compute/proxmox/lxc primitive ---
+# DHCP containers (the proxmox plugin discovers their IPs via the PVE API, since
+# a container has no guest agent). The container is infra and lives in the
+# module; whoami is installed via pct-exec below (role config), reading each
+# container id back out. The `lxc_template_file_id is required` precondition
+# moved onto that terraform_data — this caller no longer has a container
+# resource to hang it on.
+module "lxc" {
+  source = "../../../compute/proxmox/lxc"
 
-resource "proxmox_virtual_environment_container" "whoami" {
-  for_each = local.lxc_instances
+  node_name        = var.node_name
+  datastore_id     = var.datastore_id
+  bridge           = var.bridge
+  template_file_id = var.lxc_template_file_id
+  num_cpus         = var.num_cpus
+  memory           = var.memory
+  disk_size        = var.lxc_disk_size
 
-  node_name = var.node_name
-
-  # Same line-format labels — the plugin reads container Notes identically
-  # (container IPs come from the PVE lxc interfaces endpoint, no agent).
-  description = length(each.value.traefik_labels) > 0 ? local.descriptions[each.key] : null
-
-  unprivileged = true
-
-  operating_system {
-    template_file_id = var.lxc_template_file_id
-    type             = "debian"
-  }
-
-  cpu {
-    cores = var.num_cpus
-  }
-
-  memory {
-    dedicated = var.memory
-  }
-
-  disk {
-    datastore_id = var.datastore_id
-    size         = var.lxc_disk_size
-  }
-
-  network_interface {
-    name   = "eth0"
-    bridge = var.bridge
-  }
-
-  initialization {
-    hostname = each.key
-
-    ip_config {
-      ipv4 {
-        address = "dhcp"
-      }
-    }
-  }
-
-  # systemd inside an unprivileged container wants nesting (the PVE default
-  # for new CTs; setting features may need elevated token privileges).
-  features {
-    nesting = true
-  }
-
-  started = true
-
-  lifecycle {
-    precondition {
-      condition     = var.lxc_template_file_id != ""
-      error_message = "lxc_template_file_id is required for apps with type = \"lxc\"."
+  instances = {
+    for k, inst in local.lxc_instances : k => {
+      # Same line-format labels — the plugin reads container Notes identically
+      # (container IPs come from the PVE lxc interfaces endpoint, no agent).
+      description = length(inst.traefik_labels) > 0 ? local.descriptions[k] : null
+      # ip_address defaults to "dhcp"; gateway/dns stay unset (no static addressing).
     }
   }
 }
@@ -305,7 +210,7 @@ resource "terraform_data" "lxc_whoami" {
 
   # Re-provision when the container is recreated or the script changes.
   triggers_replace = [
-    proxmox_virtual_environment_container.whoami[each.key].id,
+    module.lxc.instances[each.key].id,
     sha1(local.lxc_setup[each.key]),
   ]
 
@@ -329,8 +234,8 @@ resource "terraform_data" "lxc_whoami" {
       # trailing rm masking it with exit 0, which silently left the container on its old
       # binary (a green apply hid an un-provisioned LXC).
       "set -e",
-      "sudo pct push ${proxmox_virtual_environment_container.whoami[each.key].id} /tmp/whoami-${each.key}-setup.sh /tmp/whoami-setup.sh",
-      "sudo pct exec ${proxmox_virtual_environment_container.whoami[each.key].id} -- bash /tmp/whoami-setup.sh",
+      "sudo pct push ${module.lxc.instances[each.key].id} /tmp/whoami-${each.key}-setup.sh /tmp/whoami-setup.sh",
+      "sudo pct exec ${module.lxc.instances[each.key].id} -- bash /tmp/whoami-setup.sh",
       "rm -f /tmp/whoami-${each.key}-setup.sh",
     ]
   }
@@ -339,6 +244,12 @@ resource "terraform_data" "lxc_whoami" {
     precondition {
       condition     = var.node_ssh != null
       error_message = "node_ssh (SSH access to the Proxmox node) is required for apps with type = \"lxc\" — whoami is installed via pct exec."
+    }
+    # Relocated from the container resource (now the compute/proxmox/lxc module, which is
+    # pure infra): fires per lxc instance, exactly as it did on the container.
+    precondition {
+      condition     = var.lxc_template_file_id != ""
+      error_message = "lxc_template_file_id is required for apps with type = \"lxc\"."
     }
   }
 }

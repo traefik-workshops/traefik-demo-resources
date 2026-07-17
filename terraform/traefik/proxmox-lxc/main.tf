@@ -191,79 +191,47 @@ locals {
   EOT
 }
 
-resource "proxmox_virtual_environment_container" "traefik" {
-  node_name = var.node_name
+# =============================================================================
+# The gateway container — the shared compute/proxmox/lxc primitive
+# =============================================================================
+# One statically-addressed, nesting-enabled container. The container itself is
+# infra and lives in the module; the Hub install runs via pct-exec below (role
+# config), reading the container id back out of the module.
+module "lxc" {
+  source = "../../compute/proxmox/lxc"
 
-  # No traefik.enable label: this gateway must not discover ITSELF as a backend. Its
-  # dashboard is advertised over the uplink instead (a file rule), like the VM child's.
-  description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Runs the NX211 plugin (which sees every guest — it cannot be scoped) but only ROUTES the LXC services; the VM child routes the VM ones."
+  node_name        = var.node_name
+  datastore_id     = var.datastore_id
+  bridge           = var.bridge
+  template_file_id = var.lxc_template_file_id
+  num_cpus         = var.num_cpus
+  memory           = var.memory
+  disk_size        = var.disk_size
 
-  unprivileged = true
+  instances = {
+    (var.container_name) = {
+      # No traefik.enable label: this gateway must not discover ITSELF as a backend. Its
+      # dashboard is advertised over the uplink instead (a file rule), like the VM child's.
+      description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Runs the NX211 plugin (which sees every guest — it cannot be scoped) but only ROUTES the LXC services; the VM child routes the VM ones."
 
-  operating_system {
-    template_file_id = var.lxc_template_file_id
-    type             = "debian"
-  }
+      # STATIC, always: the hub dials https://<this address>:9443 for the uplink, so the
+      # address has to be known at plan time. A container reports no DHCP lease back to
+      # terraform (no guest agent), so DHCP here would leave the hub with nothing to dial.
+      ip_address = var.ip_address
+      gateway    = var.gateway
 
-  cpu {
-    cores = var.num_cpus
-  }
-
-  memory {
-    dedicated = var.memory
-  }
-
-  disk {
-    datastore_id = var.datastore_id
-    size         = var.disk_size
-  }
-
-  network_interface {
-    name   = "eth0"
-    bridge = var.bridge
-  }
-
-  initialization {
-    hostname = var.container_name
-
-    ip_config {
-      ipv4 {
-        # STATIC, always: the hub dials https://<this address>:9443 for the uplink, so the
-        # address has to be known at plan time. A container reports no DHCP lease back to
-        # terraform (no guest agent), so DHCP here would leave the hub with nothing to dial.
-        address = var.ip_address
-        gateway = var.gateway
+      # REQUIRED because the address above is static. A DHCP guest is handed the lab's
+      # resolver in its lease (dnsmasq on the bridge, which answers *.<domain> with the
+      # INTERNAL k3s address). Going static opts out of DHCP entirely — and therefore out of
+      # lab DNS — so the container silently inherits the PVE host's PUBLIC resolvers. It then
+      # resolves collector.<domain> through dns-traefiker to the box's PUBLIC ip and hairpins
+      # back at the host, which refuses: the gateway serves traffic fine but ships NO
+      # telemetry, and simply never appears in the service graph. Point it at the lab
+      # resolver explicitly.
+      dns = {
+        servers = length(var.dns_servers) > 0 ? var.dns_servers : [var.gateway]
+        domain  = var.dns_search_domain != "" ? var.dns_search_domain : null
       }
-    }
-
-    # REQUIRED because the address above is static. A DHCP guest is handed the lab's
-    # resolver in its lease (dnsmasq on the bridge, which answers *.<domain> with the
-    # INTERNAL k3s address). Going static opts out of DHCP entirely — and therefore out of
-    # lab DNS — so the container silently inherits the PVE host's PUBLIC resolvers. It then
-    # resolves collector.<domain> through dns-traefiker to the box's PUBLIC ip and hairpins
-    # back at the host, which refuses: the gateway serves traffic fine but ships NO
-    # telemetry, and simply never appears in the service graph. Point it at the lab
-    # resolver explicitly.
-    dns {
-      servers = length(var.dns_servers) > 0 ? var.dns_servers : [var.gateway]
-      domain  = var.dns_search_domain != "" ? var.dns_search_domain : null
-    }
-  }
-
-  features {
-    nesting = true # systemd inside an unprivileged container
-  }
-
-  started = true
-
-  lifecycle {
-    precondition {
-      condition     = var.lxc_template_file_id != ""
-      error_message = "lxc_template_file_id is required."
-    }
-    precondition {
-      condition     = var.ip_address != "" && var.gateway != ""
-      error_message = "ip_address (CIDR) and gateway are required — the hub must dial this gateway's uplink at a known address."
     }
   }
 }
@@ -276,7 +244,7 @@ resource "terraform_data" "provision" {
   # Re-provision when the container is recreated or anything in the rendered config moves
   # (binary, CLI args, env, file provider, unit).
   triggers_replace = [
-    proxmox_virtual_environment_container.traefik.id,
+    module.lxc.instances[var.container_name].id,
     sha1(local.setup),
   ]
 
@@ -298,8 +266,8 @@ resource "terraform_data" "provision" {
       # elevate. `set -e` so a pct failure fails the apply instead of a trailing command
       # masking it with exit 0 (a green apply that provisioned nothing).
       "set -e",
-      "sudo pct push ${proxmox_virtual_environment_container.traefik.id} /tmp/traefik-lxc-setup.sh /tmp/traefik-lxc-setup.sh",
-      "sudo pct exec ${proxmox_virtual_environment_container.traefik.id} -- bash /tmp/traefik-lxc-setup.sh",
+      "sudo pct push ${module.lxc.instances[var.container_name].id} /tmp/traefik-lxc-setup.sh /tmp/traefik-lxc-setup.sh",
+      "sudo pct exec ${module.lxc.instances[var.container_name].id} -- bash /tmp/traefik-lxc-setup.sh",
       "rm -f /tmp/traefik-lxc-setup.sh",
     ]
   }
@@ -308,6 +276,16 @@ resource "terraform_data" "provision" {
     precondition {
       condition     = var.node_ssh != null
       error_message = "node_ssh (SSH access to the Proxmox node) is required — the Hub is installed via pct exec."
+    }
+    # Relocated from the container resource (now the compute/proxmox/lxc module, which is
+    # pure infra): these validate this gateway's caller inputs before the container plans.
+    precondition {
+      condition     = var.lxc_template_file_id != ""
+      error_message = "lxc_template_file_id is required."
+    }
+    precondition {
+      condition     = var.ip_address != "" && var.gateway != ""
+      error_message = "ip_address (CIDR) and gateway are required — the hub must dial this gateway's uplink at a known address."
     }
   }
 }

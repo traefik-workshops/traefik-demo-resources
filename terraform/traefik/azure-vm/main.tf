@@ -83,89 +83,50 @@ locals {
   })
 }
 
-resource "azurerm_public_ip" "traefik" {
-  count = var.enable_public_ip ? 1 : 0
+# The VM, its NIC, optional public IP, and optional NSG association — the shared
+# Azure VM fleet module both this gateway and apps/whoami/azure-vm compose
+# (exactly like traefik/ec2 + whoami/ec2 share compute/aws/ec2). Role-specific
+# concerns stay HERE: the SystemAssigned identity type, the Reader role
+# assignment, and the identity_bounce below.
+module "vm" {
+  source = "../../compute/azure/vm"
 
-  name                = "${var.vm_name}-pip"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-}
-
-resource "azurerm_network_interface" "traefik" {
-  name                = "${var.vm_name}-nic"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-
-  ip_configuration {
-    name                          = "internal"
-    subnet_id                     = var.subnet_id
-    private_ip_address_allocation = var.private_ip != "" ? "Static" : "Dynamic"
-    private_ip_address            = var.private_ip != "" ? var.private_ip : null
-    public_ip_address_id          = var.enable_public_ip ? azurerm_public_ip.traefik[0].id : null
+  apps = {
+    (var.vm_name) = {
+      replicas = 1
+      tags = merge(
+        var.extra_tags,
+        # Self-register the Traefik VM's own dashboard via its azureVM provider
+        # (-> dashboard@azurevm). Disable when the dashboard is advertised another
+        # way (e.g. a file-rule uplink): without traefik.enable the VM isn't
+        # self-discovered at all, so no redundant self-router appears.
+        var.enable_dashboard_discovery ? {
+          "traefik.enable"                                           = "true"
+          "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
+          "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
+          "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
+        } : {}
+      )
+    }
   }
-}
 
-resource "azurerm_network_interface_security_group_association" "traefik" {
-  # Gated on the config-known BOOL, not the id: the id is usually a same-run
-  # resource attribute (unknown at plan), and count can't depend on those —
-  # first-ever fresh apply of the azure demo failed exactly here (2026-07).
-  count = var.enable_network_security_group ? 1 : 0
-
-  network_interface_id      = azurerm_network_interface.traefik.id
-  network_security_group_id = var.network_security_group_id
-}
-
-resource "azurerm_linux_virtual_machine" "traefik" {
-  name                = local.instance_key
   resource_group_name = var.resource_group_name
   location            = var.location
-  size                = var.vm_size
+  vm_size             = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
 
-  network_interface_ids = [azurerm_network_interface.traefik.id]
-
-  admin_username = var.admin_username
-  admin_password = var.admin_password
-  # Demo-grade: the spoke VM is driven over password auth (admin_password var +
-  # cloud-init user-data) — no per-demo SSH key wiring exists. Suppressed inline
-  # rather than repo-wide (.tfsec.yml) to keep the blast radius to this resource.
-  #tfsec:ignore:azure-compute-disable-password-authentication
-  disable_password_authentication = false
-
-  custom_data = base64encode(local.user_data)
+  subnet_id                     = var.subnet_id
+  network_security_group_id     = var.network_security_group_id
+  enable_network_security_group = var.enable_network_security_group
+  enable_public_ip              = var.enable_public_ip
+  private_ips                   = var.private_ip != "" ? [var.private_ip] : []
 
   # DefaultAzureCredential inside the container resolves this identity via
   # IMDS (reachable thanks to --network host in the cloud-init's docker run).
-  identity {
-    type = "SystemAssigned"
-  }
+  identity_type = "SystemAssigned"
 
-  os_disk {
-    caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
-  }
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server"
-    version   = "latest"
-  }
-
-  tags = merge(
-    var.extra_tags,
-    # Self-register the Traefik VM's own dashboard via its azureVM provider
-    # (-> dashboard@azurevm). Disable when the dashboard is advertised another
-    # way (e.g. a file-rule uplink): without traefik.enable the VM isn't
-    # self-discovered at all, so no redundant self-router appears.
-    var.enable_dashboard_discovery ? {
-      "traefik.enable"                                           = "true"
-      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-    } : {}
-  )
+  user_data = { (local.instance_key) = local.user_data }
 }
 
 # Reader on the resource group: the least privilege the azureVM provider needs
@@ -175,7 +136,7 @@ resource "azurerm_role_assignment" "reader" {
 
   scope                = "/subscriptions/${local.subscription_id}/resourceGroups/${local.provider_resource_group}"
   role_definition_name = "Reader"
-  principal_id         = azurerm_linux_virtual_machine.traefik.identity[0].principal_id
+  principal_id         = module.vm.principal_ids[local.instance_key]
 }
 
 # Same identity token race as traefik/aci (see its identity_bounce): the VM's
@@ -188,7 +149,7 @@ resource "null_resource" "identity_bounce" {
   depends_on = [azurerm_role_assignment.reader]
 
   triggers = {
-    vm_id = azurerm_linux_virtual_machine.traefik.id
+    vm_id = module.vm.instances[local.instance_key].id
   }
 
   provisioner "local-exec" {
@@ -200,7 +161,7 @@ resource "null_resource" "identity_bounce" {
       sleep 120
       az vm run-command invoke \
         --resource-group ${var.resource_group_name} \
-        --name ${azurerm_linux_virtual_machine.traefik.name} \
+        --name ${local.instance_key} \
         --command-id RunShellScript \
         --scripts "if systemctl is-active --quiet traefik-hub; then systemctl restart traefik-hub && echo bounced; else echo 'unit not running yet - it will first start after the grant, no bounce needed'; fi"
     EOT

@@ -134,60 +134,57 @@ resource "alicloud_ram_role_policy_attachment" "traefik" {
   policy_type = "Custom"
 }
 
-resource "alicloud_eci_container_group" "traefik" {
-  container_group_name = var.name
-  restart_policy       = "Always"
+# The container group itself lives in the shared compute/alibaba/eci module
+# (the same one apps/whoami/alibaba-eci composes); this module renders the
+# Traefik container spec + discovery tags and hands them over. RAM-role
+# creation and the alibabaECI provider CLI args stay here — role-specific.
+module "compute" {
+  source = "../../compute/alibaba/eci"
 
   # Private vswitch IP — the parent dials https://<ip>:9443 in-VPC.
   vswitch_id        = var.vswitch_id
   security_group_id = var.security_group_id
 
-  cpu    = var.container_cpu
-  memory = var.container_memory
+  groups = {
+    (var.name) = {
+      cpu    = var.container_cpu
+      memory = var.container_memory
 
-  # The metadata-served credential the provider's default chain ends on.
-  ram_role_name = var.enable_ram_role ? alicloud_ram_role.traefik[0].role_name : null
+      # The metadata-served credential the provider's default chain ends on.
+      ram_role_name = var.enable_ram_role ? alicloud_ram_role.traefik[0].role_name : null
 
-  containers {
-    name     = "traefik"
-    image    = local.traefik_image
-    commands = ["/traefik-hub"]
-    args     = local.arguments
+      containers = [{
+        name     = "traefik"
+        image    = local.traefik_image
+        commands = ["/traefik-hub"]
+        args     = local.arguments
 
-    dynamic "ports" {
-      for_each = toset(local.exposed_ports)
-      content {
-        port     = ports.value
-        protocol = "TCP"
-      }
-    }
+        ports = [for port in toset(local.exposed_ports) : {
+          port     = port
+          protocol = "TCP"
+        }]
 
-    # The Hub image is scratch (no shell/cloud-init) — a ConfigFileVolume
-    # carries the file-provider config, no init sidecar needed (the ACI
-    # sibling's secret-volume pattern).
-    dynamic "volume_mounts" {
-      for_each = var.file_provider_config != "" ? [1] : []
-      content {
-        name       = "dynamic"
-        mount_path = var.file_provider_path
-      }
-    }
-  }
+        # The Hub image is scratch (no shell/cloud-init) — a ConfigFileVolume
+        # carries the file-provider config, no init sidecar needed (the ACI
+        # sibling's secret-volume pattern).
+        volume_mounts = var.file_provider_config != "" ? [{
+          name       = "dynamic"
+          mount_path = var.file_provider_path
+        }] : []
+      }]
 
-  dynamic "volumes" {
-    for_each = var.file_provider_config != "" ? [1] : []
-    content {
-      name = "dynamic"
-      type = "ConfigFileVolume"
+      volumes = var.file_provider_config != "" ? [{
+        name = "dynamic"
+        type = "ConfigFileVolume"
+        config_file_volume_config_file_to_paths = [{
+          path    = "dynamic.yml"
+          content = base64encode(var.file_provider_config)
+        }]
+      }] : []
 
-      config_file_volume_config_file_to_paths {
-        path    = "dynamic.yml"
-        content = base64encode(var.file_provider_config)
-      }
+      tags = local.discovery_tags
     }
   }
-
-  tags = local.discovery_tags
 }
 
 # =============================================================================
