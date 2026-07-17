@@ -16,6 +16,10 @@ locals {
   # servicegraph -> traces_service_graph_* edge metrics (Grafana's Tempo service map);
   # spanmetrics  -> traces_span_metrics_* RED metrics per service+span (golden signals
   # per compute, straight from the spans — no extra instrumentation).
+  # Health-probe spans pollute the service graph with an `unknown` peer (see the
+  # traces pipeline below). Filter them out whenever the graph is on.
+  health_span_filter_enabled = local.servicegraph_enabled && var.filter_health_spans
+
   servicegraph_enabled   = var.enable_service_graph && var.enable_prometheus
   servicegraph_connector = local.servicegraph_enabled ? ["servicegraph"] : []
   spanmetrics_enabled    = var.enable_span_metrics && var.enable_prometheus
@@ -72,7 +76,19 @@ locals {
       name  = "config.service.pipelines.traces.processors[0]"
       value = "batch"
     }
-    ], [for exporter in local.trace_exporters : {
+    ],
+    # Drop the /health probe spans BEFORE the servicegraph connector sees them.
+    # The active health checks (loadbalancer.healthcheck.path=/health) make each
+    # gateway GET /health on every backend every 10s. Those client spans have no
+    # matching server span to pair with, so the servicegraph connector drew a
+    # permanent `<gateway> -> unknown` edge on EVERY spoke gateway (live validation
+    # across aws/azure/gcp, 2026-07). Benign but it puts an `unknown` node on the
+    # service map, which is exactly what the map must not have.
+    local.health_span_filter_enabled ? [{
+      name  = "config.service.pipelines.traces.processors[1]"
+      value = "filter/health"
+    }] : [],
+    [for exporter in local.trace_exporters : {
       name  = "config.service.pipelines.traces.exporters[${index(local.trace_exporters, exporter)}]"
       value = exporter
   }]) : []
@@ -191,24 +207,41 @@ resource "helm_release" "opentelemetry" {
           batch = {
             timeout = "5s"
           }
-          }, local.langsmith_host_filter_active ? {
-          # Trace-level host filter for LangSmith. Tail sampling is required (not a
-          # per-span filter): the GenAI/upstream spans carry the provider host
-          # (e.g. api.openai.com), not the gateway host, so a per-span filter would
-          # strip the AI detail out of the trace. This keeps or drops the whole trace
-          # based on whether any span's server.address matches langsmith_host_filter.
-          "tail_sampling/langsmith" = {
-            decision_wait = "10s"
-            policies = [{
-              name = "langsmith-host-allowlist"
-              type = "string_attribute"
-              string_attribute = {
-                key                    = "server.address"
-                values                 = var.langsmith_host_filter
-                enabled_regex_matching = true
+          },
+          # Health-check probes: the gateway GETs /health on each backend every 10s.
+          # Those client spans never pair with a server span, so servicegraph drew
+          # `<gateway> -> unknown`. Drop them (they are liveness noise, not request
+          # traffic — the health checks themselves still work and still eject dead
+          # backends; only their SPANS go away). Match the common semconv shapes.
+          local.health_span_filter_enabled ? {
+            "filter/health" = {
+              error_mode = "ignore"
+              traces = {
+                span = [
+                  "attributes[\"http.route\"] == \"/health\"",
+                  "attributes[\"url.path\"] == \"/health\"",
+                  "attributes[\"http.target\"] == \"/health\"",
+                ]
               }
-            }]
-          }
+            }
+            } : {}, local.langsmith_host_filter_active ? {
+            # Trace-level host filter for LangSmith. Tail sampling is required (not a
+            # per-span filter): the GenAI/upstream spans carry the provider host
+            # (e.g. api.openai.com), not the gateway host, so a per-span filter would
+            # strip the AI detail out of the trace. This keeps or drops the whole trace
+            # based on whether any span's server.address matches langsmith_host_filter.
+            "tail_sampling/langsmith" = {
+              decision_wait = "10s"
+              policies = [{
+                name = "langsmith-host-allowlist"
+                type = "string_attribute"
+                string_attribute = {
+                  key                    = "server.address"
+                  values                 = var.langsmith_host_filter
+                  enabled_regex_matching = true
+                }
+              }]
+            }
         } : {})
         exporters = merge(
           var.enable_loki ? {

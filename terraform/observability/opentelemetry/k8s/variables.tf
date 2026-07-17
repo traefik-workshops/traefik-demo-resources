@@ -219,3 +219,9 @@ variable "enable_span_metrics" {
   default     = true
   description = "Generate RED metrics (traces_span_metrics_calls_total / _duration_*) per service+span from the traces flowing through the collector via the spanmetrics connector — golden-signals dashboards without extra instrumentation. Requires enable_prometheus."
 }
+
+variable "filter_health_spans" {
+  type        = bool
+  description = "Drop /health probe spans from the traces pipeline. The active health checks (loadbalancer.healthcheck.path=/health) make each gateway GET /health on every backend every 10s; those client spans have no matching server span, so the servicegraph connector draws a permanent `<gateway> -> unknown` edge on every spoke gateway (live validation aws/azure/gcp, 2026-07). Dropping them removes the `unknown` node from the service map. The health checks still run and still eject dead backends — only their spans are filtered. Set false to keep probe spans (e.g. debugging health-check behaviour in Tempo)."
+  default     = true
+}
