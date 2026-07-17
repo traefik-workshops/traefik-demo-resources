@@ -22,6 +22,7 @@ locals {
         mount_points       = app_config.mount_points
         depends_on         = app_config.depends_on
         sidecars           = app_config.sidecars
+        health_check       = app_config.health_check
       }
     ]
   ])
