@@ -5,6 +5,8 @@ output "rendered" {
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
     docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
     collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = var.otlp_address }) : ""
+    enable_gitops_config = var.enable_gitops_config
+    git_config_sync      = var.git_config_sync
     traefik_hub_version  = var.traefik_hub_version
     arch                 = var.arch
     cli_arguments        = var.cli_arguments
