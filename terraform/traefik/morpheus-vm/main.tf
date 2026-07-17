@@ -87,8 +87,13 @@ locals {
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
     docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
     collector_gate       = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
-    enable_gitops_config = false
-    git_config_sync      = ""
+    enable_gitops_config = var.enable_gitops_config
+    git_config_sync = var.enable_gitops_config ? templatefile("${path.module}/../../cloud-init-snippets/git-config-sync.sh.tpl", {
+      repo_url     = var.gitops_repo_url
+      gateway_name = var.vm_name
+      watch_dir    = var.file_provider_path
+      work_dir     = "/var/lib/git-config"
+    }) : ""
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"
     cli_arguments        = local.cli_arguments
@@ -272,6 +277,7 @@ module "config" {
   custom_envs          = var.custom_envs
   file_provider_config = var.file_provider_config
   file_provider_path   = var.file_provider_path
+  enable_gitops_config = var.enable_gitops_config
 
   # Licensing
   traefik_hub_token = var.traefik_hub_token

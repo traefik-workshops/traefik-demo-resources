@@ -367,6 +367,18 @@ variable "file_provider_path" {
   default     = "/etc/traefik-hub/dynamic"
 }
 
+variable "enable_gitops_config" {
+  description = "Deliver the file-provider dynamic.yaml by GitOps (git-pull from gitops_repo_url) instead of baking it. NB morpheus converts cloud-init to a shell bootstrap via the yamldecode adapter, so the git-config-sync write_files + boot-gate runcmd ride that conversion. See terraform/config-server/git."
+  type        = bool
+  default     = false
+}
+
+variable "gitops_repo_url" {
+  description = "Clone URL of the hub's config repo (https://git.<domain>/config.git). This gateway pulls it and syncs <vm_name>/dynamic.yaml into the watch dir."
+  type        = string
+  default     = ""
+}
+
 # Licensing
 variable "traefik_hub_token" {
   description = "Traefik Hub license token"
