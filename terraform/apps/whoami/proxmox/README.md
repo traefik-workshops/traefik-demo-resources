@@ -84,22 +84,17 @@ module "whoami_proxmox" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.4 |
-| <a name="requirement_proxmox"></a> [proxmox](#requirement\_proxmox) | >= 0.60.0, < 1.0.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_proxmox"></a> [proxmox](#provider\_proxmox) | >= 0.60.0, < 1.0.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
-| [proxmox_virtual_environment_container.whoami](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_container) | resource |
-| [proxmox_virtual_environment_file.user_data](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_file) | resource |
-| [proxmox_virtual_environment_vm.whoami](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_vm) | resource |
 | [terraform_data.lxc_whoami](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 
 ## Inputs
@@ -108,7 +103,7 @@ module "whoami_proxmox" {
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_datastore_id"></a> [datastore\_id](#input\_datastore\_id) | Datastore backing the guests' disks and cloud-init drives (e.g. local-lvm) | `string` | n/a | yes |
 | <a name="input_node_name"></a> [node\_name](#input\_node\_name) | Name of the Proxmox VE node the guests are created on | `string` | n/a | yes |
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type ("vm"\|"lxc", default vm), port, name, environment, traefik\_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered in the NX211 plugin's LINE format — one `key=value` per line — into the guest's Notes/description. NB the plugin registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces. | `any` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type ("vm"\|"lxc", default vm), port, name, environment, traefik\_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as the native proxmox provider's JSON label map into the guest's Notes/description. NB the provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces. | `any` | `{}` | no |
 | <a name="input_bridge"></a> [bridge](#input\_bridge) | Name of the Linux bridge the guests' NICs join (DHCP is assumed; the Traefik child dials each guest's IP) | `string` | `"vmbr0"` | no |
 | <a name="input_cpu_type"></a> [cpu\_type](#input\_cpu\_type) | QEMU CPU type for VMs. `host` passes the node's CPU through; pick a named model when live migration matters. | `string` | `"host"` | no |
 | <a name="input_crane_version"></a> [crane\_version](#input\_crane\_version) | go-containerregistry release whose static `crane` binary the LXC setup fetches to export lxc\_whoami\_image's rootfs (no docker needed on the node or in the container). | `string` | `"v0.20.2"` | no |

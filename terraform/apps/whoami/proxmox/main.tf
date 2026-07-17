@@ -61,10 +61,12 @@ locals {
 
   vm_apps = toset([for k, inst in local.vm_instances : inst.app_name])
 
-  # The NX211 plugin's line format: one `key=value` per line in the description.
+  # The native proxmox provider reads a JSON label map from the guest's description/Notes
+  # (extractTraefikDescription finds the {...} block and json-decodes the traefik.* keys) —
+  # NOT the old NX211 plugin's one-key=value-per-line format. jsonencode the dotted labels.
   descriptions = {
     for k, inst in local.instances_map :
-    k => join("\n", [for lk, lv in inst.traefik_labels : "${lk}=${lv}"])
+    k => jsonencode(inst.traefik_labels)
   }
 }
 

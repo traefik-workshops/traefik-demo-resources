@@ -247,35 +247,38 @@ variable "enable_access_logs" {
   default     = true
 }
 
-# --- Guest discovery (the NX211 plugin) ---------------------------------------------
-variable "proxmox_plugin" {
-  description = "NX211 traefik-proxmox-provider config — the same runtime Yaegi plugin the VM child runs, so Traefik downloads it from plugins.traefik.io at start (the container NEEDS outbound internet or Traefik exits). It discovers EVERY guest labelled traefik.enable=true and cannot be scoped by node/type/tag, so this gateway sees the VM guests too; that is expected. What makes this the LXC gateway is that file_provider_config only advertises the LXC services."
+# --- Guest discovery (the native first-party proxmox provider) ----------------------
+variable "proxmox_provider" {
+  description = "Native first-party Hub Proxmox VE discovery provider (--hub.providers.proxmox.*), same as the VM child — no Yaegi plugin download, so the container needs no outbound internet to fetch one. guest_types = [\"lxc\"] scopes THIS gateway to LXC guests only (the win over the old NX211 plugin, which discovered every guest and forced the compute-type split to be enforced in file_provider_config)."
   type = object({
-    enabled          = optional(bool, true)
-    version          = optional(string, "v0.8.1")
-    poll_interval    = optional(string, "30s")
-    api_endpoint     = string
-    api_token_id     = string
-    api_validate_ssl = optional(bool, false)
-    api_logging      = optional(string, "")
+    enabled              = optional(bool, true)
+    endpoint             = optional(string, "")
+    token_id             = optional(string, "")
+    refresh_seconds      = optional(number, 30)
+    insecure_skip_verify = optional(bool, true)
+    guest_types          = optional(list(string), [])
+    exposed_by_default   = optional(bool, false)
+    ip_mode              = optional(string, "private")
+    nodes                = optional(list(string), [])
+    tag_filter           = optional(string, "")
   })
   default = {
-    enabled      = false
-    api_endpoint = ""
-    api_token_id = ""
+    enabled  = false
+    endpoint = ""
+    token_id = ""
   }
 }
 
 variable "proxmox_api_token" {
   type        = string
-  description = "Secret half of the PVE API token the plugin discovers with (Proxmox has no ambient identity, so this is explicit). Use the read-only discovery token — demo-grade in the process args either way."
+  description = "Secret half of the PVE API token the native provider discovers with (--hub.providers.proxmox.tokenSecret; Proxmox has no ambient identity, so this is explicit). Use the read-only discovery token — demo-grade in the process args either way."
   sensitive   = true
   default     = ""
 }
 
 # --- Config extension --------------------------------------------------------------
 variable "custom_plugins" {
-  description = "Extra Traefik plugins beyond the proxmox discovery plugin (which has its own proxmox_plugin variable)."
+  description = "Extra Traefik plugins beyond the proxmox discovery provider (which has its own proxmox_provider variable)."
   type        = any
   default     = {}
 }
@@ -300,7 +303,7 @@ variable "custom_envs" {
 
 variable "file_provider_config" {
   type        = string
-  description = "The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@plugin-proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster."
+  description = "The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster."
   default     = ""
 }
 

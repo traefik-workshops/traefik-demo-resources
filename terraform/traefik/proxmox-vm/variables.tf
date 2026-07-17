@@ -82,7 +82,7 @@ variable "disk_interface" {
 }
 
 variable "extra_labels" {
-  description = "Extra Traefik labels merged into the VM's own Notes/description (on top of the dashboard self-registration labels, when enabled), rendered in the plugin's line format"
+  description = "Extra Traefik labels merged into the VM's own Notes/description (on top of the dashboard self-registration labels, when enabled), rendered as the native provider's JSON label map"
   type        = map(string)
   default     = {}
 }
@@ -127,27 +127,30 @@ variable "performance_tuning" {
 # Providers
 # -----------------------------------------------------------------------------
 
-variable "proxmox_plugin" {
-  description = "NX211 traefik-proxmox-provider PLUGIN configuration — a catalog provider plugin, not a first-party hub provider: rendered as `--experimental.plugins.proxmox.*` (download) + `--providers.plugin.proxmox.*` (config) flags. Proxmox has no ambient identity, so api_endpoint + api_token_id are required when enabled — the token secret rides the separate sensitive var.proxmox_api_token. api_validate_ssl defaults off (self-signed PVE certs are the lab norm); poll_interval must be >= 5s (plugin minimum)."
+variable "proxmox_provider" {
+  description = "Native first-party Hub Proxmox VE discovery provider — rendered as `--hub.providers.proxmox.*` (like ec2/azurevm/gce), NOT the old NX211 Yaegi plugin. No plugin download, so the VM needs no outbound internet to fetch a plugin. Proxmox has no ambient identity, so endpoint + token_id are required when enabled — the token secret rides the separate sensitive var.proxmox_api_token. insecure_skip_verify defaults true (self-signed PVE certs are the lab norm). guest_types is the KEY win over the plugin: it filters this gateway to one compute type (qemu OR lxc), so each child fronts only its own compute type instead of every child discovering every guest."
   type = object({
-    enabled          = optional(bool, true)
-    version          = optional(string, "v0.8.1")
-    api_endpoint     = optional(string, "")
-    api_token_id     = optional(string, "")
-    poll_interval    = optional(string, "30s")
-    api_logging      = optional(string, "")
-    api_validate_ssl = optional(bool, false)
+    enabled              = optional(bool, true)
+    endpoint             = optional(string, "")
+    token_id             = optional(string, "")
+    refresh_seconds      = optional(number, 30)
+    insecure_skip_verify = optional(bool, true)
+    guest_types          = optional(list(string), []) # ["qemu"] or ["lxc"]; empty discovers both
+    exposed_by_default   = optional(bool, false)
+    ip_mode              = optional(string, "private")
+    nodes                = optional(list(string), [])
+    tag_filter           = optional(string, "")
   })
   default = {}
 
   validation {
-    condition     = !var.proxmox_plugin.enabled || (var.proxmox_plugin.api_endpoint != "" && var.proxmox_plugin.api_token_id != "")
-    error_message = "proxmox_plugin.api_endpoint and proxmox_plugin.api_token_id are required when the plugin is enabled (Proxmox has no ambient identity)."
+    condition     = !var.proxmox_provider.enabled || (var.proxmox_provider.endpoint != "" && var.proxmox_provider.token_id != "")
+    error_message = "proxmox_provider.endpoint and proxmox_provider.token_id are required when enabled (Proxmox has no ambient identity)."
   }
 }
 
 variable "proxmox_api_token" {
-  description = "PVE API token SECRET the gateway's proxmox plugin authenticates with (pairs with proxmox_plugin.api_token_id). Point it at a read-only role — VM.Audit,Sys.Audit,Datastore.Audit plus VM.GuestAgent.Audit on PVE 9 (VM.Monitor on PVE 8) for guest-agent IP reads."
+  description = "PVE API token SECRET the native proxmox provider authenticates with (pairs with proxmox_provider.token_id → --hub.providers.proxmox.tokenSecret). Point it at a read-only role — VM.Audit,Sys.Audit,Datastore.Audit plus VM.GuestAgent.Audit on PVE 9 (VM.Monitor on PVE 8) for guest-agent IP reads."
   type        = string
   sensitive   = true
 }
@@ -307,7 +310,7 @@ variable "enable_prometheus" {
 
 # Plugins & Extensions
 variable "custom_plugins" {
-  description = "Additional Traefik plugins (the proxmox provider plugin is already wired via var.proxmox_plugin)"
+  description = "Additional Traefik plugins (proxmox discovery is a native first-party provider now, wired via var.proxmox_provider — not a plugin)"
   type = map(object({
     moduleName = string
     version    = string
@@ -382,7 +385,7 @@ variable "dashboard_insecure" {
 }
 
 variable "enable_dashboard_discovery" {
-  description = "Self-register the Traefik VM via its own Notes labels (traefik.enable + dashboard router/service, NX211 line format) so its OWN proxmox plugin discovers the dashboard on @plugin-proxmox. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
+  description = "Self-register the Traefik VM via its own Notes labels (traefik.enable + dashboard router/service, as the native provider's JSON label map) so its OWN proxmox provider discovers the dashboard on @proxmox. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
   type        = bool
   default     = true
 }

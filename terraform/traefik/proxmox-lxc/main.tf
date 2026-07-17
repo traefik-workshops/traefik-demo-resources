@@ -15,15 +15,13 @@
 #    path already runs the Hub as a RAW BINARY under systemd, which is exactly what a
 #    container wants.
 #
-# 2. SAME discovery plugin, DIFFERENT routes. This gateway runs the NX211 plugin exactly
-#    like the VM child, so it discovers every labelled guest on the node — the plugin has
-#    no node/type/tag filter and cannot be scoped, so BOTH children inevitably see BOTH
-#    compute types. That is fine and expected. The separation is not enforced at
-#    discovery; it is enforced by what each child ROUTES: this gateway's
-#    file_provider_config only ever advertises the LXC services (lxc-whoami@plugin-proxmox),
-#    and the VM child's only ever advertises the VM ones. Discovered-but-unrouted guests
-#    just sit there (the plugin also mints a useless auto-router per guest, rule
-#    Host(`<guest-name>`), which nothing resolves — harmless).
+# 2. SAME native provider, DIFFERENT compute type. This gateway runs the native
+#    --hub.providers.proxmox provider exactly like the VM child, but with
+#    guest_types = ["lxc"], so it discovers ONLY the LXC guests — the separation is
+#    enforced at discovery, not just by what each child routes. (The VM child sets
+#    guest_types = ["qemu"].) The provider reads a JSON traefik.* label map from each
+#    guest's Notes and resolves the container's IP via the PVE container-interfaces API
+#    (LXC has no guest agent).
 #
 # The Hub binary comes from the same image the rest of the mesh runs (custom_image_*),
 # extracted with crane. The demo runs a pre-release build that ships only as an image,
@@ -33,23 +31,28 @@
 # The container itself DOES need a static address (var.ip_address): the hub dials this
 # child's :9443 uplink from its terraform-configured `children` map, and a container
 # reports no DHCP lease back to terraform (no guest agent). That is the one thing the
-# plugin cannot solve — it discovers backends, not the hub's view of its children.
+# provider cannot solve — it discovers backends, not the hub's view of its children.
 # =============================================================================
 
 locals {
-  # The plugin's static config as CLI flags — identical delivery to traefik/proxmox-vm.
-  # Its services surface as <name>@plugin-proxmox, which file_provider_config references.
-  proxmox_plugin_args = var.proxmox_plugin.enabled ? concat(
+  # The native provider's static config as CLI flags — identical delivery to traefik/proxmox-vm
+  # (--hub.providers.proxmox.*). Its services surface as <name>@proxmox, which
+  # file_provider_config references. NB api_validate_ssl -> insecureSkipVerify is INVERTED and
+  # poll_interval -> refresh_seconds (int). guest_types filters this gateway to lxc-only.
+  proxmox_provider_args = var.proxmox_provider.enabled ? concat(
     [
-      "--experimental.plugins.proxmox.moduleName=github.com/NX211/traefik-proxmox-provider",
-      "--experimental.plugins.proxmox.version=${var.proxmox_plugin.version}",
-      "--providers.plugin.proxmox.pollInterval=${var.proxmox_plugin.poll_interval}",
-      "--providers.plugin.proxmox.apiEndpoint=${var.proxmox_plugin.api_endpoint}",
-      "--providers.plugin.proxmox.apiTokenId=${var.proxmox_plugin.api_token_id}",
-      "--providers.plugin.proxmox.apiToken=${var.proxmox_api_token}",
-      "--providers.plugin.proxmox.apiValidateSSL=${var.proxmox_plugin.api_validate_ssl}",
+      "--hub.providers.proxmox=true",
+      "--hub.providers.proxmox.endpoint=${var.proxmox_provider.endpoint}",
+      "--hub.providers.proxmox.tokenID=${var.proxmox_provider.token_id}",
+      "--hub.providers.proxmox.tokenSecret=${var.proxmox_api_token}",
+      "--hub.providers.proxmox.insecureSkipVerify=${var.proxmox_provider.insecure_skip_verify}",
+      "--hub.providers.proxmox.refreshSeconds=${var.proxmox_provider.refresh_seconds}",
+      "--hub.providers.proxmox.exposedByDefault=${var.proxmox_provider.exposed_by_default}",
+      "--hub.providers.proxmox.ipMode=${var.proxmox_provider.ip_mode}",
     ],
-    var.proxmox_plugin.api_logging != "" ? ["--providers.plugin.proxmox.apiLogging=${var.proxmox_plugin.api_logging}"] : [],
+    length(var.proxmox_provider.guest_types) > 0 ? ["--hub.providers.proxmox.guestTypes=${join(",", var.proxmox_provider.guest_types)}"] : [],
+    length(var.proxmox_provider.nodes) > 0 ? ["--hub.providers.proxmox.nodes=${join(",", var.proxmox_provider.nodes)}"] : [],
+    var.proxmox_provider.tag_filter != "" ? ["--hub.providers.proxmox.tagFilter=${var.proxmox_provider.tag_filter}"] : [],
   ) : []
 }
 
@@ -91,7 +94,7 @@ module "config" {
   # Plugins & Extensions — the proxmox plugin rides here, same as the VM child.
   custom_plugins       = var.custom_plugins
   custom_ports         = var.custom_ports
-  custom_arguments     = concat(var.custom_arguments, local.proxmox_plugin_args)
+  custom_arguments     = concat(var.custom_arguments, local.proxmox_provider_args)
   custom_envs          = var.custom_envs
   file_provider_config = var.file_provider_config
   file_provider_path   = var.file_provider_path

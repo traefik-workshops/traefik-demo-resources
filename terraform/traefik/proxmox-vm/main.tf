@@ -4,35 +4,38 @@
 # Uses extracted config from traefik/shared (via Helm template) and the shared
 # traefik/cloud-init template, exactly like traefik/ec2 and traefik/vsphere-vm.
 # One VM cloned from a cloud-init-enabled Ubuntu cloud-image template runs the
-# Hub image — but guest discovery is NOT a first-party hub provider here: it's
-# the open-source Yaegi PROVIDER PLUGIN github.com/NX211/traefik-proxmox-provider
-# (a catalog plugin, so any stock Traefik/Hub image runs it — no custom build),
-# delivered as static-config CLI flags:
-#   --experimental.plugins.proxmox.moduleName / .version    (plugin download)
-#   --providers.plugin.proxmox.*                            (plugin config)
-# Traefik downloads + interprets the plugin from plugins.traefik.io at start
-# (Yaegi), so the VM NEEDS OUTBOUND INTERNET or Traefik exits. Proxmox has no
-# ambient identity (no instance profile / managed identity), so the plugin
-# authenticates with an explicit PVE API token — var.proxmox_api_token is the
-# one secret this module carries.
+# Hub image, and guest discovery is the NATIVE first-party Hub Proxmox VE provider
+# (like ec2/azurevm/gce), delivered as static-config CLI flags:
+#   --hub.providers.proxmox.*                               (endpoint/token/filters)
+# No Yaegi plugin download, so the VM needs no outbound internet to fetch one. The
+# provider reads a JSON traefik.* label map from each guest's Notes/description and
+# resolves QEMU IPs via the guest agent, LXC IPs via the container interfaces API —
+# and guest_types scopes each gateway to one compute type (the old NX211 plugin
+# could not). Proxmox has no ambient identity (no instance profile / managed
+# identity), so it authenticates with an explicit PVE API token — var.proxmox_api_token
+# is the one secret this module carries.
 # =============================================================================
 
 locals {
-  # The plugin's static config as CLI flags (same delivery as the vsphere/oci
-  # provider args in the sibling modules). Keys map 1:1 to the plugin's
-  # documented config: pollInterval, apiEndpoint, apiTokenId, apiToken,
-  # apiLogging, apiValidateSSL. Its services surface as <name>@plugin-proxmox.
-  proxmox_plugin_args = var.proxmox_plugin.enabled ? concat(
+  # The native provider's static config as CLI flags (same delivery as the ec2/azurevm/gce
+  # sibling modules: --hub.providers.<name>.*). Its services surface as <name>@proxmox.
+  # NB api_validate_ssl -> insecureSkipVerify is INVERTED, and poll_interval (a duration
+  # string on the old plugin) is now refresh_seconds (an int). guest_types filters this
+  # gateway to one compute type — the plugin could not, so it discovered every guest.
+  proxmox_provider_args = var.proxmox_provider.enabled ? concat(
     [
-      "--experimental.plugins.proxmox.moduleName=github.com/NX211/traefik-proxmox-provider",
-      "--experimental.plugins.proxmox.version=${var.proxmox_plugin.version}",
-      "--providers.plugin.proxmox.pollInterval=${var.proxmox_plugin.poll_interval}",
-      "--providers.plugin.proxmox.apiEndpoint=${var.proxmox_plugin.api_endpoint}",
-      "--providers.plugin.proxmox.apiTokenId=${var.proxmox_plugin.api_token_id}",
-      "--providers.plugin.proxmox.apiToken=${var.proxmox_api_token}",
-      "--providers.plugin.proxmox.apiValidateSSL=${var.proxmox_plugin.api_validate_ssl}",
+      "--hub.providers.proxmox=true",
+      "--hub.providers.proxmox.endpoint=${var.proxmox_provider.endpoint}",
+      "--hub.providers.proxmox.tokenID=${var.proxmox_provider.token_id}",
+      "--hub.providers.proxmox.tokenSecret=${var.proxmox_api_token}",
+      "--hub.providers.proxmox.insecureSkipVerify=${var.proxmox_provider.insecure_skip_verify}",
+      "--hub.providers.proxmox.refreshSeconds=${var.proxmox_provider.refresh_seconds}",
+      "--hub.providers.proxmox.exposedByDefault=${var.proxmox_provider.exposed_by_default}",
+      "--hub.providers.proxmox.ipMode=${var.proxmox_provider.ip_mode}",
     ],
-    var.proxmox_plugin.api_logging != "" ? ["--providers.plugin.proxmox.apiLogging=${var.proxmox_plugin.api_logging}"] : [],
+    length(var.proxmox_provider.guest_types) > 0 ? ["--hub.providers.proxmox.guestTypes=${join(",", var.proxmox_provider.guest_types)}"] : [],
+    length(var.proxmox_provider.nodes) > 0 ? ["--hub.providers.proxmox.nodes=${join(",", var.proxmox_provider.nodes)}"] : [],
+    var.proxmox_provider.tag_filter != "" ? ["--hub.providers.proxmox.tagFilter=${var.proxmox_provider.tag_filter}"] : [],
   ) : []
 
   # Use extracted CLI arguments from Helm template (includes file provider if configured)
@@ -88,11 +91,11 @@ locals {
     preview_image        = module.config.image_full
   })
 
-  # Self-register the Traefik VM's own dashboard via the plugin (-> the
-  # dashboard router/service on @plugin-proxmox) — the siblings' trick, in the
-  # NX211 LINE format (one traefik.key=value per line in the Notes). Disable
-  # when the dashboard is advertised another way (e.g. a file-rule uplink):
-  # without traefik.enable the VM isn't self-discovered at all.
+  # Self-register the Traefik VM's own dashboard via the native provider (-> the
+  # dashboard router/service on @proxmox) — the siblings' trick. Delivered as the
+  # JSON traefik.* label map the provider reads from the Notes (same grammar as the
+  # whoami guests). Disable when the dashboard is advertised another way (e.g. a
+  # file-rule uplink): with no traefik.enable the VM isn't self-discovered at all.
   self_labels = var.enable_dashboard_discovery ? {
     "traefik.enable"                                           = "true"
     "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
@@ -101,7 +104,7 @@ locals {
   } : {}
 
   traefik_labels = merge(local.self_labels, var.extra_labels)
-  description    = join("\n", [for k, v in local.traefik_labels : "${k}=${v}"])
+  description    = length(local.traefik_labels) > 0 ? jsonencode(local.traefik_labels) : ""
 }
 
 # =============================================================================
@@ -181,7 +184,7 @@ module "config" {
   # Plugins & Extensions
   custom_plugins       = var.custom_plugins
   custom_ports         = var.custom_ports
-  custom_arguments     = concat(var.custom_arguments, local.proxmox_plugin_args)
+  custom_arguments     = concat(var.custom_arguments, local.proxmox_provider_args)
   custom_envs          = var.custom_envs
   file_provider_config = var.file_provider_config
   file_provider_path   = var.file_provider_path

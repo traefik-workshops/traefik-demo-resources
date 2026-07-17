@@ -97,21 +97,18 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 
 | Name | Version |
 | ---- | ------- |
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_proxmox"></a> [proxmox](#requirement\_proxmox) | >= 0.60.0, < 1.0.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.4 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
-| <a name="provider_proxmox"></a> [proxmox](#provider\_proxmox) | >= 0.60.0, < 1.0.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
-| [proxmox_virtual_environment_container.traefik](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_container) | resource |
 | [terraform_data.provision](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 
 ## Inputs
@@ -130,7 +127,7 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | <a name="input_custom_image_registry"></a> [custom\_image\_registry](#input\_custom\_image\_registry) | Registry of the image the Hub binary is EXTRACTED from. Must be the same build the rest of the mesh runs — a child on a different Hub version cannot join the uplink. | `string` | `""` | no |
 | <a name="input_custom_image_repository"></a> [custom\_image\_repository](#input\_custom\_image\_repository) | Repository of the image the Hub binary is extracted from. | `string` | `""` | no |
 | <a name="input_custom_image_tag"></a> [custom\_image\_tag](#input\_custom\_image\_tag) | Tag of the image the Hub binary is extracted from. | `string` | `""` | no |
-| <a name="input_custom_plugins"></a> [custom\_plugins](#input\_custom\_plugins) | Extra Traefik plugins beyond the proxmox discovery plugin (which has its own proxmox\_plugin variable). | `any` | `{}` | no |
+| <a name="input_custom_plugins"></a> [custom\_plugins](#input\_custom\_plugins) | Extra Traefik plugins beyond the proxmox discovery provider (which has its own proxmox\_provider variable). | `any` | `{}` | no |
 | <a name="input_custom_ports"></a> [custom\_ports](#input\_custom\_ports) | Extra entrypoints. Carries the multicluster uplink, e.g. { lxcuplink = { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } } }. Typed `any` because that shape is nested. | `any` | `{}` | no |
 | <a name="input_dashboard_entrypoints"></a> [dashboard\_entrypoints](#input\_dashboard\_entrypoints) | Entrypoints the dashboard router binds. | `list(string)` | <pre>[<br/>  "traefik"<br/>]</pre> | no |
 | <a name="input_dashboard_insecure"></a> [dashboard\_insecure](#input\_dashboard\_insecure) | Serve the dashboard without auth (lab default). | `bool` | `true` | no |
@@ -151,7 +148,7 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | <a name="input_enable_otlp_metrics"></a> [enable\_otlp\_metrics](#input\_enable\_otlp\_metrics) | Ship metrics over OTLP. | `bool` | `false` | no |
 | <a name="input_enable_otlp_traces"></a> [enable\_otlp\_traces](#input\_enable\_otlp\_traces) | Ship traces over OTLP. | `bool` | `false` | no |
 | <a name="input_enable_prometheus"></a> [enable\_prometheus](#input\_enable\_prometheus) | Expose the Prometheus endpoint. | `bool` | `false` | no |
-| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@plugin-proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster. | `string` | `""` | no |
+| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster. | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Directory the file provider watches inside the container. | `string` | `"/etc/traefik-hub/dynamic"` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Traefik log level. | `string` | `"INFO"` | no |
 | <a name="input_lxc_template_file_id"></a> [lxc\_template\_file\_id](#input\_lxc\_template\_file\_id) | OS template file ID, e.g. "local:vztmpl/debian-12-standard\_12.7-1\_amd64.tar.zst". Must be a systemd Debian template — the Hub rides its init. | `string` | `""` | no |
@@ -160,8 +157,8 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | <a name="input_num_cpus"></a> [num\_cpus](#input\_num\_cpus) | vCPUs for the gateway container. | `number` | `2` | no |
 | <a name="input_otlp_address"></a> [otlp\_address](#input\_otlp\_address) | OTLP endpoint this gateway ships to (the hub collector's ingress). Must be resolvable AND trusted from inside the container. | `string` | `""` | no |
 | <a name="input_otlp_service_name"></a> [otlp\_service\_name](#input\_otlp\_service\_name) | service.name this gateway reports as — its node in the Tempo service graph. Name it for the compute type it fronts (traefik-lxc), pairing with its backend (whoami-lxc) the way the sibling demos pair traefik-<type> -> whoami-<type>. | `string` | `"traefik-lxc"` | no |
-| <a name="input_proxmox_api_token"></a> [proxmox\_api\_token](#input\_proxmox\_api\_token) | Secret half of the PVE API token the plugin discovers with (Proxmox has no ambient identity, so this is explicit). Use the read-only discovery token — demo-grade in the process args either way. | `string` | `""` | no |
-| <a name="input_proxmox_plugin"></a> [proxmox\_plugin](#input\_proxmox\_plugin) | NX211 traefik-proxmox-provider config — the same runtime Yaegi plugin the VM child runs, so Traefik downloads it from plugins.traefik.io at start (the container NEEDS outbound internet or Traefik exits). It discovers EVERY guest labelled traefik.enable=true and cannot be scoped by node/type/tag, so this gateway sees the VM guests too; that is expected. What makes this the LXC gateway is that file\_provider\_config only advertises the LXC services. | <pre>object({<br/>    enabled          = optional(bool, true)<br/>    version          = optional(string, "v0.8.1")<br/>    poll_interval    = optional(string, "30s")<br/>    api_endpoint     = string<br/>    api_token_id     = string<br/>    api_validate_ssl = optional(bool, false)<br/>    api_logging      = optional(string, "")<br/>  })</pre> | <pre>{<br/>  "api_endpoint": "",<br/>  "api_token_id": "",<br/>  "enabled": false<br/>}</pre> | no |
+| <a name="input_proxmox_api_token"></a> [proxmox\_api\_token](#input\_proxmox\_api\_token) | Secret half of the PVE API token the native provider discovers with (--hub.providers.proxmox.tokenSecret; Proxmox has no ambient identity, so this is explicit). Use the read-only discovery token — demo-grade in the process args either way. | `string` | `""` | no |
+| <a name="input_proxmox_provider"></a> [proxmox\_provider](#input\_proxmox\_provider) | Native first-party Hub Proxmox VE discovery provider (--hub.providers.proxmox.*), same as the VM child — no Yaegi plugin download, so the container needs no outbound internet to fetch one. guest\_types = ["lxc"] scopes THIS gateway to LXC guests only (the win over the old NX211 plugin, which discovered every guest and forced the compute-type split to be enforced in file\_provider\_config). | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    endpoint             = optional(string, "")<br/>    token_id             = optional(string, "")<br/>    refresh_seconds      = optional(number, 30)<br/>    insecure_skip_verify = optional(bool, true)<br/>    guest_types          = optional(list(string), [])<br/>    exposed_by_default   = optional(bool, false)<br/>    ip_mode              = optional(string, "private")<br/>    nodes                = optional(list(string), [])<br/>    tag_filter           = optional(string, "")<br/>  })</pre> | <pre>{<br/>  "enabled": false,<br/>  "endpoint": "",<br/>  "token_id": ""<br/>}</pre> | no |
 | <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version the shared module templates the static config from. | `string` | `"40.3.0"` | no |
 | <a name="input_traefik_hub_preview_tag"></a> [traefik\_hub\_preview\_tag](#input\_traefik\_hub\_preview\_tag) | Traefik Hub preview tag. | `string` | `""` | no |
 | <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub release tag. | `string` | `"v3.20.4"` | no |

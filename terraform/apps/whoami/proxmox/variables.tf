@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type (\"vm\"|\"lxc\", default vm), port, name, environment, traefik_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered in the NX211 plugin's LINE format — one `key=value` per line — into the guest's Notes/description. NB the plugin registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces."
+  description = "Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type (\"vm\"|\"lxc\", default vm), port, name, environment, traefik_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as the native proxmox provider's JSON label map into the guest's Notes/description. NB the provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces."
   type        = any
   default     = {}
 
@@ -15,7 +15,7 @@ variable "apps" {
       for name, cfg in var.apps :
       try(cfg.replicas, 1) == 1 || length(try(cfg.traefik_labels, {})) == 0
     ])
-    error_message = "An app sets replicas > 1 AND traefik_labels. The labels are copied verbatim to every replica, and the NX211 plugin's same-named services overwrite each other, so only ONE replica would ever be routed to. Split it into one app per guest with replicas = 1 and a UNIQUE service name per app, then compose the spread upstream (a weighted file-provider service on the gateway)."
+    error_message = "An app sets replicas > 1 AND traefik_labels. The labels are copied verbatim to every replica, and the native provider's same-named services overwrite each other, so only ONE replica would ever be routed to. Split it into one app per guest with replicas = 1 and a UNIQUE service name per app, then compose the spread upstream (a weighted file-provider service on the gateway)."
   }
 }
 
