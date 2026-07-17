@@ -134,6 +134,20 @@ locals {
       ") || echo \"WARN: runcmd entry ${i} exited non-zero\"",
       "",
     ]]),
+    # Critical postcondition — fail LOUD. The tolerant wrapper above is correct for the
+    # genuinely-optional runcmd steps (node_exporter, the iptables open, the sshd tweaks), but
+    # it also swallows the failure of the ONE step the gateway cannot live without: installing
+    # Docker and pulling the image it runs as a container. When that step failed silently (a
+    # broken apt inside a swallowed subshell — exactly what a null-DNS boot produced, 2026-07-17),
+    # the bootstrap "succeeded", terraform saw a green task, and the gateway crash-looped on
+    # `203/EXEC` (/usr/bin/docker missing) undiscovered for 40 minutes until the poll window blew.
+    # Asserting the end-state here makes exec-task.sh see a non-zero exit and terraform fail FAST
+    # with a real message. Unwrapped on purpose — this is the line that must abort the bootstrap.
+    [
+      "command -v docker >/dev/null 2>&1 || { echo 'FATAL: docker not installed — the gateway runs as a container and cannot start without it (check the docker-install step above for a swallowed apt/network failure)'; exit 1; }",
+      "docker image inspect '${module.config.image_full}' >/dev/null 2>&1 || { echo 'FATAL: gateway image ${module.config.image_full} was not pulled — cannot start the gateway'; exit 1; }",
+      "",
+    ],
     ["exit 0"],
   ))
 
