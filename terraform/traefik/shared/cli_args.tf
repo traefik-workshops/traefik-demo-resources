@@ -9,8 +9,13 @@
 locals {
   cli_args_debug = var.enable_debug ? ["--api.debug=true"] : []
 
-  cli_args_file_provider = var.file_provider_config != "" ? [
-    "--providers.file.directory=${var.file_provider_path}"
+  # The file provider is enabled when config is baked (file_provider_config) OR delivered by
+  # GitOps (enable_gitops_config — the dynamic.yaml arrives via a git pull into the watch dir,
+  # empty at plan time). watch=true is what makes a git pull hot-reload the gateway WITHOUT a
+  # VM replacement — the whole point of the GitOps un-bake.
+  cli_args_file_provider = (var.file_provider_config != "" || var.enable_gitops_config) ? [
+    "--providers.file.directory=${var.file_provider_path}",
+    "--providers.file.watch=true",
   ] : []
 
   # Nutanix provider CLI arguments (generated from shared config).

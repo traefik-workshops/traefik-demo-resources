@@ -198,9 +198,15 @@ variable "custom_envs" {
 }
 
 variable "file_provider_config" {
-  description = "YAML content for Traefik file provider dynamic configuration"
+  description = "YAML content for Traefik file provider dynamic configuration. Baked into the watch dir at boot. Leave empty when enable_gitops_config is set — the config then arrives by git pull instead of being baked."
   type        = string
   default     = ""
+}
+
+variable "enable_gitops_config" {
+  description = "Deliver the file-provider dynamic config by GitOps (a systemd timer git-pulls it into the watch dir) instead of baking it into user_data. Enables the file provider + watch even when file_provider_config is empty, so a `terraform` push + git pull hot-reloads the gateway with NO VM replacement. See terraform/config-server/git."
+  type        = bool
+  default     = false
 }
 
 variable "file_provider_path" {
