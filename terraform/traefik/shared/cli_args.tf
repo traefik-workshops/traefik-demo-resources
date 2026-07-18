@@ -9,14 +9,27 @@
 locals {
   cli_args_debug = var.enable_debug ? ["--api.debug=true"] : []
 
-  # The file provider is enabled when config is baked (file_provider_config) OR delivered by
-  # GitOps (enable_gitops_config — the dynamic.yaml arrives via a git pull into the watch dir,
-  # empty at plan time). watch=true is what makes a git pull hot-reload the gateway WITHOUT a
-  # VM replacement — the whole point of the GitOps un-bake.
-  cli_args_file_provider = (var.file_provider_config != "" || var.enable_gitops_config) ? [
+  # The file provider serves the BAKED dynamic config (file_provider_config) — the well-configured
+  # path, identical to the pre-GitOps behavior (directory only, no watch: a baked file never
+  # changes without a VM rebuild).
+  cli_args_file_provider = var.file_provider_config != "" ? [
     "--providers.file.directory=${var.file_provider_path}",
-    "--providers.file.watch=true",
   ] : []
+
+  # GitOps (the degraded fallback for constrained platforms — OCI/vSphere/Nutanix/GCE) delivers the
+  # dynamic config via the HTTP provider, NOT a file: the gateway POLLS gitops_endpoint (a raw
+  # dynamic.yaml served by the hub git-config-server) and Traefik hot-reloads on its own
+  # pollInterval — no VM-side sync script, no file watch, no boot gate. Uplinks ride through
+  # unchanged: the http provider decodes the body with the same YAML decoder + inline ext.HTTP
+  # embed as the file provider. tls.insecureSkipVerify is for lab-cert hosts (morpheus); the public
+  # clouds trust git.<domain>.
+  cli_args_http_provider = var.enable_gitops_config ? concat(
+    [
+      "--providers.http.endpoint=${var.gitops_endpoint}",
+      "--providers.http.pollInterval=${var.gitops_poll_interval}",
+    ],
+    var.gitops_insecure_skip_verify ? ["--providers.http.tls.insecureSkipVerify=true"] : [],
+  ) : []
 
   # Nutanix provider CLI arguments (generated from shared config).
   cli_args_nutanix = var.nutanix_provider.enabled ? concat(
@@ -70,6 +83,7 @@ locals {
   additional_arguments = concat(
     local.cli_args_debug,
     local.cli_args_file_provider,
+    local.cli_args_http_provider,
     var.custom_arguments,
     local.cli_args_nutanix,
     local.cli_args_tls,

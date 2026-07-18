@@ -351,18 +351,6 @@ variable "file_provider_path" {
   default     = "/etc/traefik-hub/dynamic"
 }
 
-variable "enable_gitops_config" {
-  description = "Deliver the file-provider dynamic.yaml by GitOps (git-pull from gitops_repo_url on a boot-gate + timer) instead of baking it into user_data — a config change then hot-reloads with NO VM replacement. Set file_provider_config empty when this is on. See terraform/config-server/git."
-  type        = bool
-  default     = false
-}
-
-variable "gitops_repo_url" {
-  description = "Clone URL of the hub's config repo (https://git.<domain>/config.git). This gateway pulls gitops_repo_url and syncs <vm_name>/dynamic.yaml into the watch dir."
-  type        = string
-  default     = ""
-}
-
 # Licensing
 variable "traefik_hub_token" {
   description = "Traefik Hub license token"

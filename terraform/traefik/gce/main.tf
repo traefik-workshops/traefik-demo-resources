@@ -67,8 +67,6 @@ locals {
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
     docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
     collector_gate       = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
-    enable_gitops_config = false
-    git_config_sync      = ""
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"
     cli_arguments        = local.cli_arguments

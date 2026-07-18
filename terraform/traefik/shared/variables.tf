@@ -198,13 +198,31 @@ variable "custom_envs" {
 }
 
 variable "file_provider_config" {
-  description = "YAML content for Traefik file provider dynamic configuration. Baked into the watch dir at boot. Leave empty when enable_gitops_config is set — the config then arrives by git pull instead of being baked."
+  description = "YAML content for the Traefik file provider dynamic configuration, baked into the watch dir at boot. The well-configured path. Leave empty when enable_gitops_config is set — the config then arrives over the HTTP provider instead of being baked."
   type        = string
   default     = ""
 }
 
 variable "enable_gitops_config" {
-  description = "Deliver the file-provider dynamic config by GitOps (a systemd timer git-pulls it into the watch dir) instead of baking it into user_data. Enables the file provider + watch even when file_provider_config is empty, so a `terraform` push + git pull hot-reloads the gateway with NO VM replacement. See terraform/config-server/git."
+  description = "GitOps fallback (constrained platforms only — OCI/vSphere/Nutanix/GCE). Instead of baking file_provider_config, the gateway POLLS gitops_endpoint via Traefik's HTTP provider and hot-reloads on pollInterval — no VM-side sync, no file watch, no boot gate. terraform pushes the config to the hub git-config-server, which serves it raw. See terraform/config-server/git."
+  type        = bool
+  default     = false
+}
+
+variable "gitops_endpoint" {
+  description = "GitOps HTTP-provider endpoint the gateway polls for its dynamic.yaml (e.g. https://git.<domain>/config/<gateway>/dynamic.yaml, served raw by the hub git-config-server). Used only when enable_gitops_config is set."
+  type        = string
+  default     = ""
+}
+
+variable "gitops_poll_interval" {
+  description = "How often the GitOps HTTP provider re-fetches gitops_endpoint (Traefik duration, e.g. 5s). This is the hot-reload latency."
+  type        = string
+  default     = "5s"
+}
+
+variable "gitops_insecure_skip_verify" {
+  description = "Skip TLS verification on the GitOps HTTP-provider endpoint. Needed for lab-cert hosts (morpheus); leave false on public clouds that trust git.<domain>."
   type        = bool
   default     = false
 }

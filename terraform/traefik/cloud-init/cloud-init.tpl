@@ -148,40 +148,6 @@ write_files:
       ${indent(6, file_provider_config)}
 %{ endif ~}
 
-%{ if enable_gitops_config ~}
-  # GitOps config delivery: the dynamic.yaml is NOT baked above — it is git-pulled from the hub
-  # (git.<domain>) into the watch dir by this script, run once at boot (the gate) then on the
-  # timer. --providers.file.watch hot-reloads on each change, so a `terraform` push reaches the
-  # gateway with no VM replacement. See terraform/config-server/git.
-  - path: /usr/local/bin/git-config-sync.sh
-    owner: root:root
-    permissions: "0755"
-    content: |
-      ${indent(6, git_config_sync)}
-  - path: /etc/systemd/system/git-config-sync.service
-    owner: root:root
-    permissions: "0644"
-    content: |
-      [Unit]
-      Description=Sync Traefik file-provider config from the hub git server
-      After=network-online.target
-      Wants=network-online.target
-      [Service]
-      Type=oneshot
-      ExecStart=/usr/local/bin/git-config-sync.sh
-  - path: /etc/systemd/system/git-config-sync.timer
-    owner: root:root
-    permissions: "0644"
-    content: |
-      [Unit]
-      Description=Periodically sync Traefik config from git
-      [Timer]
-      OnBootSec=20s
-      OnUnitActiveSec=20s
-      [Install]
-      WantedBy=timers.target
-%{ endif ~}
-
 %{ for f in extra_files ~}
   - path: ${f.path}
     owner: root:root
@@ -396,19 +362,6 @@ runcmd:
   - |
     # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
     ${indent(4, collector_gate)}
-%{ endif ~}
-%{ if enable_gitops_config ~}
-  - |
-    # GitOps boot gate: pull the file-provider config BEFORE Traefik starts (nothing is baked),
-    # then keep it fresh on the timer. Blocks only until the hub git server is reachable — an
-    # unconfigured gateway clones the seeded (empty) repo fine and picks up its dynamic.yaml on a
-    # later tick once terraform pushes it (file.watch hot-reloads).
-    command -v git >/dev/null 2>&1 || { apt-get update -o Acquire::Retries=3 >/dev/null 2>&1 || true; apt-get install -y git >/dev/null 2>&1 || yum install -y git >/dev/null 2>&1 || true; }
-    for i in $(seq 1 60); do
-      /usr/local/bin/git-config-sync.sh && break
-      echo "git-config-sync: waiting for the hub git server ($i/60)..."; sleep 10
-    done
-    systemctl enable --now git-config-sync.timer
 %{ endif ~}
   - systemctl enable --now traefik-hub
   - echo "Traefik Hub provisioning complete"

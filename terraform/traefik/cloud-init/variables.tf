@@ -42,18 +42,6 @@ variable "file_provider_config" {
   default     = ""
 }
 
-variable "enable_gitops_config" {
-  type        = bool
-  description = "Emit the git-config-sync write_files + boot-gate (the config is git-pulled instead of baked). See terraform/config-server/git."
-  default     = false
-}
-
-variable "git_config_sync" {
-  type        = string
-  description = "Pre-rendered git-config-sync.sh (from terraform/cloud-init-snippets/git-config-sync.sh.tpl); injected into write_files when enable_gitops_config is set."
-  default     = ""
-}
-
 variable "extra_files" {
   type = list(object({
     path    = string
