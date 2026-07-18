@@ -82,7 +82,7 @@ variable "disk_interface" {
 }
 
 variable "extra_labels" {
-  description = "Extra Traefik labels merged into the VM's own Notes/description (on top of the dashboard self-registration labels, when enabled), rendered as the native provider's JSON label map"
+  description = "Extra Traefik labels merged into the VM's own Notes/description (on top of the dashboard self-registration labels, when enabled), rendered as LINE-format `traefik.key=value` labels"
   type        = map(string)
   default     = {}
 }
@@ -198,7 +198,7 @@ variable "enable_offline_mode" {
 }
 
 variable "enable_preview_mode" {
-  description = "Enable Traefik Hub Preview features (runs the image as a docker container). NOT needed for the proxmox plugin itself — it's a runtime plugin any released image loads — only for running a pre-release Hub build (e.g. the multicluster-uplink branch)."
+  description = "Enable Traefik Hub Preview features (runs the image as a docker container). NOT needed for proxmox discovery — that's a native first-party provider built into the Hub image — only for running a pre-release Hub build (e.g. the multicluster-uplink branch)."
   type        = bool
   default     = false
 }
@@ -385,7 +385,7 @@ variable "dashboard_insecure" {
 }
 
 variable "enable_dashboard_discovery" {
-  description = "Self-register the Traefik VM via its own Notes labels (traefik.enable + dashboard router/service, as the native provider's JSON label map) so its OWN proxmox provider discovers the dashboard on @proxmox. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
+  description = "Self-register the Traefik VM via its own Notes labels (traefik.enable + dashboard router/service, as LINE-format `traefik.key=value` labels) so its OWN proxmox provider discovers the dashboard on @proxmox. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
   type        = bool
   default     = true
 }

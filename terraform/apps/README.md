@@ -24,7 +24,7 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/nutanix/image_builder`](./whoami/nutanix/image_builder) | Nutanix | Builds a Nutanix image baked with whoami |
 | [`whoami/oci-ci`](./whoami/oci-ci) | OCI | whoami as OCI Container Instances (private VNIC IPs; declared port via TCP health check) |
 | [`whoami/oci-vm`](./whoami/oci-vm) | OCI | whoami on OCI Compute VMs (traefik config via dotted freeform tags; uses `whoami/cloud-init`) |
-| [`whoami/proxmox`](./whoami/proxmox) | Proxmox | whoami on Proxmox guests — QEMU clones (uses `whoami/cloud-init`) or LXC containers (upstream binary via pct exec); traefik config as LINE-format `traefik.key=value` labels in the guest Notes, for the NX211 provider plugin |
+| [`whoami/proxmox`](./whoami/proxmox) | Proxmox | whoami on Proxmox guests — QEMU clones (uses `whoami/cloud-init`) or LXC containers (upstream binary via pct exec); traefik config as LINE-format `traefik.key=value` labels in the guest Notes, for the native first-party Hub proxmox provider |
 | [`whoami/vsphere`](./whoami/vsphere) | vSphere | whoami on vSphere VMs cloned from an Ubuntu cloud-image template (traefik config via the `guestinfo.traefik` JSON extraConfig entry; uses `whoami/cloud-init`) |
 
 ## When to add an app

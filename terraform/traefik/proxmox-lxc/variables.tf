@@ -278,7 +278,7 @@ variable "proxmox_api_token" {
 
 # --- Config extension --------------------------------------------------------------
 variable "custom_plugins" {
-  description = "Extra Traefik plugins beyond the proxmox discovery provider (which has its own proxmox_provider variable)."
+  description = "Extra Traefik plugins. Proxmox discovery is NOT one — it's the native first-party provider, wired via var.proxmox_provider."
   type        = any
   default     = {}
 }
@@ -303,7 +303,7 @@ variable "custom_envs" {
 
 variable "file_provider_config" {
   type        = string
-  description = "The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster."
+  description = "The file provider's dynamic config (YAML). Owns the LB compositions and declares the uplinks the hub surfaces as <uplink>@multicluster — advertise the LXC services here (e.g. lxc-whoami@proxmox). Discovery is already scoped to LXC via proxmox_provider.guest_types, so this no longer has to be the only thing separating the compute types."
   default     = ""
 }
 

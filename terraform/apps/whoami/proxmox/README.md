@@ -1,13 +1,13 @@
 # apps/whoami/proxmox
 
-Provisions one or more Traefik `whoami` instances on **Proxmox VE guests** — the on-prem sibling of `apps/whoami/vsphere` / `apps/whoami/ec2` / `apps/whoami/gce`, targeting the open-source **[`NX211/traefik-proxmox-provider`](https://github.com/NX211/traefik-proxmox-provider)** Traefik plugin (see `traefik/proxmox-vm`). Two guest types per app:
+Provisions one or more Traefik `whoami` instances on **Proxmox VE guests** — the on-prem sibling of `apps/whoami/vsphere` / `apps/whoami/ec2` / `apps/whoami/gce`, discovered by Traefik Hub's **native first-party Proxmox provider** (`--hub.providers.proxmox.*`; see `traefik/proxmox-vm`). Two guest types per app:
 
 - **`type = "vm"`** (default) — a QEMU clone of a cloud-init-enabled Ubuntu cloud-image template, docker-running the whoami fork via `whoami/cloud-init` like every sibling (default image: the OTel-instrumented `ghcr.io/zalbiraw/whoami`).
 - **`type = "lxc"`** — a container from a Debian OS template, running the **upstream `traefik/whoami` binary** under systemd (see the honest limitations below).
 
 ## The workload config is LINE-format labels in the Notes field
 
-The NX211 plugin reads each guest's **Notes/description field line by line** — one `traefik.key=value` per line, **NOT JSON** (the vsphere sibling), not dotted tags (EC2/Azure/OCI):
+The native provider reads each guest's **Notes/description field line by line** — one `traefik.key=value` per line, **NOT JSON** (the vsphere sibling), not dotted tags (EC2/Azure/OCI):
 
 ```
 traefik.enable=true
@@ -16,7 +16,7 @@ traefik.http.services.whoami-1.loadbalancer.server.port=80
 
 This module renders each app's `traefik_labels` map into that format. `traefik.enable=true` is mandatory (unlabeled guests are ignored); the parser lowercases keys.
 
-**One service per guest — no server merging** (verified against the plugin source, v0.8.1): every labeled service gets exactly ONE server (the guest's IP), and a same-named service on a second guest **overwrites** the first. Unlike the vsphere/EC2 providers, identical labels on N replicas do NOT merge into an N-server service — give every guest **unique service names** and compose the spread upstream (e.g. a `weighted` file-provider service on the gateway; `demos/proxmox-unified-ingress` shows the pattern). Also note the plugin **always creates a router per guest** (default rule ``Host(`<guest-name>`)``) — harmless noise when your real routers live in file config.
+**One service per guest — no server merging**: every labeled service gets exactly ONE server (the guest's IP), and a same-named service on a second guest **overwrites** the first. Unlike the vsphere/EC2 providers, identical labels on N replicas do NOT merge into an N-server service — give every guest **unique service names** and compose the spread upstream (e.g. a `weighted` file-provider service on the gateway; `demos/proxmox-unified-ingress` shows the pattern). The native provider also **mints a router per guest** (default rule ``Host(`<guest-name>`)``) — harmless noise when your real routers live in file config.
 
 ## LXC support, honestly
 
@@ -24,7 +24,7 @@ Proxmox LXC containers have **no cloud-init user-data path**, so pure terraform 
 
 - Requires **node SSH access** (the same access the bpg provider's snippet upload needs anyway).
 - Runs the **upstream binary**, not the OTel fork (docker-only) — `OTEL_*` env vars are ignored; the body still shows `Hostname:`/`Name:`.
-- The container's DHCP address is **never known to terraform** (`private_ip` is null in the output) — the plugin discovers container IPs itself via the PVE API.
+- The container's DHCP address is **never known to terraform** (`private_ip` is null in the output) — the native provider discovers container IPs itself via the PVE API.
 - amd64 only (the release-tarball fetch).
 
 ## Example usage
@@ -41,7 +41,7 @@ module "whoami_proxmox" {
   node_ssh             = { host = "pve.lab.example.com", private_key = file("~/.ssh/id_ed25519") }
 
   apps = {
-    # UNIQUE service name per guest — the plugin does not merge servers.
+    # UNIQUE service name per guest — the native provider does not merge servers.
     whoami-1 = {
       replicas = 1
       port     = 80
@@ -68,7 +68,7 @@ module "whoami_proxmox" {
 ## Prerequisites
 
 - The `bpg/proxmox` provider with clone rights **and** its `ssh {}` block configured (snippet upload rides SSH; the PVE API has no snippet endpoint).
-- For VMs: a **cloud-init-enabled Ubuntu cloud-image template with `qemu-guest-agent`** — the agent reports guest IPs to terraform AND to the plugin (on PVE 9 the plugin's token also needs the `VM.GuestAgent.Audit` privilege). DHCP on the bridge; outbound internet (docker pulls).
+- For VMs: a **cloud-init-enabled Ubuntu cloud-image template with `qemu-guest-agent`** — the agent reports guest IPs to terraform AND to the native provider (on PVE 9 the provider's token also needs the `VM.GuestAgent.Audit` privilege). DHCP on the bridge; outbound internet (docker pulls).
 - For LXC: a Debian OS template on the node (`pveam download local debian-12-standard_...`), `node_ssh`, and outbound internet from the container (apt + the whoami release tarball).
 
 ## Notes
@@ -103,7 +103,7 @@ module "whoami_proxmox" {
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_datastore_id"></a> [datastore\_id](#input\_datastore\_id) | Datastore backing the guests' disks and cloud-init drives (e.g. local-lvm) | `string` | n/a | yes |
 | <a name="input_node_name"></a> [node\_name](#input\_node\_name) | Name of the Proxmox VE node the guests are created on | `string` | n/a | yes |
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type ("vm"\|"lxc", default vm), port, name, environment, traefik\_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as the native proxmox provider's JSON label map into the guest's Notes/description. NB the provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces. | `any` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type ("vm"\|"lxc", default vm), port, name, environment, traefik\_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as LINE-format `traefik.key=value` labels (one per line) into the guest's Notes/description. NB the native provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces. | `any` | `{}` | no |
 | <a name="input_bridge"></a> [bridge](#input\_bridge) | Name of the Linux bridge the guests' NICs join (DHCP is assumed; the Traefik child dials each guest's IP) | `string` | `"vmbr0"` | no |
 | <a name="input_cpu_type"></a> [cpu\_type](#input\_cpu\_type) | QEMU CPU type for VMs. `host` passes the node's CPU through; pick a named model when live migration matters. | `string` | `"host"` | no |
 | <a name="input_crane_version"></a> [crane\_version](#input\_crane\_version) | go-containerregistry release whose static `crane` binary the LXC setup fetches to export lxc\_whoami\_image's rootfs (no docker needed on the node or in the container). | `string` | `"v0.20.2"` | no |
@@ -119,7 +119,7 @@ module "whoami_proxmox" {
 | <a name="input_num_cpus"></a> [num\_cpus](#input\_num\_cpus) | vCPU count per whoami guest (VMs and containers) | `number` | `1` | no |
 | <a name="input_snippet_datastore_id"></a> [snippet\_datastore\_id](#input\_snippet\_datastore\_id) | Datastore the cloud-init user-data snippets are uploaded to (Snippets content type must be enabled; uploads ride the provider's SSH access) | `string` | `"local"` | no |
 | <a name="input_template_name"></a> [template\_name](#input\_template\_name) | Name of the template QEMU apps clone (resolved to a VMID on the node). Takes precedence over template\_vm\_id. | `string` | `""` | no |
-| <a name="input_template_vm_id"></a> [template\_vm\_id](#input\_template\_vm\_id) | VMID of the template QEMU apps clone. Provide this OR template\_name (only needed when at least one app has type = "vm"). Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template with qemu-guest-agent — the agent is what reports guest IPs, both to terraform and to the discovery plugin. | `number` | `0` | no |
+| <a name="input_template_vm_id"></a> [template\_vm\_id](#input\_template\_vm\_id) | VMID of the template QEMU apps clone. Provide this OR template\_name (only needed when at least one app has type = "vm"). Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template with qemu-guest-agent — the agent is what reports guest IPs, both to terraform and to the native discovery provider. | `number` | `0` | no |
 | <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image docker-run on each VM (type = "vm"). LXC apps run the binary EXTRACTED from lxc\_whoami\_image instead (no docker in the container). Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
@@ -127,5 +127,5 @@ module "whoami_proxmox" {
 
 | Name | Description |
 | ---- | ----------- |
-| <a name="output_instances"></a> [instances](#output\_instances) | Map of all whoami guests with their details. For type=vm, private\_ip is the QEMU-agent-reported guest IP; for type=lxc it is NULL — a container has no guest agent, so its DHCP lease is invisible to terraform. That is not a gap to work around: the proxmox plugin discovers container IPs itself via the PVE API, which is how the LXC legs get routed. No public-IP concept on-prem. |
+| <a name="output_instances"></a> [instances](#output\_instances) | Map of all whoami guests with their details. For type=vm, private\_ip is the QEMU-agent-reported guest IP; for type=lxc it is NULL — a container has no guest agent, so its DHCP lease is invisible to terraform. That is not a gap to work around: the native proxmox provider discovers container IPs itself via the PVE API, which is how the LXC legs get routed. No public-IP concept on-prem. |
 <!-- END_TF_DOCS -->

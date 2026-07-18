@@ -1,11 +1,11 @@
 variable "apps" {
-  description = "Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type (\"vm\"|\"lxc\", default vm), port, name, environment, traefik_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as the native proxmox provider's JSON label map into the guest's Notes/description. NB the provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces."
+  description = "Map of applications to deploy to Proxmox guests. Same shape as apps/whoami/vsphere plus a `type` field: { name = { replicas, type (\"vm\"|\"lxc\", default vm), port, name, environment, traefik_labels } }. `traefik_labels` (dotted Traefik label -> value) is rendered as LINE-format `traefik.key=value` labels (one per line) into the guest's Notes/description. NB the native provider registers ONE server per guest and same-named services overwrite each other, so give each guest UNIQUE service names (compose spreads upstream with a weighted file-provider service) — i.e. ONE APP PER GUEST with replicas = 1, which the validation below enforces."
   type        = any
   default     = {}
 
   validation {
     # traefik_labels are copied VERBATIM to every replica (main.tf renders the same
-    # Notes on each guest), and the plugin's same-named services overwrite each other —
+    # Notes on each guest), and the native provider's same-named services overwrite each other —
     # last write wins. So `replicas = N` + a service-name label silently collapses N
     # guests into ONE routable server: the extra containers/VMs boot, cost resources,
     # and are never routed to. Nothing errors; the fleet just quietly does less than it
@@ -44,7 +44,7 @@ variable "bridge" {
 
 variable "template_vm_id" {
   type        = number
-  description = "VMID of the template QEMU apps clone. Provide this OR template_name (only needed when at least one app has type = \"vm\"). Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template with qemu-guest-agent — the agent is what reports guest IPs, both to terraform and to the discovery plugin."
+  description = "VMID of the template QEMU apps clone. Provide this OR template_name (only needed when at least one app has type = \"vm\"). Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template with qemu-guest-agent — the agent is what reports guest IPs, both to terraform and to the native discovery provider."
   default     = 0
 }
 

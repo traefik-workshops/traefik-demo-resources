@@ -16,15 +16,15 @@ The Hub then runs as a **raw binary under systemd**, mirroring `traefik/cloud-in
 
 > `var.custom_image_*` should name **the same build the rest of the mesh runs**. A child on a different Hub version cannot join the uplink, so pulling a released tarball instead of extracting the mesh's image is *not* equivalent.
 
-### 2. The plugin discovers everything — the **routes** are what separate the compute types
+### 2. `guest_types` scopes discovery to LXC — the **routes** still own the composition
 
-This module runs the same **[`NX211/traefik-proxmox-provider`](https://github.com/NX211/traefik-proxmox-provider)** plugin as the VM child (`var.proxmox_plugin`). That plugin has **no node/type/tag filter**: it polls the PVE API and routes *every* guest labelled `traefik.enable=true`, cluster-wide. Both children therefore discover **both** compute types, and that is expected and unavoidable.
+This module runs the same **native `hub.providers.proxmox` provider** as the VM child (`var.proxmox_provider`), but with `guest_types = ["lxc"]` — so it discovers **only** LXC guests, never the QEMU ones. That per-gateway `guest_types` filter is the key win over the old NX211 plugin (which had no node/type/tag filter and forced both children to see every guest): the compute types are now separated **at discovery**.
 
-**The separation is enforced one level up, in `var.file_provider_config`:** advertise only the LXC services here, and only the VM services on the VM child. Neither references the other's, and that is the *only* thing keeping the compute types apart — a foreign uplink in either child's file config silently re-merges them. Discovered-but-unrouted guests just sit there (the plugin also mints a per-guest auto-router, rule ``Host(`<guest-name>`)``, that nothing resolves — harmless).
+`var.file_provider_config` still owns the LB **compositions** — advertise the LXC services here (`lxc-whoami@proxmox`) and declare the uplinks the hub surfaces as `<uplink>@multicluster`. The provider also mints a per-guest auto-router (rule ``Host(`<guest-name>`)``) that nothing resolves — harmless.
 
 ## The address must be static
 
-`var.ip_address` is **required**, and this is the one thing the plugin cannot solve for you. The hub's multicluster `children` map is terraform configuration, so it must dial `https://<this gateway>:9443` at an address known **at plan time** — and a container has no guest agent, so PVE never reports its DHCP lease back to terraform. The plugin discovers *backends*; it cannot tell the hub where its *children* are.
+`var.ip_address` is **required**, and this is the one thing discovery cannot solve for you. The hub's multicluster `children` map is terraform configuration, so it must dial `https://<this gateway>:9443` at an address known **at plan time** — and a container has no guest agent, so PVE never reports its DHCP lease back to terraform. The provider discovers *backends*; it cannot tell the hub where its *children* are.
 
 Going static has a consequence worth knowing: **a static guest gets no DHCP, and therefore no lab resolver.** Without `var.dns_servers` the container inherits the PVE host's public resolvers, and anything pointing at a lab hostname (an OTLP collector, say) resolves to the wrong address and silently fails — the gateway serves traffic perfectly and simply never appears in the service graph. `var.dns_servers` defaults to `[var.gateway]`, which is where dnsmasq listens on the demos' bridge.
 
@@ -58,9 +58,10 @@ module "lxc_traefik" {
 
   otlp_service_name = "traefik-lxc" # its node in the service graph
 
-  proxmox_plugin = {
-    api_endpoint = "https://pve.lab:8006"
-    api_token_id = "traefik@pve!discovery"
+  proxmox_provider = {
+    endpoint    = "https://pve.lab:8006"
+    token_id    = "traefik@pve!discovery"
+    guest_types = ["lxc"]
   }
   proxmox_api_token = var.discovery_token_secret
 
@@ -69,11 +70,11 @@ module "lxc_traefik" {
     lxcuplink = { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } }
   }
 
-  # THE ENFORCEMENT POINT — only LXC services here.
+  # Advertise the LXC services here (discovery is already scoped to LXC via guest_types).
   file_provider_config = yamlencode({
     http = {
       uplinks = { lxc-whoami = { entryPoints = ["lxcuplink"] } }
-      routers = { lxc-whoami = { rule = "PathPrefix(`/`)", service = "lxc-whoami@plugin-proxmox", uplinks = ["lxc-whoami"] } }
+      routers = { lxc-whoami = { rule = "PathPrefix(`/`)", service = "lxc-whoami@proxmox", uplinks = ["lxc-whoami"] } }
     }
   })
 }
@@ -85,8 +86,8 @@ The hub then dials `module.lxc_traefik.uplink_address` as a multicluster child, 
 
 - A **systemd Debian LXC template** on the node (`pveam download local debian-12-standard_*_amd64.tar.zst`) — the Hub rides its init.
 - **Node SSH with passwordless sudo** — the same access the bpg provider's snippet upload already needs.
-- **Outbound internet from the container** — `crane` (GitHub) + the image (registry) + the Yaegi plugin (`plugins.traefik.io`, downloaded at start, or Traefik exits).
-- A **read-only PVE API token** for the plugin (Proxmox has no ambient identity).
+- **Outbound internet from the container** — `crane` (GitHub) + the image (registry). The proxmox discovery provider is built into the Hub image, so nothing extra is downloaded at start.
+- A **read-only PVE API token** for the discovery provider (Proxmox has no ambient identity).
 
 Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ingress).
 
@@ -127,7 +128,7 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | <a name="input_custom_image_registry"></a> [custom\_image\_registry](#input\_custom\_image\_registry) | Registry of the image the Hub binary is EXTRACTED from. Must be the same build the rest of the mesh runs — a child on a different Hub version cannot join the uplink. | `string` | `""` | no |
 | <a name="input_custom_image_repository"></a> [custom\_image\_repository](#input\_custom\_image\_repository) | Repository of the image the Hub binary is extracted from. | `string` | `""` | no |
 | <a name="input_custom_image_tag"></a> [custom\_image\_tag](#input\_custom\_image\_tag) | Tag of the image the Hub binary is extracted from. | `string` | `""` | no |
-| <a name="input_custom_plugins"></a> [custom\_plugins](#input\_custom\_plugins) | Extra Traefik plugins beyond the proxmox discovery provider (which has its own proxmox\_provider variable). | `any` | `{}` | no |
+| <a name="input_custom_plugins"></a> [custom\_plugins](#input\_custom\_plugins) | Extra Traefik plugins. Proxmox discovery is NOT one — it's the native first-party provider, wired via var.proxmox\_provider. | `any` | `{}` | no |
 | <a name="input_custom_ports"></a> [custom\_ports](#input\_custom\_ports) | Extra entrypoints. Carries the multicluster uplink, e.g. { lxcuplink = { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } } }. Typed `any` because that shape is nested. | `any` | `{}` | no |
 | <a name="input_dashboard_entrypoints"></a> [dashboard\_entrypoints](#input\_dashboard\_entrypoints) | Entrypoints the dashboard router binds. | `list(string)` | <pre>[<br/>  "traefik"<br/>]</pre> | no |
 | <a name="input_dashboard_insecure"></a> [dashboard\_insecure](#input\_dashboard\_insecure) | Serve the dashboard without auth (lab default). | `bool` | `true` | no |
@@ -148,7 +149,7 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | <a name="input_enable_otlp_metrics"></a> [enable\_otlp\_metrics](#input\_enable\_otlp\_metrics) | Ship metrics over OTLP. | `bool` | `false` | no |
 | <a name="input_enable_otlp_traces"></a> [enable\_otlp\_traces](#input\_enable\_otlp\_traces) | Ship traces over OTLP. | `bool` | `false` | no |
 | <a name="input_enable_prometheus"></a> [enable\_prometheus](#input\_enable\_prometheus) | Expose the Prometheus endpoint. | `bool` | `false` | no |
-| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | The file provider's dynamic config (YAML). THIS is what makes this the LXC gateway: the plugin discovers every guest indiscriminately, so the compute-type separation is enforced here — advertise ONLY the LXC services (e.g. lxc-whoami@proxmox) and never the VM ones. Also where uplinks are declared for the hub to surface as <uplink>@multicluster. | `string` | `""` | no |
+| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | The file provider's dynamic config (YAML). Owns the LB compositions and declares the uplinks the hub surfaces as <uplink>@multicluster — advertise the LXC services here (e.g. lxc-whoami@proxmox). Discovery is already scoped to LXC via proxmox\_provider.guest\_types, so this no longer has to be the only thing separating the compute types. | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Directory the file provider watches inside the container. | `string` | `"/etc/traefik-hub/dynamic"` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Traefik log level. | `string` | `"INFO"` | no |
 | <a name="input_lxc_template_file_id"></a> [lxc\_template\_file\_id](#input\_lxc\_template\_file\_id) | OS template file ID, e.g. "local:vztmpl/debian-12-standard\_12.7-1\_amd64.tar.zst". Must be a systemd Debian template — the Hub rides its init. | `string` | `""` | no |

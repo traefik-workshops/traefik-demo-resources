@@ -20,8 +20,8 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`nutanix`](./nutanix) | Traefik on a Nutanix VM (uses `cloud-init`) |
 | [`oci-ci`](./oci-ci) | Traefik Hub as an OCI Container Instance (`hub.providers.ociContainerInstances` + config-file auth) |
 | [`oci-vm`](./oci-vm) | Traefik Hub on an OCI Compute VM (uses `cloud-init`; `hub.providers.oci` + instance principal) |
-| [`proxmox-lxc`](./proxmox-lxc) | Traefik Hub in a Proxmox VE LXC container — the container half of the per-compute-type pair (no cloud-init: `pct exec` + the Hub binary crane-extracted from the image, run under systemd; same `NX211` PLUGIN as `proxmox-vm`, so the compute types are separated by which services each child's `file_provider_config` advertises, not by discovery; STATIC address — the hub must dial its uplink at a plan-time-known IP) |
-| [`proxmox-vm`](./proxmox-vm) | Traefik Hub on a Proxmox VE VM (uses `cloud-init`; discovery via the open-source `NX211/traefik-proxmox-provider` PLUGIN — `experimental.plugins` + `providers.plugin` flags, explicit read-only PVE API token) |
+| [`proxmox-lxc`](./proxmox-lxc) | Traefik Hub in a Proxmox VE LXC container — the container half of the per-compute-type pair (no cloud-init: `pct exec` + the Hub binary crane-extracted from the image, run under systemd; same native `hub.providers.proxmox` discovery as `proxmox-vm`, scoped to LXC guests via `guest_types = ["lxc"]`; STATIC address — the hub must dial its uplink at a plan-time-known IP) |
+| [`proxmox-vm`](./proxmox-vm) | Traefik Hub on a Proxmox VE VM (uses `cloud-init`; discovery via the native first-party `hub.providers.proxmox` provider — `--hub.providers.proxmox.*` flags, explicit read-only PVE API token) |
 | [`vsphere-vm`](./vsphere-vm) | Traefik Hub on a vSphere VM (uses `cloud-init`; `hub.providers.vsphere` + explicit read-only vCenter credentials — no ambient identity on-prem) |
 
 ## How `shared/` works

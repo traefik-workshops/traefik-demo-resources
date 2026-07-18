@@ -7,11 +7,12 @@
 # Hub image, and guest discovery is the NATIVE first-party Hub Proxmox VE provider
 # (like ec2/azurevm/gce), delivered as static-config CLI flags:
 #   --hub.providers.proxmox.*                               (endpoint/token/filters)
-# No Yaegi plugin download, so the VM needs no outbound internet to fetch one. The
-# provider reads a JSON traefik.* label map from each guest's Notes/description and
-# resolves QEMU IPs via the guest agent, LXC IPs via the container interfaces API —
-# and guest_types scopes each gateway to one compute type (the old NX211 plugin
-# could not). Proxmox has no ambient identity (no instance profile / managed
+# It is a compiled-in provider (static CLI flags), so the VM needs no outbound
+# internet at boot. The provider reads LINE-FORMAT traefik.* labels (one
+# `traefik.key=value` per line) from each guest's Notes/description and resolves
+# QEMU IPs via the guest agent, LXC IPs via the container interfaces API — and
+# guest_types scopes each gateway to one compute type. Proxmox has no ambient
+# identity (no instance profile / managed
 # identity), so it authenticates with an explicit PVE API token — var.proxmox_api_token
 # is the one secret this module carries.
 # =============================================================================
@@ -92,10 +93,10 @@ locals {
   })
 
   # Self-register the Traefik VM's own dashboard via the native provider (-> the
-  # dashboard router/service on @proxmox) — the siblings' trick. Delivered as the
-  # JSON traefik.* label map the provider reads from the Notes (same grammar as the
-  # whoami guests). Disable when the dashboard is advertised another way (e.g. a
-  # file-rule uplink): with no traefik.enable the VM isn't self-discovered at all.
+  # dashboard router/service on @proxmox) — the siblings' trick. Delivered as
+  # LINE-FORMAT traefik.* labels in the Notes (same grammar as the whoami guests).
+  # Disable when the dashboard is advertised another way (e.g. a file-rule uplink):
+  # with no traefik.enable the VM isn't self-discovered at all.
   self_labels = var.enable_dashboard_discovery ? {
     "traefik.enable"                                           = "true"
     "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
@@ -104,7 +105,7 @@ locals {
   } : {}
 
   traefik_labels = merge(local.self_labels, var.extra_labels)
-  description    = length(local.traefik_labels) > 0 ? jsonencode(local.traefik_labels) : ""
+  description    = length(local.traefik_labels) > 0 ? join("\n", [for k, v in local.traefik_labels : "${k}=${v}"]) : ""
 }
 
 # =============================================================================

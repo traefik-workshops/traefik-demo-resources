@@ -19,9 +19,9 @@
 #    --hub.providers.proxmox provider exactly like the VM child, but with
 #    guest_types = ["lxc"], so it discovers ONLY the LXC guests — the separation is
 #    enforced at discovery, not just by what each child routes. (The VM child sets
-#    guest_types = ["qemu"].) The provider reads a JSON traefik.* label map from each
-#    guest's Notes and resolves the container's IP via the PVE container-interfaces API
-#    (LXC has no guest agent).
+#    guest_types = ["qemu"].) The provider reads LINE-FORMAT traefik.* labels (one
+#    traefik.key=value per line) from each guest's Notes and resolves the container's IP
+#    via the PVE container-interfaces API (LXC has no guest agent).
 #
 # The Hub binary comes from the same image the rest of the mesh runs (custom_image_*),
 # extracted with crane. The demo runs a pre-release build that ships only as an image,
@@ -91,7 +91,8 @@ module "config" {
   enable_prometheus            = var.enable_prometheus
   enable_access_logs           = var.enable_access_logs
 
-  # Plugins & Extensions — the proxmox plugin rides here, same as the VM child.
+  # Plugins & Extensions — the native proxmox provider's CLI flags ride here (appended to
+  # custom_arguments), same as the VM child.
   custom_plugins       = var.custom_plugins
   custom_ports         = var.custom_ports
   custom_arguments     = concat(var.custom_arguments, local.proxmox_provider_args)
@@ -215,7 +216,7 @@ module "lxc" {
     (var.container_name) = {
       # No traefik.enable label: this gateway must not discover ITSELF as a backend. Its
       # dashboard is advertised over the uplink instead (a file rule), like the VM child's.
-      description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Runs the NX211 plugin (which sees every guest — it cannot be scoped) but only ROUTES the LXC services; the VM child routes the VM ones."
+      description = "Traefik Hub — the LXC child gateway (${var.otlp_service_name}). Runs the native proxmox provider scoped with guest_types=[\"lxc\"], so it discovers ONLY the LXC services; the VM child discovers the VM ones."
 
       # STATIC, always: the hub dials https://<this address>:9443 for the uplink, so the
       # address has to be known at plan time. A container reports no DHCP lease back to

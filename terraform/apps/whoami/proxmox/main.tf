@@ -1,21 +1,18 @@
 # whoami on Proxmox VE guests — the on-prem sibling of apps/whoami/vsphere /
-# apps/whoami/ec2 / apps/whoami/gce, targeting the open-source
-# github.com/NX211/traefik-proxmox-provider Traefik PLUGIN (see
-# traefik/proxmox-vm), not a first-party hub provider.
+# apps/whoami/ec2 / apps/whoami/gce, discovered by the native first-party Hub
+# Proxmox provider (--hub.providers.proxmox.*; see traefik/proxmox-vm).
 #
-# THE LABEL FORMAT IS LINES, NOT JSON: the plugin reads each guest's
-# Notes/description field LINE BY LINE — one `traefik.key=value` per line
-# (`traefik.enable=true` is mandatory; the parser lowercases keys). Each app's
-# `traefik_labels` map is rendered as that line format into the guest
+# THE LABEL FORMAT IS LINES, NOT JSON: PVE tags are flat strings that can't hold
+# key=value, so the provider reads each guest's Notes/description field LINE BY
+# LINE — one `traefik.key=value` per line (`traefik.enable=true` is mandatory).
+# Each app's `traefik_labels` map is rendered as that line format into the guest
 # description. NOT the vsphere sibling's JSON blob, NOT EC2/Azure dotted tags.
 #
-# ONE SERVICE PER GUEST — no server merging (verified against the plugin
-# source, v0.8.1): each labeled service gets EXACTLY ONE server (the guest's
-# IP), and a same-named service on another guest OVERWRITES it (last write
-# wins). Identical labels on N replicas do NOT merge into one N-server service
-# like the vsphere/EC2 providers — give every guest UNIQUE service names and
-# compose the spread upstream (e.g. a weighted file-provider service on the
-# gateway; see demos/proxmox-unified-ingress).
+# The native provider MERGES same-named services across guests (identical labels
+# on N replicas fold into one N-server load balancer, like the vsphere/EC2
+# providers). The proxmox demo gives each guest a UNIQUE service name and
+# composes the spread with a weighted file-provider service on the gateway (see
+# demos/proxmox-unified-ingress).
 #
 # Two guest types per app (`type`):
 #   "vm" (default) — a QEMU clone of a cloud-init-enabled Ubuntu cloud-image
@@ -61,12 +58,12 @@ locals {
 
   vm_apps = toset([for k, inst in local.vm_instances : inst.app_name])
 
-  # The native proxmox provider reads a JSON label map from the guest's description/Notes
-  # (extractTraefikDescription finds the {...} block and json-decodes the traefik.* keys) —
-  # NOT the old NX211 plugin's one-key=value-per-line format. jsonencode the dotted labels.
+  # The native proxmox provider reads LINE-FORMAT labels from the guest's description/Notes
+  # (extractTraefikDescription parses one `traefik.<key>=<value>` per line; blank lines and a
+  # leading `# comment` are tolerated). Render the dotted label map into that block.
   descriptions = {
     for k, inst in local.instances_map :
-    k => jsonencode(inst.traefik_labels)
+    k => join("\n", [for lk, lv in inst.traefik_labels : "${lk}=${lv}"])
   }
 }
 
@@ -96,15 +93,15 @@ module "vm" {
   instances = {
     for k, inst in local.vm_instances : k => {
       user_data = module.cloud_init[inst.app_name].rendered
-      # The plugin's workload config: traefik.* labels, one per line, in the Notes.
+      # The provider's workload config: traefik.* labels, one per line, in the Notes.
       description = length(inst.traefik_labels) > 0 ? local.descriptions[k] : null
     }
   }
 }
 
 # --- LXC containers (type = "lxc") — the shared compute/proxmox/lxc primitive ---
-# DHCP containers (the proxmox plugin discovers their IPs via the PVE API, since
-# a container has no guest agent). The container is infra and lives in the
+# DHCP containers (the native proxmox provider discovers their IPs via the PVE
+# lxc interfaces API, since a container has no guest agent). The container is infra and lives in the
 # module; whoami is installed via pct-exec below (role config), reading each
 # container id back out. The `lxc_template_file_id is required` precondition
 # moved onto that terraform_data — this caller no longer has a container
@@ -122,7 +119,7 @@ module "lxc" {
 
   instances = {
     for k, inst in local.lxc_instances : k => {
-      # Same line-format labels — the plugin reads container Notes identically
+      # Same line-format labels — the provider reads container Notes identically
       # (container IPs come from the PVE lxc interfaces endpoint, no agent).
       description = length(inst.traefik_labels) > 0 ? local.descriptions[k] : null
       # ip_address defaults to "dhcp"; gateway/dns stay unset (no static addressing).
