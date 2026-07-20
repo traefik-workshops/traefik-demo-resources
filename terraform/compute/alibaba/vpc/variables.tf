@@ -20,3 +20,9 @@ variable "extra_ingress_ports" {
   description = "Additional TCP ports to open on the demo security group from INSIDE the VPC only, beyond the default 80/443/8080/22 (those are open to any source). Default covers the Traefik Hub multicluster uplink entrypoint (:9443) on ECS/ECI spokes the parent cluster dials."
   default     = [9443]
 }
+
+variable "enable_nat_gateway" {
+  type        = bool
+  description = "Attach a shared NAT gateway (with a PayByTraffic EIP + one SNAT rule per vswitch) so vswitch workloads have OUTBOUND internet — required for ECS/ECI spokes to pull images from ghcr.io (an Alibaba VPC has no default egress). Egress only: no public inbound on the spokes. Off only when the vswitch already has another egress path."
+  default     = true
+}

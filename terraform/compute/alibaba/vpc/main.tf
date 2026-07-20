@@ -59,3 +59,47 @@ resource "alicloud_security_group_rule" "ingress" {
   cidr_ip           = each.value.cidr
   security_group_id = alicloud_security_group.demo.id
 }
+
+# Outbound internet for the vswitches. Unlike Azure (default outbound) and AWS (an IGW +
+# route), an Alibaba VPC has NO egress until you give it one: without this the ECS/ECI spokes
+# boot fine but their image pulls time out ("ensure the VPC network has public network access")
+# — ghcr.io is unreachable, so every container is stuck ImagePullBackOff and the demo never
+# comes up. A shared NAT gateway (egress-only, no public inbound on the spokes — the parent
+# still dials private vswitch IPs) is the delivery the ECS module's enable_public_ip note calls
+# for ("docker pulls need a NAT gateway on the vswitch"), and one NAT covers BOTH spoke types.
+resource "alicloud_nat_gateway" "demo" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  vpc_id           = alicloud_vpc.demo.id
+  nat_gateway_name = "${var.name}-nat"
+  vswitch_id       = alicloud_vswitch.demo[0].id # Enhanced NAT lives in a vswitch
+  nat_type         = "Enhanced"
+  network_type     = "internet"
+}
+
+resource "alicloud_eip_address" "nat" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  address_name         = "${var.name}-nat-eip"
+  bandwidth            = "10"
+  internet_charge_type = "PayByTraffic"
+}
+
+resource "alicloud_eip_association" "nat" {
+  count = var.enable_nat_gateway ? 1 : 0
+
+  allocation_id = alicloud_eip_address.nat[0].id
+  instance_id   = alicloud_nat_gateway.demo[0].id
+  instance_type = "Nat"
+}
+
+# One SNAT rule per vswitch — every spoke on any vswitch egresses through the NAT's EIP.
+resource "alicloud_snat_entry" "demo" {
+  count = var.enable_nat_gateway ? length(alicloud_vswitch.demo) : 0
+
+  depends_on = [alicloud_eip_association.nat]
+
+  snat_table_id     = alicloud_nat_gateway.demo[0].snat_table_ids
+  source_vswitch_id = alicloud_vswitch.demo[count.index].id
+  snat_ip           = alicloud_eip_address.nat[0].ip_address
+}
