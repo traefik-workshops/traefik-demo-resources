@@ -233,8 +233,14 @@ resource "terraform_data" "lxc_whoami" {
       # trailing rm masking it with exit 0, which silently left the container on its old
       # binary (a green apply hid an un-provisioned LXC).
       "set -e",
-      "sudo pct push ${module.lxc.instances[each.key].id} /tmp/whoami-${each.key}-setup.sh /tmp/whoami-setup.sh",
-      "sudo pct exec ${module.lxc.instances[each.key].id} -- bash /tmp/whoami-setup.sh",
+      # The container reports `started` the instant the start is issued, but its systemd
+      # is still booting — and boot recreates /tmp (systemd-tmpfiles/tmp.mount), wiping a
+      # script pushed too early so the exec hits status 127. Wait for boot to settle, then
+      # push to /root (persistent, never boot-cleaned) rather than /tmp. The same wait also
+      # guarantees the network is up for the setup script's crane export / release download.
+      "for i in $(seq 1 60); do sudo pct exec ${module.lxc.instances[each.key].id} -- systemctl is-system-running 2>/dev/null | grep -qE 'running|degraded' && break; sleep 2; done",
+      "sudo pct push ${module.lxc.instances[each.key].id} /tmp/whoami-${each.key}-setup.sh /root/whoami-setup.sh",
+      "sudo pct exec ${module.lxc.instances[each.key].id} -- bash /root/whoami-setup.sh",
       "rm -f /tmp/whoami-${each.key}-setup.sh",
     ]
   }
