@@ -16,8 +16,9 @@ module "observability_prometheus" {
 module "observability_grafana_loki" {
   source = "../../grafana-loki/k8s"
 
-  namespace   = var.namespace
-  tolerations = var.tolerations
+  namespace    = var.namespace
+  tolerations  = var.tolerations
+  extra_values = var.loki_extra_values
 }
 
 module "observability_grafana_tempo" {

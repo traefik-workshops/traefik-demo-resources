@@ -84,6 +84,12 @@ variable "grafana_extra_values" {
   default     = {}
 }
 
+variable "loki_extra_values" {
+  type        = any
+  description = "Extra values to pass to the Loki deployment (e.g. per-cloud PVC size/storageClass overrides for its single-binary + bundled minio)."
+  default     = {}
+}
+
 variable "prometheus_url_override" {
   type        = string
   default     = ""
