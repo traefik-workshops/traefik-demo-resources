@@ -40,6 +40,22 @@ resource "pnap_server" "metal" {
   # anything, and still billed — the demos leaked 17 of them before this was set.
   delete_ip_blocks = var.delete_ip_blocks
 
+  # Attach a caller-supplied block when the guests need public addresses too (see
+  # var.ip_block_id). Omitted -> BMC allocates its default /30 for the host alone.
+  dynamic "network_configuration" {
+    for_each = var.ip_block_id == null ? [] : [var.ip_block_id]
+    content {
+      ip_blocks_configuration {
+        configuration_type = "USER_DEFINED"
+        ip_blocks {
+          server_ip_block {
+            id = network_configuration.value
+          }
+        }
+      }
+    }
+  }
+
   lifecycle {
     # DO NOT REMOVE. management_access_allowed_ips is PROVISION-TIME ONLY: the
     # provider has no in-place update path, so any diff on it REPLACES the server —

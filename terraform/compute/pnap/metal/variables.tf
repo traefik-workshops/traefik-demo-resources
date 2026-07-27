@@ -9,6 +9,12 @@ variable "description" {
   default     = "traefik-demo private-cloud host"
 }
 
+variable "ip_block_id" {
+  type        = string
+  default     = null
+  description = "Attach a PRE-ALLOCATED public IP block (a pnap_ip_block id) instead of letting BMC allocate one. Use it when guests need public addresses of their own: BMC's default allocation is a /30 whose four addresses are all consumed by the network, gateway, host and broadcast, it permits exactly ONE block per server, and a block can only be attached at CREATE — so a bigger block has to be requested here, and changing it REPLACES the server. null = let BMC allocate (the default /30, fine when only the host needs an address)."
+}
+
 variable "delete_ip_blocks" {
   type        = bool
   default     = true
