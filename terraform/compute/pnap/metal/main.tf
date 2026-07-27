@@ -35,6 +35,11 @@ resource "pnap_server" "metal" {
   pricing_model = var.pricing_model
   network_type  = var.network_type
 
+  # Take the auto-allocated public IP block down WITH the server. Without this BMC keeps
+  # the block after `terraform destroy`: it is no longer in state, no longer attached to
+  # anything, and still billed — the demos leaked 17 of them before this was set.
+  delete_ip_blocks = var.delete_ip_blocks
+
   lifecycle {
     # DO NOT REMOVE. management_access_allowed_ips is PROVISION-TIME ONLY: the
     # provider has no in-place update path, so any diff on it REPLACES the server —

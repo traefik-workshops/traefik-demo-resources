@@ -9,6 +9,12 @@ variable "description" {
   default     = "traefik-demo private-cloud host"
 }
 
+variable "delete_ip_blocks" {
+  type        = bool
+  default     = true
+  description = "Delete the server's auto-allocated public IP block when the server is destroyed. Defaults TRUE because BMC otherwise KEEPS the block — it outlives `terraform destroy`, stays billable, and nothing in the demo's state references it any more. That is not hypothetical: 17 orphaned /31s accumulated across two weeks of private-cloud runs before this was set. Flip to false only if you deliberately want to retain an address across re-provisions (you then own deleting it)."
+}
+
 variable "os" {
   type        = string
   description = "BMC OS image. The three the private-cloud demos use: proxmox/proxmox9 (Proxmox demo), esxi/esxi80 (vSphere demo — 60-day eval, deploy VCSA on top), ubuntu/noble (Morpheus demo — install the hpe-vm stack). Full list: the ServerCreate model in the BMC API docs. Changing it replaces the server."
