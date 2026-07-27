@@ -92,6 +92,19 @@ resource "vsphere_virtual_machine" "vm" {
     template_uuid = data.vsphere_virtual_machine.template.id
   }
 
+  # A CLIENT cdrom, required whenever the template carries vApp properties with the
+  # default `iso` OVF environment transport — which every stock cloud-image OVA does
+  # (Ubuntu's ubuntu-24.04-server-cloudimg-amd64.ova included). Without it the plan fails
+  # with "this virtual machine requires a client CDROM device to deliver vApp properties",
+  # and adding the device to the TEMPLATE is not enough: vSphere wants it on the clone.
+  #
+  # Nothing is mounted in it. This module delivers cloud-init through the guestinfo keys
+  # below, not through an OVF environment ISO; the device exists only to satisfy the
+  # template's declared transport.
+  cdrom {
+    client_device = true
+  }
+
   extra_config = merge(
     {
       "guestinfo.userdata"          = base64encode(var.user_data[each.key])

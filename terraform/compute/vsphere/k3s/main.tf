@@ -100,6 +100,13 @@ resource "vsphere_virtual_machine" "k3s" {
     template_uuid = data.vsphere_virtual_machine.template.id
   }
 
+  # See compute/vsphere/vm: a stock cloud-image OVA declares vApp properties with the
+  # `iso` OVF transport, and vSphere then requires a CLIENT cdrom on the CLONE (not just
+  # on the template). Nothing is mounted; cloud-init rides the guestinfo keys below.
+  cdrom {
+    client_device = true
+  }
+
   extra_config = {
     "guestinfo.userdata"          = base64encode(local.user_data)
     "guestinfo.userdata.encoding" = "base64"
