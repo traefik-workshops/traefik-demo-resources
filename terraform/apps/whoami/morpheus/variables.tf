@@ -136,6 +136,12 @@ variable "resource_pool_id" {
   default     = null
 }
 
+variable "computed_placement_ids" {
+  type        = bool
+  default     = false
+  description = "Passthrough to compute/morpheus/vm: set true when instance_type_id / instance_layout_id / resource_pool_id are supplied from apply-time values (they go unknown at destroy and break the name-lookup count with Invalid count argument). See that module's variable of the same name."
+}
+
 variable "enable_provisioning_workflow" {
   type        = bool
   description = "Wrap the bootstrap task in a Morpheus PROVISIONING WORKFLOW (a task-set) and attach it to each instance via task_set_id — the native path, which runs the bootstrap at postProvision. Requires features.workflows: HPE VM Essentials does NOT have it (POST /api/task-sets -> 403 \"Feature Not Included for the Applied License\", and the 403 fires before body validation). Set FALSE on VME and execute the task DIRECTLY instead — POST /api/tasks/{id}/execute is ungated (it answers 404 for a bogus id, not 403), and the task resource itself is fine (features.tasks=true). When false the CALLER owns triggering the bootstrap after provisioning; the module exposes bootstrap_task_ids for exactly that."

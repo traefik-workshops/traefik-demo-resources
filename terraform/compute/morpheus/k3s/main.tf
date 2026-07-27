@@ -38,12 +38,12 @@ data "hpe_morpheus_group" "this" {
 # provisioning works fine with ids alone. Kept name-based by default for full Morpheus, where the
 # Library IS licensed and names are friendlier than per-appliance ids.
 data "hpe_morpheus_instance_type" "this" {
-  count = var.instance_type_id == null ? 1 : 0
+  count = var.computed_placement_ids || var.instance_type_id != null ? 0 : 1
   name  = var.instance_type
 }
 
 data "hpe_morpheus_instance_type_layout" "this" {
-  count   = var.instance_layout_id == null ? 1 : 0
+  count   = var.computed_placement_ids || var.instance_layout_id != null ? 0 : 1
   name    = var.instance_layout
   version = var.instance_layout_version != "" ? var.instance_layout_version : null
 }
@@ -65,7 +65,7 @@ data "hpe_morpheus_network" "this" {
 # PLAN time. Pass var.resource_pool_id to bypass it; config_hvm.resource_pool_id is a string
 # anyway, which is exactly what "pool-1" is. Kept for full Morpheus, where real pools exist.
 data "hpe_morpheus_resource_pool" "this" {
-  count    = var.resource_pool_id == null ? 1 : 0
+  count    = var.computed_placement_ids || var.resource_pool_id != null ? 0 : 1
   cloud_id = data.hpe_morpheus_cloud.this.id
   name     = var.resource_pool_name
 }

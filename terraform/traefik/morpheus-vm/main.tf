@@ -207,6 +207,7 @@ module "compute" {
   instance_type_id             = var.instance_type_id
   instance_layout_id           = var.instance_layout_id
   resource_pool_id             = var.resource_pool_id
+  computed_placement_ids       = var.computed_placement_ids
   enable_provisioning_workflow = var.enable_provisioning_workflow
 
   apps = {
