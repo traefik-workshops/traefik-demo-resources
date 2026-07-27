@@ -111,3 +111,9 @@ variable "extra_networks" {
   default     = []
   description = "Additional portgroups to attach, in order, after var.network. Used for multi-homed VMs — the demo's router VM sits on the public VLAN and the internal one. Guest interface names follow the attach order (ens192, ens224, ...)."
 }
+
+variable "network_config" {
+  type        = any
+  default     = {}
+  description = "Per-instance cloud-init network-config v2, keyed by instance key. Merged into the guestinfo metadata, so it is applied at BOOT — before cloud-init installs packages or runs commands. That ordering is the point: a VM on a network without DHCP has no connectivity during the package stage, and anything configured later (a netplan file written by write_files, applied in runcmd) comes far too late to save the apt run. Empty = DHCP."
+}

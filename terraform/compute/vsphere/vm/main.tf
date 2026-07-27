@@ -125,7 +125,12 @@ resource "vsphere_virtual_machine" "vm" {
     {
       "guestinfo.userdata"          = base64encode(var.user_data[each.key])
       "guestinfo.userdata.encoding" = "base64"
-      "guestinfo.metadata"          = base64encode(jsonencode({ "instance-id" = each.key, "local-hostname" = each.key }))
+      "guestinfo.metadata" = base64encode(jsonencode(merge(
+        { "instance-id" = each.key, "local-hostname" = each.key },
+        # Network-config v2 when the caller supplies one — applied at boot, before the
+        # package stage (see var.network_config). Absent = cloud-init's DHCP fallback.
+        try(var.network_config[each.key], null) == null ? {} : { network = var.network_config[each.key] },
+      )))
       "guestinfo.metadata.encoding" = "base64"
     },
     # The caller's workload config (e.g. the vsphere provider's `guestinfo.traefik`
