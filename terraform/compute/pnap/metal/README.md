@@ -67,7 +67,8 @@ declares the requirement.
 | <a name="output_os"></a> [os](#output\_os) | The OS image the server was provisioned with. |
 | <a name="output_password"></a> [password](#output\_password) | Generated root/admin password — the day-one access for the ESXi image (the Linux images use ssh\_keys instead). |
 | <a name="output_private_ip_addresses"></a> [private\_ip\_addresses](#output\_private\_ip\_addresses) | Private (backend-network) IPs. |
-| <a name="output_public_ip"></a> [public\_ip](#output\_public\_ip) | Primary public IP — where the operator (and the demo's terraform) reaches the hypervisor API (Proxmox :8006, ESXi/VCSA :443, Morpheus manager). |
+| <a name="output_public_ip"></a> [public\_ip](#output\_public\_ip) | Primary public IP — where the operator (and the demo's terraform) reaches the hypervisor API (Proxmox :8006, ESXi/VCSA :443, Morpheus manager). This is the HOST's own address; with a multi-address block the rest are free for guests (see public\_ip\_range). |
 | <a name="output_public_ip_addresses"></a> [public\_ip\_addresses](#output\_public\_ip\_addresses) | All public IPs assigned to the server. |
+| <a name="output_public_ip_range"></a> [public\_ip\_range](#output\_public\_ip\_range) | The raw public address assignment. A single IP on the default /30; a "first - last" RANGE when a larger block is attached (var.ip\_block\_id) — the addresses after public\_ip are free for guests. |
 | <a name="output_status"></a> [status](#output\_status) | BMC provisioning status. |
 <!-- END_TF_DOCS -->
