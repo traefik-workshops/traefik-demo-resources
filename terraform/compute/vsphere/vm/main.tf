@@ -117,6 +117,9 @@ resource "vsphere_virtual_machine" "vm" {
     try(var.extra_config[each.key], {})
   )
 
+  # vCenter tags (ids) for this VM — e.g. the Traefik services it backs.
+  tags = try(var.tags[each.key], [])
+
   # The `instances` output reads default_ip_address, reported by open-vm-tools
   # (the Ubuntu cloud images ship it) — also what gates the provider's
   # discovery: no tools, no guest IP, no route.

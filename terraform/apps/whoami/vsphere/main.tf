@@ -32,6 +32,7 @@ locals {
         key            = "${app_name}-${replica_idx + 1}"
         app_name       = app_name
         traefik_labels = try(app_config.traefik_labels, {})
+        services       = try(app_config.services, [])
       }
     ]
   ])
@@ -72,5 +73,49 @@ module "compute" {
   # an app carries no labels, exactly as before.
   extra_config = {
     for key, inst in local.instances_map : key => length(inst.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(inst.traefik_labels) } : {}
+  }
+
+  # vCenter tags naming the services each VM backs — how the Hub vsphere provider
+  # discovers them (see the tag block below).
+  tags = local.instance_tag_ids
+}
+
+# --- vCenter tags: which SERVICES each VM backs -----------------------------------
+# The vCenter-native Traefik Hub provider reads service membership from tags, not from
+# per-VM labels: a VM tagged `vmrr` in the service-name category is a server of the
+# `vmrr` service. The category must be MULTIPLE-cardinality, which is what lets one VM
+# carry several tags and so appear in several services — the same fleet published under
+# wrr, leasttime and hrw, which is the whole point of the load-balancing acts.
+#
+# The category and tags are looked up, not created: they are demo-wide (and the category's
+# cardinality matters), so the caller owns them.
+data "vsphere_tag_category" "traefik_service" {
+  count = length(local.service_tag_pairs) > 0 ? 1 : 0
+  name  = var.service_tag_category
+}
+
+data "vsphere_tag" "service" {
+  for_each = toset(flatten([for inst in local.instances : inst.services]))
+
+  name        = each.value
+  category_id = data.vsphere_tag_category.traefik_service[0].id
+}
+
+locals {
+  # One (vm, service) pair per tag to attach.
+  service_tag_pairs = flatten([
+    for key, inst in local.instances_map : [
+      for svc in inst.services : { key = key, service = svc }
+    ]
+  ])
+}
+
+locals {
+  # instance key -> the tag ids that VM carries. Attached through the VM resource's own
+  # `tags` argument (the vsphere provider has no separate attach resource), so tagging is
+  # part of creating the VM rather than a second-pass association.
+  instance_tag_ids = {
+    for key, inst in local.instances_map :
+    key => [for svc in inst.services : data.vsphere_tag.service[svc].id]
   }
 }

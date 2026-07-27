@@ -99,3 +99,9 @@ variable "extra_config" {
   type        = map(map(string))
   default     = {}
 }
+
+variable "tags" {
+  type        = map(list(string))
+  default     = {}
+  description = "vCenter tag IDs to attach, keyed by instance key. The vsphere provider has no standalone attach resource — tags ride the VM resource itself, so they are set at create. Used to declare which Traefik services a VM backs (the Hub vsphere provider discovers by tag)."
+}

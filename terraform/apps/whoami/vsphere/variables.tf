@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. Same shape as apps/whoami/gce: { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (dotted Traefik label -> value) is jsonencode()d into the VM's `guestinfo.traefik` extraConfig entry; optional `environment` (map) is merged over the module-level `environment` into the container."
+  description = "Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, services } } — `services` is a list of vCenter TAG names (in var.service_tag_category) naming the Traefik services these VMs back; each VM is attached to every one, which is how the Hub vsphere provider discovers them. Optional `environment` (map) is merged over the module-level `environment` into the container. `traefik_labels` is accepted but INERT: the vCenter-native provider reads tags, not per-VM labels."
   type        = any
   default     = {}
 }
@@ -84,4 +84,10 @@ variable "environment" {
   description = "Environment variables passed to every whoami container (docker -e), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
   type        = map(string)
   default     = {}
+}
+
+variable "service_tag_category" {
+  type        = string
+  default     = "TraefikServiceName"
+  description = "vCenter tag CATEGORY naming Traefik services. Each app's `services` list names tags in this category, and every VM of that app is attached to each — that is how the Hub vsphere provider learns which services a VM backs. The category must exist and be MULTIPLE-cardinality (a VM backing three LB-strategy services carries three tags); the caller owns creating it."
 }
