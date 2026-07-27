@@ -50,6 +50,13 @@ data "vsphere_network" "this" {
   datacenter_id = data.vsphere_datacenter.this.id
 }
 
+data "vsphere_network" "extra" {
+  for_each = toset(var.extra_networks)
+
+  name          = each.value
+  datacenter_id = data.vsphere_datacenter.this.id
+}
+
 data "vsphere_virtual_machine" "template" {
   name          = var.template
   datacenter_id = data.vsphere_datacenter.this.id
@@ -78,6 +85,15 @@ resource "vsphere_virtual_machine" "vm" {
   network_interface {
     network_id   = data.vsphere_network.this.id
     adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+  }
+
+  # Additional NICs, in declaration order — the guest names them ens192, ens224, ...
+  dynamic "network_interface" {
+    for_each = var.extra_networks
+    content {
+      network_id   = data.vsphere_network.extra[network_interface.value].id
+      adapter_type = data.vsphere_virtual_machine.template.network_interface_types[0]
+    }
   }
 
   disk {

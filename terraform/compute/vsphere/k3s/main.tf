@@ -62,11 +62,27 @@ locals {
     var.ssh_public_key != "" ? { ssh_authorized_keys = [var.ssh_public_key] } : {},
   ))])
 
-  metadata = jsonencode({
-    "instance-id"    = var.vm_name
-    "local-hostname" = var.vm_name
-    # DHCP by default — cloud-init's fallback network config; no static wiring.
-  })
+  metadata = jsonencode(merge(
+    {
+      "instance-id"    = var.vm_name
+      "local-hostname" = var.vm_name
+    },
+    # DHCP by default — cloud-init's fallback network config. A static address is wired
+    # through the guestinfo datasource's network-config v2 when the network has no DHCP
+    # (or when this node's address must be known before it boots).
+    var.static_ip == "" ? {} : {
+      network = {
+        version = 2
+        ethernets = {
+          ens192 = {
+            addresses   = [var.static_ip]
+            nameservers = { addresses = var.static_nameservers }
+            routes      = var.static_gateway == "" ? [] : [{ to = "default", via = var.static_gateway }]
+          }
+        }
+      }
+    },
+  ))
 }
 
 resource "vsphere_virtual_machine" "k3s" {

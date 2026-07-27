@@ -86,6 +86,12 @@ variable "environment" {
   default     = {}
 }
 
+variable "service_tag_ids" {
+  type        = map(string)
+  default     = {}
+  description = "vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet."
+}
+
 variable "service_tag_category" {
   type        = string
   default     = "TraefikServiceName"

@@ -116,3 +116,21 @@ variable "update_kubeconfig" {
   default     = true
   description = "Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`."
 }
+
+variable "static_ip" {
+  type        = string
+  default     = ""
+  description = "Static address for the node, as CIDR (e.g. 10.10.10.10/24). Empty = DHCP. Needed where the network has no DHCP server, or where something downstream must know this node's address ahead of time — the demo's router publishes :80/:443 to it, so it cannot be a lease."
+}
+
+variable "static_gateway" {
+  type        = string
+  default     = ""
+  description = "Default gateway for var.static_ip. Ignored on DHCP."
+}
+
+variable "static_nameservers" {
+  type        = list(string)
+  default     = ["8.8.8.8", "1.1.1.1"]
+  description = "Resolvers for var.static_ip. Ignored on DHCP."
+}

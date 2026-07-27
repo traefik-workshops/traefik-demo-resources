@@ -81,41 +81,17 @@ module "compute" {
 }
 
 # --- vCenter tags: which SERVICES each VM backs -----------------------------------
-# The vCenter-native Traefik Hub provider reads service membership from tags, not from
-# per-VM labels: a VM tagged `vmrr` in the service-name category is a server of the
-# `vmrr` service. The category must be MULTIPLE-cardinality, which is what lets one VM
-# carry several tags and so appear in several services — the same fleet published under
-# wrr, leasttime and hrw, which is the whole point of the load-balancing acts.
+# The vCenter-native Traefik Hub provider reads service membership from tags: a VM tagged
+# `vmrr` is a server of the `vmrr` service, and a MULTIPLE-cardinality category lets one
+# VM carry several tags and so back several services (the same fleet under three LB
+# strategies — the whole point of the load-balancing acts).
 #
-# The category and tags are looked up, not created: they are demo-wide (and the category's
-# cardinality matters), so the caller owns them.
-data "vsphere_tag_category" "traefik_service" {
-  count = length(local.service_tag_pairs) > 0 ? 1 : 0
-  name  = var.service_tag_category
-}
-
-data "vsphere_tag" "service" {
-  for_each = toset(flatten([for inst in local.instances : inst.services]))
-
-  name        = each.value
-  category_id = data.vsphere_tag_category.traefik_service[0].id
-}
-
+# Tag IDs are passed IN rather than looked up here. The caller creates the category and
+# tags, and a data-source lookup in the same apply cannot see resources that apply has
+# not created yet ("category name ... not found").
 locals {
-  # One (vm, service) pair per tag to attach.
-  service_tag_pairs = flatten([
-    for key, inst in local.instances_map : [
-      for svc in inst.services : { key = key, service = svc }
-    ]
-  ])
-}
-
-locals {
-  # instance key -> the tag ids that VM carries. Attached through the VM resource's own
-  # `tags` argument (the vsphere provider has no separate attach resource), so tagging is
-  # part of creating the VM rather than a second-pass association.
   instance_tag_ids = {
     for key, inst in local.instances_map :
-    key => [for svc in inst.services : data.vsphere_tag.service[svc].id]
+    key => [for svc in inst.services : var.service_tag_ids[svc]]
   }
 }

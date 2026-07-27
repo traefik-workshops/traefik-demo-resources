@@ -105,3 +105,9 @@ variable "tags" {
   default     = {}
   description = "vCenter tag IDs to attach, keyed by instance key. The vsphere provider has no standalone attach resource — tags ride the VM resource itself, so they are set at create. Used to declare which Traefik services a VM backs (the Hub vsphere provider discovers by tag)."
 }
+
+variable "extra_networks" {
+  type        = list(string)
+  default     = []
+  description = "Additional portgroups to attach, in order, after var.network. Used for multi-homed VMs — the demo's router VM sits on the public VLAN and the internal one. Guest interface names follow the attach order (ens192, ens224, ...)."
+}
