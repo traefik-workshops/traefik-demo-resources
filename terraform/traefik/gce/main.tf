@@ -109,8 +109,21 @@ locals {
 
 # ADC inside the container resolves this identity via the metadata server
 # (reachable thanks to --network host in the cloud-init's docker run).
+# The account_id carries a per-execution suffix, and that is load-bearing. GCP does not
+# release a deleted service-account name immediately -- recreating one with the same id
+# shortly after a destroy returns
+#   Error 409: Service account traefik-gce already exists ... alreadyExists
+# even though `gcloud iam service-accounts list` shows nothing (verified: a teardown
+# reported clean, and the very next `make up` 409'd on this exact name). Google's own
+# guidance is not to reuse deleted service-account names; a fresh id per run obeys it and
+# removes a whole class of un-rebuildable-for-30-days failures. Same reasoning as the
+# Identity Toolkit API key in demos/gcp-unified-ingress/identity.tf.
+resource "random_id" "sa_suffix" {
+  byte_length = 3
+}
+
 resource "google_service_account" "traefik" {
-  account_id   = var.service_account_id
+  account_id   = "${var.service_account_id}-${random_id.sa_suffix.hex}"
   display_name = "Traefik Hub gce provider identity (${var.vm_name})"
 }
 

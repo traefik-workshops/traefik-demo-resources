@@ -75,12 +75,14 @@ module "gce_traefik" {
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 6.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | ~> 3.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
 
 ## Resources
 
@@ -88,6 +90,7 @@ module "gce_traefik" {
 | ---- | ---- |
 | [google_project_iam_member.viewer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
 | [google_service_account.traefik](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
+| [random_id.sa_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
 
 ## Inputs
 
