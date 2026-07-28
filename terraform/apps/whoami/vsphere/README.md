@@ -56,19 +56,14 @@ module "whoami_vsphere" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_vsphere"></a> [vsphere](#requirement\_vsphere) | ~> 2.0 |
 
 ## Providers
 
-| Name | Version |
-| ---- | ------- |
-| <a name="provider_vsphere"></a> [vsphere](#provider\_vsphere) | ~> 2.0 |
+No providers.
 
 ## Resources
 
-| Name | Type |
-| ---- | ---- |
-| [vsphere_virtual_machine.whoami](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs/resources/virtual_machine) | resource |
+No resources.
 
 ## Inputs
 
@@ -78,7 +73,7 @@ module "whoami_vsphere" {
 | <a name="input_datastore"></a> [datastore](#input\_datastore) | Name of the datastore backing the VMs' disks | `string` | n/a | yes |
 | <a name="input_network"></a> [network](#input\_network) | Name of the port group / network the VM NICs join (DHCP is assumed; the Traefik child dials each VM's guest IP) | `string` | n/a | yes |
 | <a name="input_template"></a> [template](#input\_template) | Name of the VM template to clone. Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template (e.g. imported from ubuntu-24.04-server-cloudimg-amd64.ova) — a plain installer-built template ignores the guestinfo userdata and whoami never starts. | `string` | n/a | yes |
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. Same shape as apps/whoami/gce: { name = { replicas, port, name, environment, traefik\_labels } } — `traefik_labels` (dotted Traefik label -> value) is jsonencode()d into the VM's `guestinfo.traefik` extraConfig entry; optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, services } } — `services` is a list of vCenter TAG names (in var.service\_tag\_category) naming the Traefik services these VMs back; each VM is attached to every one, which is how the Hub vsphere provider discovers them. Optional `environment` (map) is merged over the module-level `environment` into the container. `traefik_labels` is accepted but INERT: the vCenter-native provider reads tags, not per-VM labels. | `any` | `{}` | no |
 | <a name="input_cluster"></a> [cluster](#input\_cluster) | Name of the compute cluster to place the VMs in (its root resource pool). Provide this OR resource\_pool. | `string` | `""` | no |
 | <a name="input_disk_size"></a> [disk\_size](#input\_disk\_size) | Disk size in GB. Grown to at least the template's disk (vSphere can't shrink on clone). | `number` | `20` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment variables passed to every whoami container (docker -e), e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision. | `map(string)` | `{}` | no |
@@ -86,6 +81,7 @@ module "whoami_vsphere" {
 | <a name="input_memory"></a> [memory](#input\_memory) | Memory in MB per whoami VM | `number` | `1024` | no |
 | <a name="input_num_cpus"></a> [num\_cpus](#input\_num\_cpus) | vCPU count per whoami VM | `number` | `1` | no |
 | <a name="input_resource_pool"></a> [resource\_pool](#input\_resource\_pool) | Name/path of the resource pool to place the VMs in. Takes precedence over cluster. | `string` | `""` | no |
+| <a name="input_service_tag_ids"></a> [service\_tag\_ids](#input\_service\_tag\_ids) | vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet. The category itself never reaches this module — IDs are globally unique, so attaching a tag needs no category name. | `map(string)` | `{}` | no |
 | <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 

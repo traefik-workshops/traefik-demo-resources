@@ -78,6 +78,8 @@ locals {
     env_vars             = local.env_vars_list
     file_provider_config = var.file_provider_config
     extra_files          = var.extra_files
+    mount_docker_socket  = var.mount_docker_socket
+    extra_runcmd         = var.extra_runcmd
     performance_tuning   = local.performance_tuning
     otlp_address         = module.config.otlp_endpoint
     instance_name        = local.instance_key

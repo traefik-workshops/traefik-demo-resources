@@ -11,6 +11,8 @@ output "rendered" {
     env_vars             = var.env_vars
     file_provider_config = var.file_provider_config
     extra_files          = var.extra_files
+    mount_docker_socket  = var.mount_docker_socket
+    extra_runcmd         = var.extra_runcmd
     dashboard_config     = var.dashboard_config
     performance_tuning   = var.performance_tuning
     vip                  = var.vip

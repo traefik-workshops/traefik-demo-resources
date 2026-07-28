@@ -68,8 +68,13 @@ locals {
   user_data = templatefile("${path.module}/../cloud-init/cloud-init.tpl", {
     # Shared cloud-init snippets, rendered here and injected pre-rendered
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
-    docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
-    collector_gate       = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
+    docker_install = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
+    collector_gate = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
+    # Inert here: only the docker-provider leg needs the socket bound in or extra
+    # containers provisioned. The shared template requires both keys regardless --
+    # templatefile hard-errors on a key the template uses but the caller omits.
+    mount_docker_socket  = false
+    extra_runcmd         = []
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"
     cli_arguments        = local.cli_arguments

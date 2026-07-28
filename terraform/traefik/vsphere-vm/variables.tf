@@ -88,6 +88,18 @@ variable "extra_files" {
   default     = []
 }
 
+variable "mount_docker_socket" {
+  type        = bool
+  description = "Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg."
+  default     = false
+}
+
+variable "extra_runcmd" {
+  type        = list(string)
+  description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg)."
+  default     = []
+}
+
 # =============================================================================
 # Performance Tuning Configuration
 # =============================================================================
@@ -168,9 +180,15 @@ variable "vsphere_provider" {
 }
 
 variable "vsphere_password" {
-  description = "vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs."
+  description = "vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere_provider.enabled = false and has no business carrying a vCenter secret."
   type        = string
   sensitive   = true
+  default     = ""
+
+  validation {
+    condition     = !var.vsphere_provider.enabled || var.vsphere_password != ""
+    error_message = "vsphere_password is required when vsphere_provider.enabled (vSphere has no ambient identity — no instance profile, managed identity or IMDS to fall back on)."
+  }
 }
 
 variable "multicluster_provider" {

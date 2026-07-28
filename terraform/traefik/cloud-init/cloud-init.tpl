@@ -70,9 +70,14 @@ write_files:
       # the local whoami, and the instance metadata service (IMDS, the provider's
       # instance/resource-principal credentials) all work, matching how the k8s spokes run the
       # same image. The mounted dynamic dir carries the file-provider config.
+      # The Docker socket is bound in ONLY for a child whose discovery IS Docker
+      # (--providers.docker). Preview mode runs Traefik as a container with just the two
+      # binds above, so the provider would otherwise have no path to the daemon and would
+      # publish nothing. Default off: mounting the socket is root-equivalent access to the
+      # host, which no gateway that fronts anything real should have.
       ExecStartPre=-/usr/bin/docker rm -f traefik-hub
       ExecStartPre=/usr/bin/docker pull ${preview_image}
-      ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
+      ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data%{ if mount_docker_socket } -v /var/run/docker.sock:/var/run/docker.sock%{ endif } ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
       ExecStop=-/usr/bin/docker stop traefik-hub
 %{ else ~}
       ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
@@ -363,5 +368,14 @@ runcmd:
     # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
     ${indent(4, collector_gate)}
 %{ endif ~}
+%{ for cmd in extra_runcmd ~}
+  - |
+    # Caller-supplied provisioning for workloads that must SHARE this VM's Docker daemon —
+    # the docker-provider leg, whose containers only exist to be discovered through the
+    # socket bound in above. Deliberately placed here: after the preview block has installed
+    # Docker and pulled the gateway image, but BEFORE traefik-hub starts, so the provider's
+    # very first refresh already sees the containers instead of publishing an empty service.
+    ${indent(4, cmd)}
+%{ endfor ~}
   - systemctl enable --now traefik-hub
   - echo "Traefik Hub provisioning complete"

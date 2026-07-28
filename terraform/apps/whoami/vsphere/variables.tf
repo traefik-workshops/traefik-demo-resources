@@ -89,11 +89,5 @@ variable "environment" {
 variable "service_tag_ids" {
   type        = map(string)
   default     = {}
-  description = "vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet."
-}
-
-variable "service_tag_category" {
-  type        = string
-  default     = "TraefikServiceName"
-  description = "vCenter tag CATEGORY naming Traefik services. Each app's `services` list names tags in this category, and every VM of that app is attached to each — that is how the Hub vsphere provider learns which services a VM backs. The category must exist and be MULTIPLE-cardinality (a VM backing three LB-strategy services carries three tags); the caller owns creating it."
+  description = "vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet. The category itself never reaches this module — IDs are globally unique, so attaching a tag needs no category name."
 }

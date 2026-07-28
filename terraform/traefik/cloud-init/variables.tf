@@ -133,3 +133,15 @@ variable "dns_traefiker" {
     enabled = false
   }
 }
+
+variable "mount_docker_socket" {
+  type        = bool
+  description = "Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg."
+  default     = false
+}
+
+variable "extra_runcmd" {
+  type        = list(string)
+  description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg)."
+  default     = []
+}
