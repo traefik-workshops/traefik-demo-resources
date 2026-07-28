@@ -55,16 +55,22 @@ locals {
       env_vars             = local.env_vars_list
       file_provider_config = var.file_provider_config
       extra_files          = var.extra_files
-      performance_tuning   = local.performance_tuning
-      otlp_address         = module.config.otlp_endpoint
-      instance_name        = "traefik-${i + 1}" # Explicit unique name as requested
-      dashboard_config     = ""                 # Optional
-      vip                  = ""                 # Optional
-      keepalived_priority  = 100                # Optional
-      network_interface    = "ens3"             # Optional
-      dns_traefiker        = var.dns_traefiker
-      enable_preview_mode  = var.enable_preview_mode
-      preview_image        = module.config.image_full
+      # Inert here: only the docker-provider leg needs the socket bound in or extra
+      # containers provisioned. The shared template requires both keys regardless --
+      # templatefile hard-errors on a key the template uses but the caller omits.
+      mount_docker_socket = false
+      extra_runcmd        = []
+      ssh_public_key      = var.ssh_public_key
+      performance_tuning  = local.performance_tuning
+      otlp_address        = module.config.otlp_endpoint
+      instance_name       = "traefik-${i + 1}" # Explicit unique name as requested
+      dashboard_config    = ""                 # Optional
+      vip                 = ""                 # Optional
+      keepalived_priority = 100                # Optional
+      network_interface   = "ens3"             # Optional
+      dns_traefiker       = var.dns_traefiker
+      enable_preview_mode = var.enable_preview_mode
+      preview_image       = module.config.image_full
     })
   }
 

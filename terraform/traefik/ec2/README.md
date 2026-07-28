@@ -19,6 +19,8 @@ module "traefik" {
 - A Traefik Hub token.
 
 <!-- BEGIN_TF_DOCS -->
+
+
 ## Requirements
 
 | Name | Version |
@@ -33,14 +35,6 @@ module "traefik" {
 | ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 5.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
-
-## Modules
-
-| Name | Source | Version |
-| ---- | ------ | ------- |
-| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
-| <a name="module_ec2_primary"></a> [ec2\_primary](#module\_ec2\_primary) | ../../compute/aws/ec2 | n/a |
-| <a name="module_ec2_secondary"></a> [ec2\_secondary](#module\_ec2\_secondary) | ../../compute/aws/ec2 | n/a |
 
 ## Resources
 
@@ -102,6 +96,7 @@ module "traefik" {
 | <a name="input_replica_count"></a> [replica\_count](#input\_replica\_count) | Number of replicas (EC2 instances) | `number` | `1` | no |
 | <a name="input_root_block_device_size"></a> [root\_block\_device\_size](#input\_root\_block\_device\_size) | Root block device size in GB | `number` | `30` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs for EC2 instances | `list(string)` | `[]` | no |
+| <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt. | `string` | `""` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs for EC2 instances | `list(string)` | `[]` | no |
 | <a name="input_sync_acme"></a> [sync\_acme](#input\_sync\_acme) | Synchronize acme.json from the first instance to all others | `bool` | `false` | no |
 | <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh). | `string` | `"40.3.0"` | no |

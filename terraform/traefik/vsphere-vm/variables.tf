@@ -425,3 +425,9 @@ variable "enable_dashboard_discovery" {
   type        = bool
   default     = true
 }
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
+  default     = ""
+}

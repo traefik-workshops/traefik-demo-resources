@@ -414,3 +414,9 @@ variable "private_ip" {
   description = "Fixed private IP for the gateway VNIC. Must sit in subnet_id's CIDR outside OCI's reserved first-2/last-1 hosts and clear of the OKE node range. Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across VM recreation (the hub never dials a stale IP). Empty = DHCP."
   default     = ""
 }
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
+  default     = ""
+}

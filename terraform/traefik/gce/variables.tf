@@ -392,3 +392,9 @@ variable "extra_runcmd" {
   description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg)."
   default     = []
 }
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
+  default     = ""
+}

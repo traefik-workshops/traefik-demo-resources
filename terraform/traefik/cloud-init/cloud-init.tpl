@@ -8,6 +8,16 @@ users:
     shell: /bin/bash
     sudo: ["ALL=(ALL) NOPASSWD:ALL"]
     lock_passwd: false
+%{ if ssh_public_key != "" ~}
+    # Key auth alongside the demo password. Password-only was a genuine debugging tax:
+    # diagnosing the vSphere JWT failure needed an `expect` script to drive the prompt,
+    # and on Morpheus a REFUSED password was the only symptom of a child whose cloud-init
+    # had never run -- indistinguishable from a wrong password until it was ruled out.
+    # A key makes `ssh traefiker@<gw>` work from any script, and every caller already has
+    # one for its k3s/whoami guests.
+    ssh_authorized_keys:
+      - "${ssh_public_key}"
+%{ endif ~}
 
 chpasswd:
   expire: false

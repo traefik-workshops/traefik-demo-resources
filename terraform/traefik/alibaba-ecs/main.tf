@@ -74,6 +74,7 @@ locals {
     # containers provisioned. The shared template requires both keys regardless --
     # templatefile hard-errors on a key the template uses but the caller omits.
     mount_docker_socket  = false
+    ssh_public_key       = var.ssh_public_key
     extra_runcmd         = []
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"

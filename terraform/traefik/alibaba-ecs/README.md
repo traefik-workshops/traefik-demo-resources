@@ -45,32 +45,29 @@ module "traefik_alibaba_ecs" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_alicloud"></a> [alicloud](#requirement\_alicloud) | ~> 1.220 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [alicloud_ecs_ram_role_attachment.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ecs_ram_role_attachment) | resource |
-| [alicloud_instance.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/instance) | resource |
 | [alicloud_ram_policy.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_policy) | resource |
 | [alicloud_ram_role.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_role) | resource |
 | [alicloud_ram_role_policy_attachment.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_role_policy_attachment) | resource |
-| [alicloud_security_group.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/security_group) | resource |
-| [alicloud_security_group_rule.ingress](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/security_group_rule) | resource |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_vswitch_id"></a> [vswitch\_id](#input\_vswitch\_id) | ID of the existing vswitch the instance joins (the parent dials the instance's private IP :9443 in-VPC, e.g. compute/alibaba/vpc's vswitch\_id) | `string` | n/a | yes |
 | <a name="input_alibabaecs_provider"></a> [alibabaecs\_provider](#input\_alibabaecs\_provider) | Traefik Hub alibabaECS provider configuration (hub.providers.alibabaECS). region\_id defaults to the instance's own region (from the alicloud provider); endpoint defaults to the regional one. No access keys: empty credentials make the provider fall through the default chain (env -> profile -> instance RAM role via metadata — see enable\_ram\_role). | <pre>object({<br/>    enabled                       = optional(bool, true)<br/>    region_id                     = optional(string, "")<br/>    endpoint                      = optional(string, "")<br/>    ip_mode                       = optional(string, "private")<br/>    exposed_by_default            = optional(bool, false)<br/>    default_rule                  = optional(string, "")<br/>    constraints                   = optional(string, "")<br/>    refresh_seconds               = optional(number, null)<br/>    security_group_port_discovery = optional(bool, false)<br/>  })</pre> | `{}` | no |
 | <a name="input_custom_arguments"></a> [custom\_arguments](#input\_custom\_arguments) | Additional CLI arguments for Traefik | `list(string)` | `[]` | no |
@@ -111,9 +108,11 @@ module "traefik_alibaba_ecs" {
 | <a name="input_otlp_address"></a> [otlp\_address](#input\_otlp\_address) | OTLP collector endpoint | `string` | `""` | no |
 | <a name="input_otlp_service_name"></a> [otlp\_service\_name](#input\_otlp\_service\_name) | Service name for telemetry | `string` | `"traefik"` | no |
 | <a name="input_performance_tuning"></a> [performance\_tuning](#input\_performance\_tuning) | OS-level performance tuning parameters for high-throughput workloads | <pre>object({<br/>    # Systemd ulimits<br/>    limit_nofile = optional(number, 500000)<br/><br/>    # Sysctl network tuning<br/>    tcp_tw_reuse        = optional(number, 1)<br/>    tcp_timestamps      = optional(number, 1)<br/>    rmem_max            = optional(number, 16777216)<br/>    wmem_max            = optional(number, 16777216)<br/>    somaxconn           = optional(number, 4096)<br/>    netdev_max_backlog  = optional(number, 4096)<br/>    ip_local_port_range = optional(string, "1024 65535")<br/><br/>    # Go runtime tuning<br/>    gomaxprocs = optional(number, 0)   # 0 = use all CPUs<br/>    gogc       = optional(number, 100) # default GC target percentage<br/>    numa_node  = optional(number, -1)  # -1 = disabled, 0+ = pin to node<br/>  })</pre> | `{}` | no |
+| <a name="input_private_ip"></a> [private\_ip](#input\_private\_ip) | Fixed private IP for the gateway instance. Must sit in vswitch\_id's CIDR outside Alibaba's reserved first-3/last-1 hosts. Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across instance recreation (the hub never dials a stale IP). Empty = DHCP. | `string` | `""` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | Existing security group IDs to attach to the instance (Alibaba requires at least one unless enable\_security\_group is on, e.g. compute/alibaba/vpc's security\_group\_ids) | `list(string)` | `[]` | no |
 | <a name="input_security_group_ingress_ports"></a> [security\_group\_ingress\_ports](#input\_security\_group\_ingress\_ports) | TCP ports the module-created security group opens on the instance. Default covers HTTP(S), the dashboard, and the Hub multicluster uplink entrypoint (:9443) the parent dials. | `list(number)` | <pre>[<br/>  80,<br/>  443,<br/>  8080,<br/>  9443<br/>]</pre> | no |
 | <a name="input_security_group_source_cidr"></a> [security\_group\_source\_cidr](#input\_security\_group\_source\_cidr) | Source CIDR the module-created security group allows. Default covers RFC1918 VPCs (compute/alibaba/vpc's VPC is 10.0.0.0/16). | `string` | `"10.0.0.0/8"` | no |
+| <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt. | `string` | `""` | no |
 | <a name="input_system_disk_category"></a> [system\_disk\_category](#input\_system\_disk\_category) | System disk category. ESSD Entry pairs with the economy (e-series) default instance type; switch to cloud\_essd for g/c families. | `string` | `"cloud_essd_entry"` | no |
 | <a name="input_system_disk_size"></a> [system\_disk\_size](#input\_system\_disk\_size) | System disk size (GB) | `number` | `40` | no |
 | <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh). | `string` | `"40.3.0"` | no |
@@ -127,7 +126,7 @@ module "traefik_alibaba_ecs" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_instance_id"></a> [instance\_id](#output\_instance\_id) | ID of the Traefik ECS instance |
 | <a name="output_instances"></a> [instances](#output\_instances) | Map of the Traefik instance with its details (keyed like traefik/ec2: traefik-1) |
 | <a name="output_private_ips"></a> [private\_ips](#output\_private\_ips) | Map of instance names to their private IP addresses (the parent dials https://<private-ip>:9443) |

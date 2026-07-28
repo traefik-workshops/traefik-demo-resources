@@ -64,19 +64,14 @@ module "traefik_vsphere" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_vsphere"></a> [vsphere](#requirement\_vsphere) | ~> 2.0 |
 
 ## Providers
 
-| Name | Version |
-| ---- | ------- |
-| <a name="provider_vsphere"></a> [vsphere](#provider\_vsphere) | ~> 2.0 |
+No providers.
 
 ## Resources
 
-| Name | Type |
-| ---- | ---- |
-| [vsphere_virtual_machine.traefik](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs/resources/virtual_machine) | resource |
+No resources.
 
 ## Inputs
 
@@ -86,7 +81,6 @@ module "traefik_vsphere" {
 | <a name="input_datastore"></a> [datastore](#input\_datastore) | Name of the datastore backing the VM's disk | `string` | n/a | yes |
 | <a name="input_network"></a> [network](#input\_network) | Name of the port group / network the VM's NIC joins (DHCP is assumed; the parent dials the VM's guest IP :9443 in-network) | `string` | n/a | yes |
 | <a name="input_template"></a> [template](#input\_template) | Name of the VM template to clone. Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template (e.g. imported from ubuntu-24.04-server-cloudimg-amd64.ova) — a plain installer-built template ignores the guestinfo userdata and Traefik never starts. | `string` | n/a | yes |
-| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. | `string` | n/a | yes |
 | <a name="input_cluster"></a> [cluster](#input\_cluster) | Name of the compute cluster to place the VM in (its root resource pool). Provide this OR resource\_pool. | `string` | `""` | no |
 | <a name="input_custom_arguments"></a> [custom\_arguments](#input\_custom\_arguments) | Additional CLI arguments for Traefik | `list(string)` | `[]` | no |
 | <a name="input_custom_envs"></a> [custom\_envs](#input\_custom\_envs) | Custom environment variables | <pre>list(object({<br/>    name  = string<br/>    value = string<br/>  }))</pre> | `[]` | no |
@@ -115,24 +109,28 @@ module "traefik_vsphere" {
 | <a name="input_enable_prometheus"></a> [enable\_prometheus](#input\_enable\_prometheus) | Enable Prometheus metrics | `bool` | `false` | no |
 | <a name="input_extra_files"></a> [extra\_files](#input\_extra\_files) | Extra files to write to the VM at cloud-init time | <pre>list(object({<br/>    path    = string<br/>    content = string<br/>  }))</pre> | `[]` | no |
 | <a name="input_extra_labels"></a> [extra\_labels](#input\_extra\_labels) | Extra Traefik labels merged into the VM's own `guestinfo.traefik` extraConfig entry (on top of the dashboard self-registration labels, when enabled) | `map(string)` | `{}` | no |
+| <a name="input_extra_runcmd"></a> [extra\_runcmd](#input\_extra\_runcmd) | Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg). | `list(string)` | `[]` | no |
 | <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML configuration for Traefik file provider | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted | `string` | `"/etc/traefik-hub/dynamic"` | no |
 | <a name="input_folder"></a> [folder](#input\_folder) | VM folder to place the VM in. Empty = the datacenter root. | `string` | `""` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level (DEBUG, INFO, WARN, ERROR) | `string` | `"INFO"` | no |
 | <a name="input_memory"></a> [memory](#input\_memory) | Memory in MB | `number` | `4096` | no |
+| <a name="input_mount_docker_socket"></a> [mount\_docker\_socket](#input\_mount\_docker\_socket) | Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg. | `bool` | `false` | no |
 | <a name="input_multicluster_provider"></a> [multicluster\_provider](#input\_multicluster\_provider) | Traefik Hub multicluster provider configuration | <pre>object({<br/>    enabled      = optional(bool, false)<br/>    pollInterval = optional(number, null)<br/>    pollTimeout  = optional(number, null)<br/>    children     = optional(any, {})<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_num_cpus"></a> [num\_cpus](#input\_num\_cpus) | vCPU count | `number` | `2` | no |
 | <a name="input_otlp_address"></a> [otlp\_address](#input\_otlp\_address) | OTLP collector endpoint | `string` | `""` | no |
 | <a name="input_otlp_service_name"></a> [otlp\_service\_name](#input\_otlp\_service\_name) | Service name for telemetry | `string` | `"traefik"` | no |
 | <a name="input_performance_tuning"></a> [performance\_tuning](#input\_performance\_tuning) | OS-level performance tuning parameters for high-throughput workloads | <pre>object({<br/>    # Systemd ulimits<br/>    limit_nofile = optional(number, 500000)<br/><br/>    # Sysctl network tuning<br/>    tcp_tw_reuse        = optional(number, 1)<br/>    tcp_timestamps      = optional(number, 1)<br/>    rmem_max            = optional(number, 16777216)<br/>    wmem_max            = optional(number, 16777216)<br/>    somaxconn           = optional(number, 4096)<br/>    netdev_max_backlog  = optional(number, 4096)<br/>    ip_local_port_range = optional(string, "1024 65535")<br/><br/>    # Go runtime tuning<br/>    gomaxprocs = optional(number, 0)   # 0 = use all CPUs<br/>    gogc       = optional(number, 100) # default GC target percentage<br/>    numa_node  = optional(number, -1)  # -1 = disabled, 0+ = pin to node<br/>  })</pre> | `{}` | no |
 | <a name="input_resource_pool"></a> [resource\_pool](#input\_resource\_pool) | Name/path of the resource pool to place the VM in. Takes precedence over cluster. | `string` | `""` | no |
+| <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt. | `string` | `""` | no |
 | <a name="input_traefik_chart_version"></a> [traefik\_chart\_version](#input\_traefik\_chart\_version) | Traefik Helm chart version. 40.x renders the partial metrics.otlp block and ships multicluster support; 38.x is pre-multicluster (kept the spoke from joining a Hub mesh). | `string` | `"40.3.0"` | no |
 | <a name="input_traefik_hub_preview_tag"></a> [traefik\_hub\_preview\_tag](#input\_traefik\_hub\_preview\_tag) | Traefik Hub preview version tag | `string` | `""` | no |
 | <a name="input_traefik_hub_tag"></a> [traefik\_hub\_tag](#input\_traefik\_hub\_tag) | Traefik Hub image tag. Multicluster (the uplink) ships in v3.20+; v3.19.0 silently can't join a Hub mesh. | `string` | `"v3.20.4"` | no |
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
 | <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Base name for the Traefik VM | `string` | `"traefik"` | no |
-| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). vSphere has no ambient identity (no instance profile / managed identity), so endpoint + username are required when enabled — the password rides the separate sensitive var.vsphere\_password. endpoint may be a bare vCenter host (the provider applies https + /sdk); insecure\_skip\_verify defaults on (self-signed vCenter certs are the norm); datacenter empty = discover across all datacenters. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    endpoint             = optional(string, "")<br/>    username             = optional(string, "")<br/>    insecure_skip_verify = optional(bool, true)<br/>    datacenter           = optional(string, "")<br/>    ip_mode              = optional(string, "private")<br/>    exposed_by_default   = optional(bool, false)<br/>    default_rule         = optional(string, "")<br/>    constraints          = optional(string, "")<br/>    refresh_seconds      = optional(number, null)<br/>  })</pre> | `{}` | no |
+| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere\_provider.enabled = false and has no business carrying a vCenter secret. | `string` | `""` | no |
+| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider is<br/>vCENTER-NATIVE: it reads service membership from vCenter TAGS and takes its routing<br/>intent from a base configuration, rather than from per-VM labels.<br/><br/>  service\_name\_category\_key  the vCenter tag CATEGORY whose tags name services. A VM<br/>                             tagged `vmrr` in that category is a server of the `vmrr`<br/>                             service; with a MULTIPLE-cardinality category a VM can<br/>                             carry several tags and back several services (that is how<br/>                             one fleet is published under three LB strategies).<br/>  config\_endpoint            URL the gateway polls for the base config (GitOps), OR<br/>  filename                   a path to it on the gateway host. Exactly one.<br/><br/>Discovery goes through vCenter's vAPI tagging service, which a standalone ESXi host<br/>does not serve — so this provider requires vCenter, by design.<br/><br/>vSphere has no ambient identity, so endpoint + username are required when enabled; the<br/>password rides the separate sensitive var.vsphere\_password. endpoint may be a bare<br/>vCenter host (the provider applies https + /sdk); insecure\_skip\_verify defaults on<br/>(self-signed vCenter certs are the norm); datacenter empty = all datacenters. | <pre>object({<br/>    enabled                     = optional(bool, true)<br/>    endpoint                    = optional(string, "")<br/>    username                    = optional(string, "")<br/>    insecure_skip_verify        = optional(bool, true)<br/>    datacenter                  = optional(string, "")<br/>    ip_mode                     = optional(string, "private")<br/>    service_name_category_key   = optional(string, "TraefikServiceName")<br/>    config_endpoint             = optional(string, "")<br/>    config_insecure_skip_verify = optional(bool, false)<br/>    filename                    = optional(string, "")<br/>    refresh_seconds             = optional(number, null)<br/>  })</pre> | `{}` | no |
 
 ## Outputs
 

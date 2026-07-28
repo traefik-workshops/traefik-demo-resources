@@ -79,6 +79,7 @@ locals {
     file_provider_config = var.file_provider_config
     extra_files          = var.extra_files
     mount_docker_socket  = var.mount_docker_socket
+    ssh_public_key       = var.ssh_public_key
     extra_runcmd         = var.extra_runcmd
     performance_tuning   = local.performance_tuning
     otlp_address         = module.config.otlp_endpoint

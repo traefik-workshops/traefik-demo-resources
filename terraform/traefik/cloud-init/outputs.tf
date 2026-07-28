@@ -12,6 +12,7 @@ output "rendered" {
     file_provider_config = var.file_provider_config
     extra_files          = var.extra_files
     mount_docker_socket  = var.mount_docker_socket
+    ssh_public_key       = var.ssh_public_key
     extra_runcmd         = var.extra_runcmd
     dashboard_config     = var.dashboard_config
     performance_tuning   = var.performance_tuning

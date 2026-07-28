@@ -448,3 +448,9 @@ variable "private_ip" {
   description = "Fixed private IP for the (primary) Traefik gateway instance. Must sit in subnet_ids[0]'s CIDR, outside AWS's reserved hosts. Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across gateway recreation (the hub never dials a stale IP). Empty = DHCP."
   default     = ""
 }
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
+  default     = ""
+}
