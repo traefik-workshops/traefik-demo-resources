@@ -37,3 +37,8 @@ output "public_subnet_cidrs" {
   description = "Public subnet CIDR blocks, index-aligned with public_subnet_ids. Plan-known, same purpose as private_subnet_cidrs."
   value       = var.public_subnets
 }
+
+output "vpc_ipv6_cidr_block" {
+  description = "The Amazon-provided /56 assigned to the VPC, or \"\" when `enable_ipv6 = false`. Lets a caller assert dual stack is actually on before asserting anything about IPv6 addressing."
+  value       = try(module.vpc.vpc_ipv6_cidr_block, "")
+}

@@ -32,3 +32,15 @@ variable "extra_ingress_ports" {
   description = "Additional TCP ports to open on the demo security group (from 0.0.0.0/0), beyond the default 80/443/8080/22. Used for the Traefik Hub multicluster uplink entrypoint (:9443) on VM/Fargate spokes the parent cluster dials."
   default     = []
 }
+
+variable "extra_ingress_udp_ports" {
+  type        = list(number)
+  description = "Additional UDP ports to open on the demo security group (from 0.0.0.0/0). Separate from `extra_ingress_ports` because a security-group rule carries exactly one protocol, and because anything that derives a backend port from security-group rules (e.g. the Hub EC2 provider's port discovery) reads that protocol to decide which rules feed a UDP service."
+  default     = []
+}
+
+variable "enable_ipv6" {
+  type        = bool
+  description = "Give the VPC an Amazon-provided /56, carve a /64 out of it for every public subnet, and auto-assign an IPv6 address to each instance launched there (plus an egress-only gateway and a ::/0 route). Off by default so existing IPv4-only callers are untouched. Needed to exercise anything that targets an instance's IPv6 address, e.g. the Hub EC2 provider's `ipMode: ipv6`."
+  default     = false
+}
