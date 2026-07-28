@@ -41,12 +41,14 @@ locals {
       # Shared cloud-init snippets, rendered here and injected pre-rendered
       # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
       docker_install = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
-      collector_gate = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
-      # Inert here: only the docker-provider leg needs the socket bound in or extra
-      # containers provisioned. The shared template requires both keys regardless --
-      # templatefile hard-errors on a key the template uses but the caller omits.
-      mount_docker_socket  = false
-      extra_runcmd         = []
+      # Gate on the CALLER's otlp_address, not on module.config.otlp_endpoint. The latter
+      # falls back to the in-cluster name "http://opentelemetry-collector:4318" and is
+      # therefore NEVER empty, so this condition was always true: every deployment that
+      # did not configure OTLP still blocked in cloud-init for the gate's full 30-minute
+      # budget waiting for a collector that was never going to exist, and Traefik only
+      # started afterwards (long past wait_for_ready's timeout). Callers that do point at
+      # a collector set otlp_address, so they keep the gate.
+      collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
       traefik_hub_version  = module.config.image_tag
       arch                 = var.ami_architecture
       cli_arguments        = local.cli_arguments
