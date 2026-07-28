@@ -34,8 +34,6 @@ module "whoami_ec2" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -46,6 +44,13 @@ module "whoami_ec2" {
 
 No providers.
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_echo_instances"></a> [echo\_instances](#module\_echo\_instances) | ../../../compute/aws/ec2 | n/a |
+
 ## Resources
 
 No resources.
@@ -55,7 +60,7 @@ No resources.
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_ami_architecture"></a> [ami\_architecture](#input\_ami\_architecture) | The architecture (x86\_64, arm64) | `string` | `"x86_64"` | no |
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to EC2. Each app can have multiple replicas. { name = { replicas, port, name, environment, ... } } — optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to EC2. Each app can have multiple replicas. { name = { replicas, port, name, environment, tags, instance\_name, ... } } — optional `environment` (map) is merged over the module-level `environment` into the container; `tags` land on the instance (how `traefik.*` discovery tags get set); `instance_name` gives every replica of the app one shared `Name` tag instead of the default per-instance `<app>-<replica>`. | `any` | `{}` | no |
 | <a name="input_common_tags"></a> [common\_tags](#input\_common\_tags) | Common tags to apply to all instances | `map(string)` | `{}` | no |
 | <a name="input_create_vpc"></a> [create\_vpc](#input\_create\_vpc) | Create VPC if vpc\_id is not provided | `bool` | `true` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment variables passed to every whoami container (docker -e), e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision. | `map(string)` | `{}` | no |

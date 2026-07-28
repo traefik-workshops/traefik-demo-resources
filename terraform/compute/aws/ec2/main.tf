@@ -27,6 +27,7 @@ locals {
         docker_options      = app_config.docker_options
         container_arguments = app_config.container_arguments
         app_tags            = app_config.tags
+        instance_name       = app_config.instance_name
       }
     ]
   ])
@@ -115,7 +116,9 @@ resource "aws_instance" "ec2" {
     var.common_tags,
     each.value.app_tags,
     {
-      Name = each.key # Format: "app-name-replica-number" (e.g., "whoami-1")
+      # Default: "app-name-replica-number" (e.g. "whoami-1") — unique per instance.
+      # instance_name overrides it, so every replica of an app can share one Name.
+      Name = each.value.instance_name != "" ? each.value.instance_name : each.key
     }
   )
 

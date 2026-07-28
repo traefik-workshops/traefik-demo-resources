@@ -8,6 +8,13 @@ variable "apps" {
     docker_options      = optional(string, "") # Docker run flags: -e, -p, -v, etc.
     container_arguments = optional(string, "") # Container CMD/ARGS: --flag=value, etc.
     tags                = optional(map(string), {})
+    # Shared `Name` tag for every replica of this app. Empty (the default) keeps the
+    # per-instance "<app>-<replica>" name, which is what makes each instance uniquely
+    # identifiable. Set it when a discovery provider keys its service name off the Name
+    # tag and you want several instances to land behind ONE service — Traefik Hub's EC2
+    # provider merges same-Name instances into a single load balancer, and that merge
+    # cannot be exercised while every instance is named differently.
+    instance_name = optional(string, "")
   }))
 }
 

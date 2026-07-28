@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to EC2. Each app can have multiple replicas. { name = { replicas, port, name, environment, ... } } — optional `environment` (map) is merged over the module-level `environment` into the container."
+  description = "Map of applications to deploy to EC2. Each app can have multiple replicas. { name = { replicas, port, name, environment, tags, instance_name, ... } } — optional `environment` (map) is merged over the module-level `environment` into the container; `tags` land on the instance (how `traefik.*` discovery tags get set); `instance_name` gives every replica of the app one shared `Name` tag instead of the default per-instance `<app>-<replica>`."
   type        = any
   default     = {}
 }
