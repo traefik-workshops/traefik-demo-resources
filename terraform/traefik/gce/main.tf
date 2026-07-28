@@ -70,8 +70,8 @@ locals {
     # Inert here: only the docker-provider leg needs the socket bound in or extra
     # containers provisioned. The shared template requires both keys regardless --
     # templatefile hard-errors on a key the template uses but the caller omits.
-    mount_docker_socket  = false
-    extra_runcmd         = []
+    mount_docker_socket  = var.mount_docker_socket
+    extra_runcmd         = var.extra_runcmd
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"
     cli_arguments        = local.cli_arguments

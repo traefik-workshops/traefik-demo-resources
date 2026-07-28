@@ -380,3 +380,15 @@ variable "private_ip" {
   description = "Fixed internal IP for the gateway VM (network_interface.network_ip). Must sit in the instance's subnetwork range — on the default auto-mode network that range is region-fixed (us-central1 = 10.128.0.0/20). Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across VM recreation. Empty = ephemeral."
   default     = ""
 }
+
+variable "mount_docker_socket" {
+  type        = bool
+  description = "Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg."
+  default     = false
+}
+
+variable "extra_runcmd" {
+  type        = list(string)
+  description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg)."
+  default     = []
+}

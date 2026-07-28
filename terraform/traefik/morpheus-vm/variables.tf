@@ -441,3 +441,15 @@ variable "private_ip" {
   description = "Fixed static IP for the gateway NIC. When set, the interface uses ip_mode=static with this address (must sit in the joined network's range, outside the appliance's DHCP pool). Pinning it makes the hub's uplink dial address plan-known (no two-pass PENDING apply) and stable across instance recreation (the hub never dials a stale IP). Empty = DHCP (the appliance-reported primary IP)."
   default     = ""
 }
+
+variable "mount_docker_socket" {
+  type        = bool
+  description = "Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg."
+  default     = false
+}
+
+variable "extra_runcmd" {
+  type        = list(string)
+  description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg)."
+  default     = []
+}
