@@ -60,6 +60,13 @@ realm:
   # Extra advanced users - appended to advancedUsers (populated by parent chart, empty for standalone use)
   extraAdvancedUsers: []
 
+  # Allow the `traefik` client to perform RFC 8693 standard token exchange
+  # (Keycloak 26.2+). Sets the client's standard.token.exchange.enabled attribute.
+  # The server feature is on by default; without this attribute Keycloak answers a
+  # token-exchange grant with "Standard token exchange is not enabled for the
+  # requested client". Off by default so existing installs are unchanged.
+  standardTokenExchange: false
+
   # OIDC client secret for the traefik client
   clientSecret: NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0
 

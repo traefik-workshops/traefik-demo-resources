@@ -26,12 +26,13 @@ resource "helm_release" "keycloak" {
       }
 
       realm = {
-        name                = "traefik"
-        accessTokenLifespan = var.access_token_lifespan
-        users               = var.users
-        userPassword        = local.user_password
-        advancedUsers       = var.advanced_users
-        redirectUris        = var.redirect_uris
+        name                  = "traefik"
+        accessTokenLifespan   = var.access_token_lifespan
+        users                 = var.users
+        userPassword          = local.user_password
+        advancedUsers         = var.advanced_users
+        redirectUris          = var.redirect_uris
+        standardTokenExchange = var.standard_token_exchange
       }
     })
   ]

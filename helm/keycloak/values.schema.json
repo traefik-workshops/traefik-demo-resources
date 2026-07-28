@@ -117,6 +117,10 @@
           "type": "array",
           "items": {}
         },
+        "standardTokenExchange": {
+          "type": "boolean",
+          "default": false
+        },
         "clientSecret": {
           "type": "string",
           "default": "NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0"

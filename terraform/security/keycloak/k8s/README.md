@@ -34,8 +34,6 @@ that publish those tokens to the cluster. Pick which:
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -55,6 +53,10 @@ that publish those tokens to the cluster. Pick which:
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.27 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.2 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -63,13 +65,12 @@ that publish those tokens to the cluster. Pick which:
 | [kubernetes_job_v1.fetch_tokens](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/job_v1) | resource |
 | [kubernetes_secret_v1.user_tokens](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
 | [null_resource.validate_keycloak_deployment](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [external_external.capture_tokens](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Traefik Hub deployment | `string` | n/a | yes |
-| <a name="input_users"></a> [users](#input\_users) | List of users to create in the security module | `list(string)` | n/a | yes |
 | <a name="input_access_token_lifespan"></a> [access\_token\_lifespan](#input\_access\_token\_lifespan) | The lifespan of the access token in seconds | `number` | `2419200` | no |
 | <a name="input_advanced_users"></a> [advanced\_users](#input\_advanced\_users) | List of advanced users with detailed configuration including groups and claims | <pre>list(object({<br/>    username = string<br/>    email    = string<br/>    password = string<br/>    groups   = list(string)<br/>    claims   = map(list(string))<br/>  }))</pre> | `[]` | no |
 | <a name="input_chart"></a> [chart](#input\_chart) | Path to the Helm chart for the Keycloak deployment. When empty, uses the git-hosted chart. | `string` | `""` | no |
@@ -83,8 +84,11 @@ that publish those tokens to the cluster. Pick which:
 | <a name="input_instances"></a> [instances](#input\_instances) | Number of Keycloak pods behind the shared Postgres backend. Scale when multiple independent test runs hit the OIDC endpoint in parallel. | `number` | `1` | no |
 | <a name="input_kubeconfig"></a> [kubeconfig](#input\_kubeconfig) | Path to a kubeconfig file for the token-capture data source. Takes precedence over `host` and the ambient kubeconfig. Use when the ambient context may not point at the cluster Keycloak runs on (e.g. exec-auth clusters like EKS, where `host`/`client_certificate` don't apply). | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | The name of the traefik release | `string` | `"traefik"` | no |
+| <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Traefik Hub deployment | `string` | n/a | yes |
 | <a name="input_redirect_uris"></a> [redirect\_uris](#input\_redirect\_uris) | Allowed callback URL for the authentication flow | `list(string)` | `[]` | no |
+| <a name="input_standard_token_exchange"></a> [standard\_token\_exchange](#input\_standard\_token\_exchange) | Allow the `traefik` client to perform RFC 8693 standard token exchange (Keycloak 26.2+). Sets the client's `standard.token.exchange.enabled` attribute; the server-side feature is already enabled by default. Required by any middleware that exchanges a subject token at this realm's token endpoint. | `bool` | `false` | no |
 | <a name="input_user_password"></a> [user\_password](#input\_user\_password) | Initial password assigned to every simple user (the `users` list). Demo default — override for anything beyond ephemeral PoCs. `advanced_users` carry their own password. The same value seeds the realm credential and is replayed by the token-fetch Job, so the two can never drift. | `string` | `"topsecretpassword"` | no |
+| <a name="input_users"></a> [users](#input\_users) | List of users to create in the security module | `list(string)` | n/a | yes |
 
 ## Outputs
 

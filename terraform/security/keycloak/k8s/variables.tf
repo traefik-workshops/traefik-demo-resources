@@ -74,6 +74,12 @@ variable "access_token_lifespan" {
   default     = 2419200 # 28 days
 }
 
+variable "standard_token_exchange" {
+  description = "Allow the `traefik` client to perform RFC 8693 standard token exchange (Keycloak 26.2+). Sets the client's `standard.token.exchange.enabled` attribute; the server-side feature is already enabled by default. Required by any middleware that exchanges a subject token at this realm's token endpoint."
+  type        = bool
+  default     = false
+}
+
 variable "host" {
   description = "Kubernetes API server URL for the cluster Keycloak runs on. Used by the token-capture data source to build an isolated kubectl context when reading from a remote cluster. Leave empty to use the ambient kubeconfig."
   type        = string

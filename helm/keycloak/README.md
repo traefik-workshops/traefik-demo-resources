@@ -71,6 +71,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | `realm.extraUsers` | `[]` |
 | `realm.advancedUsers` | `[]` |
 | `realm.extraAdvancedUsers` | `[]` |
+| `realm.standardTokenExchange` | `false` |
 | `realm.clientSecret` | `"NoTgoLZpbrr5QvbNDIRIvmZOhe9wI0r0"` |
 | `realm.redirectUris` | `[]` |
 | `realm.extraRedirectUris` | `[]` |

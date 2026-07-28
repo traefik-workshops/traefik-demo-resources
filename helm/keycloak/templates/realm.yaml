@@ -623,6 +623,9 @@ spec:
           client.secret.creation.time: '1699497518'
           backchannel.logout.session.required: 'true'
           backchannel.logout.revoke.offline.tokens: 'false'
+{{- if .Values.realm.standardTokenExchange }}
+          standard.token.exchange.enabled: 'true'
+{{- end }}
 {{- if $allLogoutRedirectUris }}
           post.logout.redirect.uris: {{ join "##" $allLogoutRedirectUris | quote }}
 {{- end }}
