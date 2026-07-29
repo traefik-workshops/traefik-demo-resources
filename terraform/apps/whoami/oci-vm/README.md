@@ -8,7 +8,7 @@ Each VM's freeform tags (dotted `traefik.*` keys, exactly like EC2 instance tags
 
 ```hcl
 module "whoami_oci_vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/oci-vm?ref=v5.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/oci-vm?ref=v5.0.1"
 
   compartment_id = var.compartment_id
   subnet_id      = module.oke.nodes_subnet_id

@@ -6,7 +6,7 @@ Deploys Keycloak on Kubernetes, seeds users + groups + claims, mints per-user ac
 
 ```hcl
 module "keycloak" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/keycloak/k8s?ref=v5.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/keycloak/k8s?ref=v5.0.1"
 
   namespace = "security"
   users     = ["admin", "support"]
