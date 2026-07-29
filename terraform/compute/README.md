@@ -1,0 +1,69 @@
+# compute/
+
+Infrastructure-as-a-Service and managed Kubernetes per cloud. **This is the largest and most opinionated section** because each cloud has its own conventions and each managed-k8s offering exposes a slightly different surface.
+
+## Modules
+
+### Public clouds
+
+| Path | Purpose |
+|---|---|
+| [`alibaba/ack`](./alibaba/ack) | ACK cluster (joins `alibaba/vpc`'s vswitches; AKS-style cert outputs) |
+| [`alibaba/vpc`](./alibaba/vpc) | VPC, zone-spread vswitches, security group |
+| [`aws/ec2`](./aws/ec2) | EC2 instances + optional VPC |
+| [`aws/ecs`](./aws/ecs) | ECS Fargate cluster + IAM |
+| [`aws/eks`](./aws/eks) | EKS cluster (wraps the community EKS module) |
+| [`aws/vpc`](./aws/vpc) | VPC, subnets, route tables |
+| [`azure/aks`](./azure/aks) | AKS cluster + kubeconfig outputs |
+| [`azure/vnet`](./azure/vnet) | VNet, VM + ACI-delegated subnets, NSG |
+| [`gcp/gke`](./gcp/gke) | GKE cluster + kubeconfig outputs |
+| [`digitalocean/doks`](./digitalocean/doks) | DOKS cluster (rich output set) |
+| [`oracle/oke`](./oracle/oke) | OKE cluster (uses TLS provider for certs) |
+| [`akamai/lke`](./akamai/lke) | LKE (Linode Kubernetes Engine) |
+
+### On-prem / private cloud (Nutanix, vSphere, Proxmox, HPE Morpheus)
+
+| Path | Purpose |
+|---|---|
+| [`morpheus/k3s`](./morpheus/k3s) | Single-node k3s server on an HPE Morpheus MVM instance (VM Essentials / HVM; bootstrap via a Morpheus provisioning workflow — no user-data passthrough in the terraform provider; SSH-fetched kubeconfig, AKS-style cert outputs) |
+| [`pnap/metal`](./pnap/metal) | On-demand phoenixNAP Bare Metal Cloud server (hourly `pnap_server`) — the native metal host UNDER the private-cloud demos, imaged per demo: `proxmox/proxmox9`, `esxi/esxi80`, or `ubuntu/noble` (Morpheus HVM base) |
+| [`proxmox/k3s`](./proxmox/k3s) | Single-node k3s server on a Proxmox VE VM (cloud-image clone via snippet user-data; SSH-fetched kubeconfig, AKS-style cert outputs) |
+| [`vsphere/k3s`](./vsphere/k3s) | Single-node k3s server on a vSphere VM (cloud-image clone; SSH-fetched kubeconfig, AKS-style cert outputs) |
+| [`nutanix/vpc`](./nutanix/vpc) | VPC + subnets |
+| [`nutanix/subnet`](./nutanix/subnet) | Single subnet |
+| [`nutanix/fip`](./nutanix/fip) | Floating IP |
+| [`nutanix/vm`](./nutanix/vm) | Virtual machine |
+| [`nutanix/storage_container`](./nutanix/storage_container) | Storage container |
+| [`nutanix/categories`](./nutanix/categories) | Nutanix categories (tagging) |
+| [`nutanix/nkp`](./nutanix/nkp) | Full NKP (Nutanix Kubernetes Platform) cluster |
+| [`nutanix/nkp/bastion_image`](./nutanix/nkp/bastion_image) | NKP bastion image (Packer) |
+| [`nutanix/nkp/kommander`](./nutanix/nkp/kommander) | NKP Kommander management plane |
+| [`nutanix/nkp/registry`](./nutanix/nkp/registry) | NKP private registry VM |
+| [`nutanix/nkp/registry_image`](./nutanix/nkp/registry_image) | NKP registry image (Packer) |
+
+### Specialized
+
+| Path | Purpose |
+|---|---|
+| [`runpod/auth`](./runpod/auth) | RunPod NGC registry credentials (one-time setup) |
+| [`runpod/pod`](./runpod/pod) | A RunPod GPU pod |
+| [`suse/k3d`](./suse/k3d) | k3d local cluster (laptop demos) |
+
+## Standard cluster outputs
+
+Every managed-k8s module exposes the same five outputs so downstream `helm`/`kubernetes` providers are configured the same way regardless of cloud:
+
+- `host`
+- `cluster_ca_certificate`
+- `token`
+- `kubeconfig` (string — write to disk if you need `kubectl`)
+- `cluster_id` (or equivalent platform identifier)
+
+Some modules add extras (`endpoint`, `region`, `version`, `node_pool_id`). New cluster modules should expose at least the five above.
+
+## When to add a new cloud / managed-k8s
+
+1. Look at the closest existing sibling — they're intentionally similar.
+2. Copy its file layout (`main.tf`, `metrics.tf` if relevant, `outputs.tf`, `variables.tf`, `versions.tf`).
+3. Match the five standard outputs.
+4. Pick a small default node size (free-tier-friendly if the cloud has one).

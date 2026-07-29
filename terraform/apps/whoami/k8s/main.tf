@@ -1,0 +1,260 @@
+# Create Kubernetes deployments for each app
+resource "kubernetes_deployment_v1" "echo" {
+  for_each = var.apps
+
+  metadata {
+    name      = each.key
+    namespace = var.namespace
+    labels = merge(
+      var.common_labels,
+      each.value.labels,
+      {
+        app = each.key
+      }
+    )
+  }
+
+  spec {
+    replicas = each.value.replicas
+
+    selector {
+      match_labels = {
+        app = each.key
+      }
+    }
+
+    template {
+      metadata {
+        labels = merge(
+          var.common_labels,
+          each.value.labels,
+          {
+            app = each.key
+          }
+        )
+      }
+
+      spec {
+        node_selector = var.node_selector
+
+        container {
+          name              = each.key
+          image             = coalesce(each.value.docker_image, var.whoami_image)
+          image_pull_policy = "IfNotPresent"
+          args              = ["--verbose"]
+
+          port {
+            container_port = each.value.port
+          }
+
+          # Readiness gates the pod's Endpoints membership — the k8s-native
+          # equivalent of the VM/container legs' Traefik ACTIVE health checks
+          # (GET /health; POST /health flips it for kill drills): a dead whoami
+          # leaves the Service rotation instead of eating live traffic (the
+          # azure ACI zombie served 50% 504s while its control plane said fine).
+          readiness_probe {
+            http_get {
+              path = "/health"
+              port = each.value.port
+            }
+            period_seconds    = 10
+            timeout_seconds   = 3
+            failure_threshold = 2
+          }
+
+          # Liveness restarts a container that stays dead — a higher threshold
+          # than readiness so a drill-flipped /health drops out of Endpoints
+          # first and only restarts if left unhealthy.
+          liveness_probe {
+            http_get {
+              path = "/health"
+              port = each.value.port
+            }
+            period_seconds    = 10
+            timeout_seconds   = 3
+            failure_threshold = 6
+          }
+
+          # WHOAMI_NAME (env default for the `-name` flag) -> body shows `Name: <v>`.
+          # Defaults to the app key; override per app (e.g. to tag a leg by its
+          # compute: whoami-eks vs whoami-aks) so identical-keyed whoamis on different
+          # clusters are still distinguishable. Module/per-app `environment` wins on
+          # collision so callers can override any of these built-ins.
+          dynamic "env" {
+            for_each = merge(
+              {
+                WHOAMI_NAME    = coalesce(each.value.name, each.key)
+                REPLICA_NUMBER = "k8s-managed"
+              },
+              var.environment,
+              each.value.environment,
+            )
+
+            content {
+              name  = env.key
+              value = env.value
+            }
+          }
+
+          env {
+            name = "POD_NAME"
+            value_from {
+              field_ref {
+                field_path = "metadata.name"
+              }
+            }
+          }
+
+          env {
+            name = "POD_IP"
+            value_from {
+              field_ref {
+                field_path = "status.podIP"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Create Kubernetes services for each app
+resource "kubernetes_service_v1" "echo" {
+  for_each = var.apps
+
+  metadata {
+    name      = "${each.key}-svc"
+    namespace = var.namespace
+    labels = merge(
+      var.common_labels,
+      each.value.labels,
+      {
+        app = each.key
+      }
+    )
+  }
+
+  spec {
+    type = "ClusterIP"
+
+    selector = {
+      app = each.key
+    }
+
+    port {
+      port        = each.value.port
+      target_port = each.value.port
+    }
+  }
+
+  depends_on = [kubernetes_deployment_v1.echo]
+}
+
+resource "kubectl_manifest" "middleware_strip_prefix" {
+  for_each = {
+    for k, v in var.apps : k => v
+    if v.ingress_route.enabled && v.ingress_route.strip_prefix.enabled
+  }
+
+  yaml_body = yamlencode({
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "Middleware"
+    metadata = {
+      name      = "${each.key}-strip-prefix"
+      namespace = var.namespace
+    }
+    spec = {
+      stripPrefix = {
+        prefixes = each.value.ingress_route.strip_prefix.prefixes
+      }
+    }
+  })
+}
+
+resource "kubectl_manifest" "uplink" {
+  count = var.uplink_enabled ? 1 : 0
+
+  lifecycle {
+    precondition {
+      condition     = var.uplink_name != ""
+      error_message = "uplink_name must be set when uplink_enabled = true — it must match the child's --hub.uplinkEntryPoints.<name> entrypoint and the parent's <name>@multicluster service ref."
+    }
+    precondition {
+      # One Uplink CRD (exposeName = uplink_name) is shared by every advertised
+      # route, so >1 route would collide on the same exposed name.
+      condition     = length([for k, v in var.apps : k if v.ingress_route.enabled]) <= 1
+      error_message = "uplink_enabled supports at most one app with ingress_route.enabled (a single Uplink is shared). Use one whoami module instance per uplinked app."
+    }
+  }
+
+  yaml_body = yamlencode({
+    apiVersion = "hub.traefik.io/v1alpha1"
+    kind       = "Uplink"
+    metadata = {
+      name      = var.uplink_name
+      namespace = var.namespace
+    }
+    spec = {
+      exposeName = var.uplink_name
+    }
+  })
+}
+
+resource "kubectl_manifest" "ingress_route" {
+  for_each = {
+    for k, v in var.apps : k => v
+    if v.ingress_route.enabled
+  }
+
+  yaml_body = yamlencode({
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "IngressRoute"
+    metadata = {
+      name      = "${each.key}-ingress-route"
+      namespace = var.namespace
+      annotations = merge(
+        var.uplink_enabled ? { "hub.traefik.io/router.uplinks" = var.uplink_name } : {},
+        var.ingress_observability ? {} : {
+          "traefik.ingress.kubernetes.io/router.observability.accesslogs" = "false"
+          "traefik.ingress.kubernetes.io/router.observability.metrics"    = "false"
+          "traefik.ingress.kubernetes.io/router.observability.tracing"    = "false"
+        },
+        var.ingress_annotations,
+      )
+    }
+    # Child uplink routers cannot carry entryPoints (Hub attaches them to the
+    # uplink, not a local entrypoint), so omit the key entirely when advertising.
+    # The Host is matched by the parent's route; the child matches the path.
+    spec = merge(
+      var.uplink_enabled ? {} : { entryPoints = each.value.ingress_route.entrypoints },
+      {
+        routes = [
+          {
+            match = var.uplink_enabled ? "PathPrefix(`/`)" : join(" && ", compact([
+              each.value.ingress_route.host != null && each.value.ingress_route.host != "" ? "Host(`${each.value.ingress_route.host}`)" : "",
+              each.value.ingress_route.strip_prefix.enabled && length(each.value.ingress_route.strip_prefix.prefixes) > 0 ? "PathPrefix(`${join("`, `", each.value.ingress_route.strip_prefix.prefixes)}`)" : ""
+            ]))
+            kind = "Rule"
+            middlewares = concat(
+              [for m in each.value.ingress_route.middlewares : {
+                name      = m.name
+                namespace = try(m.namespace, var.namespace)
+              }],
+              each.value.ingress_route.strip_prefix.enabled ? [{
+                name      = "${each.key}-strip-prefix"
+                namespace = var.namespace
+              }] : []
+            )
+            services = [
+              {
+                name = "${each.key}-svc"
+                port = each.value.port
+              }
+            ]
+          }
+        ]
+      }
+    )
+  })
+}

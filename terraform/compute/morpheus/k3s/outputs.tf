@@ -1,0 +1,46 @@
+output "host" {
+  description = "Kubernetes API endpoint (https://<instance-ip>:6443)"
+  value       = "https://${hpe_morpheus_instance.k3s.connection_info[0]}:6443"
+}
+
+output "node_ip" {
+  description = "The instance's primary connection IP (connection_info[0]) — also where klipper (k3s servicelb) publishes LoadBalancer Services, so point demo DNS / /etc/hosts entries here"
+  value       = hpe_morpheus_instance.k3s.connection_info[0]
+}
+
+output "kubeconfig" {
+  description = "Admin kubeconfig (server rewritten from 127.0.0.1 to the instance IP)"
+  value       = local.kubeconfig
+  sensitive   = true
+}
+
+output "cluster_ca_certificate" {
+  description = "Cluster CA certificate (PEM)"
+  value       = base64decode(local.kubeparsed.clusters[0].cluster["certificate-authority-data"])
+}
+
+output "client_certificate" {
+  description = "Admin client certificate (PEM) — k3s auth is cert-based, AKS/k3d-style"
+  value       = base64decode(local.kubeparsed.users[0].user["client-certificate-data"])
+}
+
+output "client_key" {
+  description = "Admin client key (PEM)"
+  value       = base64decode(local.kubeparsed.users[0].user["client-key-data"])
+  sensitive   = true
+}
+
+output "vm_id" {
+  description = "Morpheus instance ID of the k3s instance"
+  value       = hpe_morpheus_instance.k3s.id
+}
+
+output "vm_name" {
+  description = "Name of the k3s instance"
+  value       = hpe_morpheus_instance.k3s.name
+}
+
+output "bootstrap_task_ids" {
+  description = "Bootstrap shell-script task ids, by app. Only useful when enable_provisioning_workflow=false: the caller executes these itself via POST /api/tasks/{id}/execute with {\"job\":{\"targetType\":\"instance\",\"instances\":[<id>]}} — the ungated path on HPE VM Essentials."
+  value       = { bootstrap = hpe_morpheus_task_shell_script.bootstrap.id }
+}

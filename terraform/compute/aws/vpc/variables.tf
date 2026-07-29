@@ -1,0 +1,46 @@
+variable "name" {
+  type        = string
+  description = "VPC name."
+}
+
+variable "cidr" {
+  type        = string
+  description = "VPC CIDR."
+  default     = "10.0.0.0/16"
+}
+
+variable "private_subnets" {
+  type        = list(string)
+  description = "CIDR blocks for private subnets (one per AZ). Receive a NAT gateway egress when `enable_nat_gateway = true`. Default carves three /24s out of the VPC CIDR."
+  default     = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
+}
+
+variable "public_subnets" {
+  type        = list(string)
+  description = "CIDR blocks for public subnets (one per AZ). Host the internet-facing load balancers and the NAT gateway. Default carves three /24s out of the VPC CIDR."
+  default     = ["10.0.4.0/24", "10.0.5.0/24", "10.0.6.0/24"]
+}
+
+variable "enable_nat_gateway" {
+  type        = bool
+  description = "Enable NAT Gateway."
+  default     = true
+}
+
+variable "extra_ingress_ports" {
+  type        = list(number)
+  description = "Additional TCP ports to open on the demo security group (from 0.0.0.0/0), beyond the default 80/443/8080/22. Used for the Traefik Hub multicluster uplink entrypoint (:9443) on VM/Fargate spokes the parent cluster dials."
+  default     = []
+}
+
+variable "extra_ingress_udp_ports" {
+  type        = list(number)
+  description = "Additional UDP ports to open on the demo security group (from 0.0.0.0/0). Separate from `extra_ingress_ports` because a security-group rule carries exactly one protocol, and because anything that derives a backend port from security-group rules (e.g. the Hub EC2 provider's port discovery) reads that protocol to decide which rules feed a UDP service."
+  default     = []
+}
+
+variable "enable_ipv6" {
+  type        = bool
+  description = "Give the VPC an Amazon-provided /56, carve a /64 out of it for every public subnet, and auto-assign an IPv6 address to each instance launched there (plus an egress-only gateway and a ::/0 route). Off by default so existing IPv4-only callers are untouched. Needed to exercise anything that targets an instance's IPv6 address, e.g. the Hub EC2 provider's `ipMode: ipv6`."
+  default     = false
+}
