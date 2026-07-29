@@ -114,5 +114,11 @@ variable "instances" {
 variable "chart" {
   type        = string
   default     = ""
-  description = "Path to the Helm chart for the Keycloak deployment. When empty, uses the git-hosted chart."
+  description = "Helm chart for the Keycloak deployment: a local path, or a fully-qualified OCI reference (oci://ghcr.io/traefik-workshops/keycloak). OCI consumers should pin chart_version."
+}
+
+variable "chart_version" {
+  type        = string
+  default     = ""
+  description = "Chart version to install. Required in practice for OCI charts (unpinned resolves the latest tag — not reproducible); ignored for local chart paths, which carry no version."
 }

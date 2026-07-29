@@ -448,10 +448,11 @@ variable "nutanix_provider" {
 }
 
 variable "dns_traefiker" {
-  description = "DNS Traefiker configuration for automatic domain registration"
+  description = "DNS Traefiker configuration for automatic domain registration. `chart` accepts a local path OR a fully-qualified OCI reference (oci://ghcr.io/traefik-workshops/dns-traefiker); OCI installs resolve the LATEST tag unless chart_version pins one, so remote consumers should always set chart_version."
   type = object({
     enabled                   = optional(bool, false)
     chart                     = optional(string, "")
+    chart_version             = optional(string, "")
     unique_domain             = optional(bool, false)
     domain                    = optional(string, "")
     enable_airlines_subdomain = optional(bool, false)

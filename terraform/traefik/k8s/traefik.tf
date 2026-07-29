@@ -231,6 +231,10 @@ resource "helm_release" "dns_traefiker" {
   namespace = var.namespace
 
   chart = var.dns_traefiker.chart
+  # Pin only when the caller asks: local chart paths carry no version, and an OCI chart
+  # without one installs whatever "latest" is that day — fine for a lab, wrong for a
+  # workshop repo that must be reproducible at a tagged ref.
+  version = var.dns_traefiker.chart_version != "" ? var.dns_traefiker.chart_version : null
 
   values = [
     yamlencode({

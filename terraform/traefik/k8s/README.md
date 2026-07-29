@@ -34,7 +34,7 @@ module "traefik" {
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_helm"></a> [helm](#requirement\_helm) | ~> 3.0 |
 | <a name="requirement_kubernetes"></a> [kubernetes](#requirement\_kubernetes) | >= 2.0 |
@@ -43,7 +43,7 @@ module "traefik" {
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | >= 3.0 |
@@ -51,7 +51,7 @@ module "traefik" {
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [helm_release.dns_traefiker](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [helm_release.traefik](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [kubernetes_config_map_v1.traefik_dynamic_config](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map_v1) | resource |
@@ -61,7 +61,7 @@ module "traefik" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Traefik Hub deployment | `string` | n/a | yes |
 | <a name="input_additional_volume_mounts"></a> [additional\_volume\_mounts](#input\_additional\_volume\_mounts) | Additional volume mounts for the Traefik container | `any` | `[]` | no |
 | <a name="input_additional_volumes"></a> [additional\_volumes](#input\_additional\_volumes) | Additional volumes to mount in the Traefik pod | `any` | `[]` | no |
@@ -80,7 +80,7 @@ module "traefik" {
 | <a name="input_dashboard_match_rule"></a> [dashboard\_match\_rule](#input\_dashboard\_match\_rule) | Match rule for the Traefik dashboard router | `string` | `""` | no |
 | <a name="input_default_generated_cert"></a> [default\_generated\_cert](#input\_default\_generated\_cert) | Default TLSStore generated-certificate config, rendered as chart values tlsStore.default.defaultGeneratedCert.{resolver,domain.main} (the chart emits the TLSStore CRD — no hand-rolled manifest needed). null = no default TLSStore. `resolver` must name a configured certificates resolver (e.g. "cf"); `domain` is the cert's main domain (e.g. "*.example.com"). | <pre>object({<br/>    resolver = string<br/>    domain   = string<br/>  })</pre> | `null` | no |
 | <a name="input_deployment_type"></a> [deployment\_type](#input\_deployment\_type) | Traefik deployment type | `string` | `"Deployment"` | no |
-| <a name="input_dns_traefiker"></a> [dns\_traefiker](#input\_dns\_traefiker) | DNS Traefiker configuration for automatic domain registration | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    chart                     = optional(string, "")<br/>    unique_domain             = optional(bool, false)<br/>    domain                    = optional(string, "")<br/>    enable_airlines_subdomain = optional(bool, false)<br/>    ip_override               = optional(string, "")<br/>    proxied                   = optional(bool, false)<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
+| <a name="input_dns_traefiker"></a> [dns\_traefiker](#input\_dns\_traefiker) | DNS Traefiker configuration for automatic domain registration. `chart` accepts a local path OR a fully-qualified OCI reference (oci://ghcr.io/traefik-workshops/dns-traefiker); OCI installs resolve the LATEST tag unless chart\_version pins one, so remote consumers should always set chart\_version. | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    chart                     = optional(string, "")<br/>    chart_version             = optional(string, "")<br/>    unique_domain             = optional(bool, false)<br/>    domain                    = optional(string, "")<br/>    enable_airlines_subdomain = optional(bool, false)<br/>    ip_override               = optional(string, "")<br/>    proxied                   = optional(bool, false)<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_enable_access_logs"></a> [enable\_access\_logs](#input\_enable\_access\_logs) | Enable Traefik access logs | `bool` | `true` | no |
 | <a name="input_enable_ai_gateway"></a> [enable\_ai\_gateway](#input\_enable\_ai\_gateway) | Enable Traefik Hub AI Gateway features | `bool` | `false` | no |
 | <a name="input_enable_api_gateway"></a> [enable\_api\_gateway](#input\_enable\_api\_gateway) | Enable Traefik Hub API Gateway features | `bool` | `false` | no |
@@ -129,7 +129,7 @@ module "traefik" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_dashboard_url"></a> [dashboard\_url](#output\_dashboard\_url) | The Traefik dashboard URL |
 | <a name="output_domain"></a> [domain](#output\_domain) | The computed domain for Traefik |
 | <a name="output_load_balancer_ip"></a> [load\_balancer\_ip](#output\_load\_balancer\_ip) | The Load Balancer IP of the Traefik Service |

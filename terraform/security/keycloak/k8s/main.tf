@@ -2,6 +2,7 @@ resource "helm_release" "keycloak" {
   name      = var.name
   namespace = var.namespace
   chart     = var.chart
+  version   = var.chart_version != "" ? var.chart_version : null
   wait      = true
   timeout   = 600
 
