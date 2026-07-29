@@ -12,7 +12,7 @@ Auth is **instance principals** — no API keys on the VM. `enable_instance_prin
 
 ```hcl
 module "oci_traefik" {
-  source = "git::https://github.com/traefik/traefik-demo.git//terraform/traefik/oci-vm?ref=v4.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/oci-vm?ref=v5.0.0"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

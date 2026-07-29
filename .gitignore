@@ -1,0 +1,31 @@
+# Terraform working files — modules here are consumed remotely, never applied in-repo,
+# but contributors run `terraform init`/`validate` locally.
+.terraform*
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan*
+crash.log
+
+# Variable files (real values) — .example variants are allowed
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+!*.tfvars.example
+!*.tfvars.json.example
+
+# Packaged charts + pulled dependencies
+helm/*/charts/*.tgz
+*.tgz
+
+# Secrets — defense in depth
+*.pem
+*.key
+*.p12
+*.pfx
+*.p8
+credentials
+credentials.json
+service-account*.json
+
+.DS_Store

@@ -32,7 +32,7 @@ What the provider does: polls the PVE API, reads each **running** QEMU VM's and 
 
 ```hcl
 module "traefik_proxmox" {
-  source = "git::https://github.com/traefik/traefik-demo.git//terraform/traefik/proxmox-vm?ref=v4.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/proxmox-vm?ref=v5.0.0"
 
   node_name     = "pve"
   datastore_id  = "local-lvm"
