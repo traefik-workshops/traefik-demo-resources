@@ -14,8 +14,11 @@ crash.log
 !*.tfvars.example
 !*.tfvars.json.example
 
-# Packaged charts + pulled dependencies
-helm/*/charts/*.tgz
+# Packaged charts + pulled dependencies. The whole charts/ dir is build output: helm 4
+# stopped resolving .tgz deps in place, so `helm dep update` is now followed by an
+# unpack and the directory fills with subchart TREES, not just tarballs. Ignoring only
+# *.tgz left every clone dirty after a lint — which in turn blocks `make release-*`.
+helm/*/charts/
 *.tgz
 
 # Secrets — defense in depth
