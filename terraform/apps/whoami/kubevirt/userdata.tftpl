@@ -1,0 +1,77 @@
+#cloud-config
+# whoami as a NATIVE PROCESS under the guest's own systemd — there is no container
+# runtime in this VM. See main.tf's header for why that matters.
+package_update: true
+packages:
+  - curl
+  - ca-certificates
+  - tar
+
+write_files:
+  - path: /etc/systemd/system/whoami.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=whoami (native binary, no container runtime)
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      ${indent(6, env_lines)}
+      ExecStart=/usr/local/bin/whoami --port ${port}${name_flag} --verbose
+      Restart=always
+      RestartSec=5
+      # Belt-and-braces: the unit already runs as root, but this keeps :80 bindable if
+      # someone later adds a User= line and cannot see why the service stopped starting.
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - |
+    # POSIX sh ONLY. cloud-init concatenates runcmd entries into one script and runs it
+    # with /bin/sh — dash on Ubuntu — which rejects `set -o pipefail` on the FIRST line,
+    # aborting the whole block before whoami is ever installed. There are no pipelines
+    # here, so `set -eu` is the correct spelling. Same trap the shared
+    # apps/whoami/cloud-init template documents.
+    set -eu
+
+    # The whoami fork ships as an OCI image only, so EXTRACT its binary (entrypoint
+    # /whoami) with crane and run it raw. Identical to the LXC path in
+    # apps/whoami/proxmox (main.tf:170-186) — including exporting to a FILE and then
+    # extracting, because piping crane's stdout into `tar -xO` is unreliable (GNU tar
+    # needs an explicit `-f -` to read stdin).
+    #
+    # Both fetches retry: the guest boots while the cluster's DNS/egress is still
+    # converging, so an early failure usually just means the network is not up yet. Both
+    # FAIL LOUD if they never succeed — a silent no-op here would leave the VM Running
+    # with nothing on :80, which reads as a load-balancer fault rather than a build one.
+    dl=0
+    for i in $(seq 1 10); do
+      if curl -fsSL --max-time 90 "https://github.com/google/go-containerregistry/releases/download/${crane_version}/go-containerregistry_Linux_x86_64.tar.gz" -o /tmp/gcr.tgz; then dl=1; break; fi
+      echo "retry crane download ($i/10)"
+      sleep 5
+    done
+    if [ "$dl" != 1 ]; then echo "FATAL: could not download crane" >&2; exit 1; fi
+    tar -xzf /tmp/gcr.tgz -C /usr/local/bin crane
+    chmod +x /usr/local/bin/crane
+
+    # crane exports the linux/amd64 rootfs by default; the binary sits at the archive
+    # root as `whoami`.
+    ex=0
+    for i in $(seq 1 10); do
+      if /usr/local/bin/crane export "${whoami_image}" /tmp/whoami-rootfs.tar 2>/dev/null && tar -xf /tmp/whoami-rootfs.tar -C /usr/local/bin whoami 2>/dev/null && [ -s /usr/local/bin/whoami ]; then ex=1; break; fi
+      echo "retry crane export ($i/10)"
+      sleep 5
+    done
+    if [ "$ex" != 1 ]; then echo "FATAL: could not extract /whoami from ${whoami_image}" >&2; exit 1; fi
+    rm -f /tmp/whoami-rootfs.tar /tmp/gcr.tgz
+    chmod +x /usr/local/bin/whoami
+
+    systemctl daemon-reload
+    systemctl enable whoami
+    # restart, not `enable --now`: --now will NOT reload an already-active unit, so on a
+    # re-run it would leave the OLD binary/env running with the new one merely on disk.
+    systemctl restart whoami
