@@ -6,7 +6,7 @@ Deploys the Grafana k6 Operator on Kubernetes via Helm.
 
 ```hcl
 module "k6_operator" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s?ref=v5.0.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s?ref=v5.1.0"
 
   name      = "k6-operator"
   namespace = "k6"
