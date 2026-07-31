@@ -8,7 +8,7 @@ Role-agnostic by design: cloud-init is rendered by the caller and passed in as o
 
 ```hcl
 module "vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/vsphere/vm?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/vsphere/vm?ref=v5.3.1"
 
   datacenter = "dc-01"
   datastore  = "datastore-01"

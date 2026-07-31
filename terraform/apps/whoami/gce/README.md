@@ -16,7 +16,7 @@ This module takes a `traefik_labels` map per app (dotted label → value) and `j
 
 ```hcl
 module "whoami_gce" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/gce?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/gce?ref=v5.3.1"
 
   zone    = "us-central1-a"
   network = module.gke.network # or "default"

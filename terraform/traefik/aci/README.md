@@ -10,7 +10,7 @@ Auth is the group's **system-assigned managed identity** (DefaultAzureCredential
 
 ```hcl
 module "aci_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/aci?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/aci?ref=v5.3.1"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

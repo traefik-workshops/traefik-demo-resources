@@ -14,7 +14,7 @@ Shared by `traefik/oci-ci` (one instance — the multicluster child) and
 
 ```hcl
 module "ci" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/ci?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/ci?ref=v5.3.1"
 
   compartment_id = var.compartment_id
   subnet_id      = var.subnet_id

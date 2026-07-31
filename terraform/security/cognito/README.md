@@ -6,7 +6,7 @@ Provisions an AWS Cognito User Pool, a domain, an App Client, and a set of demo 
 
 ```hcl
 module "cognito" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/cognito?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/cognito?ref=v5.3.1"
 
   # Cognito hosted domains are GLOBALLY unique per region — give every stack in
   # an account/region its own name (the default is "traefik-demo").

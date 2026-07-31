@@ -6,7 +6,7 @@ Provisions an EKS cluster (and node groups) via the upstream community EKS modul
 
 ```hcl
 module "eks" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/eks?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/eks?ref=v5.3.1"
 
   cluster_name     = "demo"
   cluster_location = "us-west-2"

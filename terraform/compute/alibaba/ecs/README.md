@@ -8,7 +8,7 @@ Takes fully-rendered `user_data` as an **opaque string** — it holds no Hub or 
 
 ```hcl
 module "compute" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/ecs?ref=v5.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/ecs?ref=v5.3.1"
 
   name       = "whoami"
   replicas   = 2
