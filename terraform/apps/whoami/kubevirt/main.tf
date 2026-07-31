@@ -101,8 +101,37 @@ locals {
   }
 }
 
+# The guest's cloud-init lives in a Secret, not inline on the VM.
+#
+# KubeVirt's validating webhook REJECTS an inline cloudInitNoCloud userData over 2048
+# bytes -- "userdata exceeds 2048 byte limit. Should use UserDataSecretRef for larger
+# data". The systemd unit plus the crane fetch renders ~3.4 KB, so the VM is refused at
+# ADMISSION: there is no half-booted guest to inspect, and nothing reveals the limit until
+# a real cluster turns the object down.
+#
+# The key MUST be `userdata` (lowercase) -- that is the name KubeVirt looks up inside the
+# referenced Secret.
+resource "kubectl_manifest" "cloudinit" {
+  for_each = local.instances_map
+
+  yaml_body = yamlencode({
+    apiVersion = "v1"
+    kind       = "Secret"
+    metadata = {
+      name      = "${each.key}-cloudinit"
+      namespace = var.namespace
+      labels    = local.vm_labels[each.key]
+    }
+    stringData = { userdata = local.user_data[each.key] }
+  })
+}
+
 resource "kubectl_manifest" "vm" {
   for_each = local.instances_map
+
+  # The Secret must exist before the VMI starts, or cloud-init comes up empty and whoami
+  # never installs -- a failure that looks like a boot problem rather than an ordering one.
+  depends_on = [kubectl_manifest.cloudinit]
 
   yaml_body = yamlencode({
     apiVersion = "kubevirt.io/v1"
@@ -180,7 +209,7 @@ resource "kubectl_manifest" "vm" {
             # containerDisk: a read-only OCI root with an ephemeral overlay. No PVC, no
             # StorageClass, no CDI DataVolume — the guests take no storage dependency.
             { name = "root", containerDisk = { image = var.container_disk } },
-            { name = "cloudinit", cloudInitNoCloud = { userData = local.user_data[each.key] } },
+            { name = "cloudinit", cloudInitNoCloud = { secretRef = { name = "${each.key}-cloudinit" } } },
           ]
         }
       }
