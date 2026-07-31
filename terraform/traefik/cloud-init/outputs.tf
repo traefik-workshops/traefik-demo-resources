@@ -14,6 +14,7 @@ output "rendered" {
     mount_docker_socket  = var.mount_docker_socket
     ssh_public_key       = var.ssh_public_key
     extra_runcmd         = var.extra_runcmd
+    data_disk            = var.data_disk
     dashboard_config     = var.dashboard_config
     performance_tuning   = var.performance_tuning
     vip                  = var.vip

@@ -1,5 +1,32 @@
 #cloud-config
 
+%{ if data_disk != null ~}
+# Extra block device, partitioned/formatted/mounted BEFORE anything installs.
+#
+# `disk_setup`, `fs_setup` and `mounts` are cloud-init INIT-stage modules, so they complete
+# before `runcmd` (cloud-final) — which is the whole point. `extra_runcmd` cannot be used for
+# this: it is appended AFTER the container-engine install and image pull further down, so a
+# mount made there arrives too late to give them anywhere to write.
+#
+# Sized for guests whose root is a containerDisk: those are fixed at the image's virtual size
+# (quay.io/containerdisks/ubuntu:24.04 is 3.5 GiB, of which the base already uses ~2.6 GiB),
+# leaving under a gigabyte — not enough for dockerd plus a Hub image, and the failure is a
+# bare "no space left on device" from containerd deep in a pull retry loop.
+disk_setup:
+  ${data_disk.device}:
+    table_type: gpt
+    layout: true
+    overwrite: true
+fs_setup:
+  - label: data
+    filesystem: ext4
+    device: ${data_disk.device}
+    partition: 1
+    overwrite: true
+mounts:
+  - [ ${data_disk.device}1, ${data_disk.mount_path}, ext4, "defaults,nofail", "0", "2" ]
+%{ endif ~}
+
 ssh_pwauth: true
 
 users:

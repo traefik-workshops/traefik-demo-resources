@@ -151,3 +151,12 @@ variable "ssh_public_key" {
   description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
   default     = ""
 }
+
+variable "data_disk" {
+  description = "Optional extra block device to partition, format and mount BEFORE the container engine installs. Set it when the guest's root is too small for dockerd plus a Hub image — a containerDisk root is fixed at the image's virtual size and cannot be grown. `device` is the raw device (e.g. /dev/vdc, the third virtio disk); `mount_path` is where it lands (e.g. /var/lib/docker). Rendered as cloud-init disk_setup/fs_setup/mounts, which are INIT-stage modules and therefore complete before runcmd. Null renders nothing at all."
+  type = object({
+    device     = string
+    mount_path = string
+  })
+  default = null
+}
