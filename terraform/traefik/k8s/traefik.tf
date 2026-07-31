@@ -75,10 +75,22 @@ locals {
     # SECOND Traefik on a single-node cluster silently became a LoadBalancer too, its klipper
     # DaemonSet could not bind the node's already-taken :80/:443, the Service sat <pending>,
     # and the release failed with nothing but `context deadline exceeded` to go on.
+    # externalTrafficPolicy belongs in `spec` for the SAME reason as `type`, and it was
+    # missed on the first pass of this fix. At the service level it is an unrecognised key
+    # Helm discards, so var.external_traffic_policy was silently a no-op too — verified
+    # against 40.3.0: only `--set service.spec.externalTrafficPolicy=Local` renders it.
+    #
+    # It is not cosmetic. Left on the chart's Cluster default, kube-proxy SNATs every
+    # request and Traefik sees the node address instead of the caller's: access logs show a
+    # single client for the whole world, and any source-IP middleware (ipAllowList, rate
+    # limiting per client) silently matches nothing or everything. That is how it was found
+    # — an ipAllowList pinned to the operator's address 403'd the operator.
     service = {
-      spec                  = { type = var.service_type }
-      annotations           = var.service_annotations
-      externalTrafficPolicy = var.external_traffic_policy
+      spec = {
+        type                  = var.service_type
+        externalTrafficPolicy = var.external_traffic_policy
+      }
+      annotations = var.service_annotations
     }
 
     # IngressClass configuration
