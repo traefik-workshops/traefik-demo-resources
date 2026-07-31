@@ -62,8 +62,21 @@ locals {
     }
 
     # Service configuration
+    #
+    # `spec.type`, NOT `kind` and NOT a top-level `type`. Chart 40.x moved the Service type
+    # into the free-form `service.spec` passthrough ("Additional entries here will be added
+    # to the Service spec"), so `service.kind` — which this module sent for a long time — is
+    # an unrecognised key that Helm silently discards, leaving every release on the chart's
+    # LoadBalancer default. Verified against 40.3.0: only `--set service.spec.type=ClusterIP`
+    # renders `type: ClusterIP`; `service.kind` and `service.type` both still render
+    # LoadBalancer.
+    #
+    # Latent until now because every demo wanted the LoadBalancer default. It surfaced when a
+    # SECOND Traefik on a single-node cluster silently became a LoadBalancer too, its klipper
+    # DaemonSet could not bind the node's already-taken :80/:443, the Service sat <pending>,
+    # and the release failed with nothing but `context deadline exceeded` to go on.
     service = {
-      kind                  = var.service_type
+      spec                  = { type = var.service_type }
       annotations           = var.service_annotations
       externalTrafficPolicy = var.external_traffic_policy
     }
