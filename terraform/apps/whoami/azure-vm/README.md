@@ -8,7 +8,7 @@ Each VM's Azure tags (dotted `traefik.*` keys, exactly like EC2 instance tags) a
 
 ```hcl
 module "whoami_azure_vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/azure-vm?ref=v5.1.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/azure-vm?ref=v5.2.0"
 
   resource_group_name = azurerm_resource_group.demo.name
   subnet_id           = module.vnet.vm_subnet_id

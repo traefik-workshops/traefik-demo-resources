@@ -8,7 +8,7 @@ Alibaba security groups attach to **workloads** (ECS instances, ECI container gr
 
 ```hcl
 module "vpc" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/vpc?ref=v5.1.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/vpc?ref=v5.2.0"
 
   name = "traefik-demo"
 }

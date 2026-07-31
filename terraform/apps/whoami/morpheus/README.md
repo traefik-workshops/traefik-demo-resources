@@ -21,7 +21,7 @@ The `HPE/hpe` terraform provider has **no user-data / cloud-config passthrough**
 
 ```hcl
 module "whoami_morpheus" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/morpheus?ref=v5.1.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/morpheus?ref=v5.2.0"
 
   cloud              = "hvm-cloud"
   group              = "demo"

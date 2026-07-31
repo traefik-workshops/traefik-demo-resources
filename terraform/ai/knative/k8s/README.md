@@ -6,7 +6,7 @@ Installs Knative Serving on a Kubernetes cluster (Helm + kubectl CRDs) for the A
 
 ```hcl
 module "knative" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/knative/k8s?ref=v5.1.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/knative/k8s?ref=v5.2.0"
 
   namespace = "knative-serving"
 }
