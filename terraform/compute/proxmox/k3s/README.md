@@ -24,7 +24,7 @@ Auth is **cert-based** (AKS/k3d-style): consume `host` / `cluster_ca_certificate
 
 ```hcl
 module "k3s" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/k3s?ref=v5.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/k3s?ref=v5.2.1"
 
   node_name     = "pve"
   datastore_id  = "local-lvm"
