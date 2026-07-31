@@ -6,7 +6,7 @@ Provisions an IBM Granite Guardian safety model pod on RunPod.
 
 ```hcl
 module "granite_guardian" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/granite-guardian/runpod?ref=v5.2.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/granite-guardian/runpod?ref=v5.3.0"
 
   runpod_api_key          = var.runpod_api_key
   hugging_face_api_key    = var.hugging_face_api_key

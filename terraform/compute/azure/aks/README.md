@@ -6,7 +6,7 @@ Provisions an Azure Kubernetes Service (AKS) cluster with optional GPU node pool
 
 ```hcl
 module "aks" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/aks?ref=v5.2.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/aks?ref=v5.3.0"
 
   cluster_name        = "demo"
   resource_group_name = "demo-rg"

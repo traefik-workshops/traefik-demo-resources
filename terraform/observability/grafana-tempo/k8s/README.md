@@ -6,7 +6,7 @@ Deploys Grafana Tempo on Kubernetes via Helm.
 
 ```hcl
 module "tempo" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana-tempo/k8s?ref=v5.2.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana-tempo/k8s?ref=v5.3.0"
 
   name      = "tempo"
   namespace = "observability"

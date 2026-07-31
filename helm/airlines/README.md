@@ -2,13 +2,13 @@
 
 Airlines Demo - Scalar Mock Server APIs with Traefik Hub API Management
 
-- **Chart version:** `5.2.2` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `5.3.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `2.0.0`
 
 ## Install
 
 ```bash
-helm install my-airlines oci://ghcr.io/traefik-workshops/airlines --version 5.2.2
+helm install my-airlines oci://ghcr.io/traefik-workshops/airlines --version 5.3.0
 ```
 
 From source (for development against this repo):
@@ -36,9 +36,9 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version | Repository | Condition |
 |------|---------|------------|-----------|
-| ai-gateway | `5.2.2` | `file://../ai-gateway` | `aiGateway.enabled` |
-| hoppscotch | `5.2.2` | `file://../hoppscotch` | `hoppscotch.enabled` |
-| keycloak | `5.2.2` | `file://../keycloak` | `keycloak.enabled` |
+| ai-gateway | `5.3.0` | `file://../ai-gateway` | `aiGateway.enabled` |
+| hoppscotch | `5.3.0` | `file://../hoppscotch` | `hoppscotch.enabled` |
+| keycloak | `5.3.0` | `file://../keycloak` | `keycloak.enabled` |
 
 ## Values
 

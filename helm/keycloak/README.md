@@ -2,13 +2,13 @@
 
 Keycloak identity and access management with operator
 
-- **Chart version:** `5.2.2` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `5.3.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `26.6.3`
 
 ## Install
 
 ```bash
-helm install my-keycloak oci://ghcr.io/traefik-workshops/keycloak --version 5.2.2
+helm install my-keycloak oci://ghcr.io/traefik-workshops/keycloak --version 5.3.0
 ```
 
 From source (for development against this repo):
