@@ -19,9 +19,14 @@ module "cloud_init" {
   whoami_version = var.whoami_version
   arch           = var.arch
   port           = var.service_port
-  # Surfaces as `Name:` in the whoami response so the audience sees which
-  # VM served them (the OS hostname stays "ubuntu" — cloud-init doesn't set it).
-  name        = var.vm_name
+  # Surfaces as `Name:` in the whoami response. Defaults to vm_name so a single VM still
+  # names itself, but a fleet fronting ONE logical leg must override it (var.name) so every
+  # member answers with the SAME Name — see the variable's comment for what breaks.
+  #
+  # `Hostname:` still differs per VM even when Name is shared: cloud-init never sets the OS
+  # hostname (it stays "ubuntu"), so whoami reports its own CONTAINER id, which is random
+  # per `docker run`. That is what a wrr spread assertion actually counts.
+  name        = var.name != "" ? var.name : var.vm_name
   environment = var.environment
 }
 

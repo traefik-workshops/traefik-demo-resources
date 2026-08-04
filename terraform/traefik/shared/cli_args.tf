@@ -58,8 +58,17 @@ locals {
       "--hub.providers.nutanixPrismCentral.pollTimeout=${var.nutanix_provider.poll_timeout}"
     ],
 
-    # Category key for service discovery
-    ["--hub.providers.nutanixPrismCentral.serviceNameCategoryKey=TraefikServiceName"],
+    # Category key for service discovery. The provider takes the value of the ONE category
+    # whose Key matches this; TWO categories with this key on one VM is a hard error and the
+    # WHOLE VM is dropped ("duplicate category key"), so a VM fronts exactly one service.
+    ["--hub.providers.nutanixPrismCentral.serviceNameCategoryKey=${var.nutanix_provider.service_name_category_key}"],
+
+    # Scope discovery to specific VPCs. Emitted only when the caller asked for it —
+    # unset means Prism-Central-wide, which is right for a dedicated endpoint and
+    # cross-tenant on a shared POC pod.
+    [for i, vpc in var.nutanix_provider.allowed_vpcs :
+      "--hub.providers.nutanixPrismCentral.allowedVPCs[${i}].uuid=${vpc.uuid}"
+    ],
 
     # Optional supplementary config file (healthchecks, LB settings, etc.)
     var.nutanix_provider.filename != "" ? [

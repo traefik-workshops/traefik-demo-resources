@@ -262,13 +262,16 @@ variable "custom_plugins" {
   default = {}
 }
 
+# Typed `any`, matching traefik/shared and traefik/vsphere-vm. The old
+# map(object({ port, protocol })) shape could not express a Hub multicluster UPLINK
+# entrypoint — { port = 9443, uplink = true, expose = { default = true },
+# http = { tls = { enabled = true } } } — so a Nutanix child had to declare its uplink
+# through custom_arguments instead, and the flag form that fits on one line
+# (--hub.uplinkEntryPoints.X.asDefault=true) makes EVERY router uplink by default.
 variable "custom_ports" {
-  description = "Custom ports configuration"
-  type = map(object({
-    port     = number
-    protocol = optional(string, "tcp")
-  }))
-  default = {}
+  description = "Custom ports configuration. Typed `any` so it can carry a full Helm `ports.<name>` shape — e.g. a Hub multicluster uplink entrypoint { port = 9443, uplink = true, expose = { default = true }, http = { tls = { enabled = true } } } — not just { port, protocol }."
+  type        = any
+  default     = {}
 }
 
 variable "custom_arguments" {
@@ -299,6 +302,34 @@ variable "extra_files" {
   }))
   description = "Extra files to write to the VM at cloud-init time"
   default     = []
+}
+
+# =============================================================================
+# Docker-provider leg (see the wiring comment in main.tf)
+# =============================================================================
+
+variable "mount_docker_socket" {
+  type        = bool
+  description = "Bind /var/run/docker.sock into the Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg. Takes effect only with enable_preview_mode — in binary mode there is no container to bind it into."
+  default     = false
+}
+
+variable "extra_runcmd" {
+  type        = list(string)
+  description = "Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg), which is required rather than thrifty: --providers.docker reads a UNIX socket, and no remote gateway can dial one. Takes effect only with enable_preview_mode — Docker is installed on that path alone."
+  default     = []
+}
+
+variable "ssh_public_key" {
+  type        = string
+  description = "Public key authorized for the traefiker user on the gateway. Optional: empty keeps the demo password as the only credential, which works but makes every diagnostic script drive an interactive prompt."
+  default     = ""
+}
+
+variable "enable_dashboard_discovery" {
+  description = "Stamp this gateway VM with TraefikServiceName=traefik so its OWN nutanixprismcentral provider discovers it and can publish the dashboard as traefik@nutanixprismcentral. Disable when the dashboard is advertised another way (e.g. a file-rule uplink to a multicluster parent) so the VM is not self-discovered at all — see main.tf for what leaving it on costs."
+  type        = bool
+  default     = true
 }
 
 variable "file_provider_path" {
@@ -392,6 +423,14 @@ variable "multicluster_provider" {
   }
 }
 
+# The first-party Hub provider (--hub.providers.nutanixPrismCentral.*), compiled into the
+# Hub image. It reads ONE thing off Prism Central: the value of the category whose key is
+# service_name_category_key, per powered-on VM. Everything else about the resulting service
+# — port, scheme, health check, strategy, weighted composition — comes from the `filename`
+# base config, NOT from Nutanix.
+#
+# `endpoint` MUST carry a scheme (provider.go Init() rejects a bare host:port), and
+# api_key XOR username+password: configuring both is a hard startup error, not a preference.
 variable "nutanix_provider" {
   description = "Nutanix Prism Central provider configuration for VM discovery"
   type = object({
@@ -404,6 +443,16 @@ variable "nutanix_provider" {
     poll_interval        = optional(string, "30s")
     poll_timeout         = optional(string, "5s")
     filename             = optional(string, "")
+
+    # Scope discovery to these VPCs. WITHOUT it the gateway adopts every powered-on VM in
+    # the WHOLE of Prism Central that carries the category — which on a shared POC pod is
+    # cross-tenant. The provider resolves it to a subnet allow-list and then only considers
+    # NICs in those subnets (discovery.go fetchAllowedSubnets/extractIP).
+    allowed_vpcs = optional(list(object({ uuid = string })), [])
+
+    # Which category key names the service. Defaults to the provider's own default; override
+    # only when an existing Prism Central taxonomy already owns that key.
+    service_name_category_key = optional(string, "TraefikServiceName")
   })
   default = {
     enabled = false

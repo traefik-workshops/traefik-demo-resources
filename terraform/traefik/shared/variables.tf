@@ -352,6 +352,15 @@ variable "nutanix_provider" {
     poll_interval        = optional(string, "30s")
     poll_timeout         = optional(string, "5s")
     filename             = optional(string, "")
+
+    # Scope discovery to these VPCs (--hub.providers.nutanixPrismCentral.allowedVPCs[n].uuid).
+    # Empty means Prism-Central-wide: every powered-on VM carrying the service category, in
+    # every tenant on the pod. Set it on any shared endpoint.
+    allowed_vpcs = optional(list(object({ uuid = string })), [])
+
+    # Category key the provider reads the service name from. Was hard-coded to
+    # "TraefikServiceName" here; kept as the default so existing callers are unaffected.
+    service_name_category_key = optional(string, "TraefikServiceName")
   })
   default = {
     enabled = false

@@ -3,6 +3,20 @@ variable "vm_name" {
   type        = string
 }
 
+# SPLIT FROM vm_name deliberately. Prism Central VM names must be UNIQUE, and a caller that
+# fans one whoami out per VM (the nutanixprismcentral provider reads exactly ONE
+# TraefikServiceName category value per VM, so a fleet is N uniquely-named VMs) therefore
+# has N distinct vm_names. Before this variable existed main.tf passed vm_name straight
+# through as the whoami `-name`, so the bodies echoed `Name: whoami-vm-1` / `whoami-vm-2` —
+# and the shared assertion suite, which sorts -u the `Name:` values inside ONE sticky cookie
+# jar, reads a correctly-pinned session as "sticky crossed legs — 2 distinct legs". The VM
+# names must differ; the whoami Name must not.
+variable "name" {
+  description = "The whoami `-name` (WHOAMI_NAME) the response body echoes as `Name: <name>`. Empty falls back to vm_name (the historical behaviour). Set it — identical across the fleet — whenever more than one VM fronts the same logical leg."
+  type        = string
+  default     = ""
+}
+
 variable "cluster_id" {
   description = "UUID of the Nutanix Cluster"
   type        = string

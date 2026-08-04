@@ -30,11 +30,22 @@ locals {
     }
   }) : ""
 
-  # Traefik instances tagged for service discovery (always enabled with defaults)
-  traefik_categories = {
+  # Self-registration: stamp THIS gateway VM with the same categories a workload carries, so
+  # the gateway's OWN nutanixprismcentral provider discovers it and can publish a dashboard
+  # service named `traefik`.
+  #
+  # Gated (mirrors traefik/vsphere-vm's enable_dashboard_discovery) because it is wrong
+  # whenever the dashboard is advertised another way — e.g. through a file-rule uplink to a
+  # multicluster parent. Left on in that topology it costs twice:
+  #   * the caller's compute/nutanix/categories block must keep a `traefik` VALUE alive
+  #     purely to satisfy a stamp nothing consumes (nutanix_category_value requires the key
+  #     to pre-exist, so the value list is authored by hand), and
+  #   * the provider logs "VMs reference service not defined in base configuration,
+  #     skipping" (config.go) on EVERY poll, which reads like a fault and is not one.
+  traefik_categories = var.enable_dashboard_discovery ? {
     "TraefikServiceName" = "traefik"
     "TraefikServicePort" = "80"
-  }
+  } : {}
 
   # Normalize performance tuning with defaults (consistent with EC2)
   performance_tuning = {
@@ -73,6 +84,27 @@ module "cloud_init" {
   dns_traefiker        = var.dns_traefiker
   enable_preview_mode  = var.enable_preview_mode
   preview_image        = module.config.image_full
+
+  # --- the docker-provider leg -------------------------------------------------------
+  # The shared renderer has supported all three of these since the vSphere docker spoke
+  # landed (traefik/cloud-init/variables.tf); Nutanix was simply the one platform module
+  # that never wired them through, so a Nutanix caller could not build a Docker leg at all.
+  #
+  # NB they only take effect on the PREVIEW-IMAGE path (enable_preview_mode = true), and
+  # that is a property of the renderer, not an oversight here: the cloud-init template
+  # installs Docker only in that branch, and binds the socket only into the container it
+  # runs there. A binary-mode gateway has no Docker on the box for extra_runcmd to use.
+  # "Preview mode" is a misnomer at this point — it means "run the gateway as a container",
+  # and a caller may point custom_image_* at a fully RELEASED tag.
+  mount_docker_socket = var.mount_docker_socket
+  extra_runcmd        = var.extra_runcmd
+  ssh_public_key      = var.ssh_public_key
+
+  # Renders the OTLP collector readiness gate into runcmd, so the gateway does not start
+  # before its exporter target answers. Without it the first trace batch is dropped
+  # (BatchSpanProcessor does not retry) and a live leg reads as `traefik-x -> unknown`.
+  otlp_address  = var.otlp_address
+  instance_name = var.vm_name
 }
 
 module "traefik_vm" {
