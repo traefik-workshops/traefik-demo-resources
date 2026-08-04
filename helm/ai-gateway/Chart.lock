@@ -1,12 +1,12 @@
 dependencies:
 - name: presidio
   repository: file://../presidio
-  version: 5.4.1
+  version: 5.4.2
 - name: weaviate
   repository: https://weaviate.github.io/weaviate-helm
   version: 17.8.1
 - name: embeddings
   repository: file://../embeddings
-  version: 5.4.1
-digest: sha256:2ad53cc41309dc69b54e4585ab54a12ace12db5e384451ca42e93ad2b3ecb1ae
-generated: "2026-08-04T13:51:12.747947-04:00"
+  version: 5.4.2
+digest: sha256:2c81b1e4571b1f79b3aac495c1cb86250a35c4bbf03dd3e0c707721c2893ddf6
+generated: "2026-08-04T14:43:52.659657-04:00"

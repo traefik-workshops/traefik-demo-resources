@@ -8,7 +8,7 @@ Exists because `compute/azure/aks` uses AKS-managed networking (the VNet lives i
 
 ```hcl
 module "vnet" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/vnet?ref=v5.4.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/vnet?ref=v5.4.2"
 
   name                = "demo-vnet"
   resource_group_name = azurerm_resource_group.demo.name

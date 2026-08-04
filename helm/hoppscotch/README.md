@@ -2,13 +2,13 @@
 
 Self-hosted Hoppscotch with multi-collection nginx serving
 
-- **Chart version:** `5.4.1` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `5.4.2` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `2026.5.0`
 
 ## Install
 
 ```bash
-helm install my-hoppscotch oci://ghcr.io/traefik-workshops/hoppscotch --version 5.4.1
+helm install my-hoppscotch oci://ghcr.io/traefik-workshops/hoppscotch --version 5.4.2
 ```
 
 From source (for development against this repo):

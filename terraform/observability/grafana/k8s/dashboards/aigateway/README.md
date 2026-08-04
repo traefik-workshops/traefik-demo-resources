@@ -8,7 +8,7 @@ Renders the AI-Gateway Grafana dashboard JSON as a Kubernetes ConfigMap. Intenti
 
 ```hcl
 module "aigateway_dashboard" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana/k8s/dashboards/aigateway?ref=v5.4.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana/k8s/dashboards/aigateway?ref=v5.4.2"
 
   name      = "grafana-dashboard-aigateway"
   namespace = "observability"

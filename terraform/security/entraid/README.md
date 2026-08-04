@@ -6,7 +6,7 @@ Provisions an Azure AD (Entra ID) Application, a client secret, and a set of dem
 
 ```hcl
 module "entraid" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/entraid?ref=v5.4.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/security/entraid?ref=v5.4.2"
 
   users         = ["admin", "support"]
   redirect_uris = ["https://demo.traefik.ai/callback"]

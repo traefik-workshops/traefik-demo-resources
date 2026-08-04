@@ -8,7 +8,7 @@ Consumed internally by the other `traefik/*` modules; rarely instantiated direct
 
 ```hcl
 module "traefik_config" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/shared?ref=v5.4.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/shared?ref=v5.4.2"
 
   traefik_hub_token = var.traefik_hub_token
   cloudflare_dns    = var.cloudflare_dns

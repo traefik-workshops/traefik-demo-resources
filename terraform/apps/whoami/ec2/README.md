@@ -6,7 +6,7 @@ Provisions one or more Traefik `whoami` instances on AWS EC2, wrapping `compute/
 
 ```hcl
 module "whoami_ec2" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/ec2?ref=v5.4.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/ec2?ref=v5.4.2"
 
   # OTel config for the instrumented fork — passed to every container via docker -e
   # (per-app `environment` entries win on collision).
