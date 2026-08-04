@@ -143,12 +143,46 @@ resource "null_resource" "identity_bounce" {
   provisioner "local-exec" {
     command = <<-EOT
       set -eu
-      # Give RBAC propagation time (regional AAD replication), then force a fresh
-      # identity token. `az container restart` blocks until the group is running.
-      sleep 120
-      az container restart \
-        --resource-group ${var.resource_group_name} \
-        --name ${var.name}
+      RG=${var.resource_group_name}
+      NAME=${var.name}
+
+      # How many times has the aci provider been refused so far? ARM evaluates RBAC
+      # against the presented token, so a grant that lands after the token was minted
+      # stays invisible until a restart mints a new one -- which is why the count, not
+      # the presence, of 403s is what matters: old failures stay in the log after a
+      # restart, so "no 403s at all" is never true here. A count that stops GROWING is
+      # the only honest signal that the identity finally took.
+      count403() {
+        az container logs --resource-group "$RG" --name "$NAME" 2>/dev/null \
+          | grep -c 'AuthorizationFailed' || true
+      }
+
+      # A fixed `sleep 120` was the old approach and it is a guess, not a guarantee:
+      # on 2026-08-04 replication ran past two minutes, the single bounce fired early,
+      # and the child served ZERO container servers for the rest of the run -- act 4
+      # failed with whoami-container 0/24 while every VM-leg assertion passed, which
+      # reads as a canary bug rather than an authorization one. Escalating waits with
+      # verification turn that silent, run-ruining flake into a self-healing step.
+      for attempt in 1 2 3 4; do
+        sleep $((60 * attempt))
+        az container restart --resource-group "$RG" --name "$NAME"
+
+        sleep 30            # let the provider poll a few times on the new token
+        before=$(count403)
+        sleep 25
+        after=$(count403)
+
+        if [ "$after" -le "$before" ]; then
+          echo "aci identity bounce: effective after attempt $attempt"
+          exit 0
+        fi
+        echo "aci identity bounce: attempt $attempt still AuthorizationFailed, retrying"
+      done
+
+      echo "aci identity bounce: the Reader grant never became effective for $NAME." >&2
+      echo "The child gateway is up but its aci provider cannot list container groups," >&2
+      echo "so it will advertise no servers and the cross-compute act will fail." >&2
+      exit 1
     EOT
   }
 }
