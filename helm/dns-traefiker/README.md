@@ -2,13 +2,13 @@
 
 A Helm chart for the DNS Traefiker application
 
-- **Chart version:** `5.3.1` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `5.4.1` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `v1.0.2`
 
 ## Install
 
 ```bash
-helm install my-dns-traefiker oci://ghcr.io/traefik-workshops/dns-traefiker --version 5.3.1
+helm install my-dns-traefiker oci://ghcr.io/traefik-workshops/dns-traefiker --version 5.4.1
 ```
 
 From source (for development against this repo):

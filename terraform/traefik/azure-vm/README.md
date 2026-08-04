@@ -10,7 +10,7 @@ Auth is the VM's **system-assigned managed identity** (DefaultAzureCredential) +
 
 ```hcl
 module "azure_vm_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/azure-vm?ref=v5.3.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/azure-vm?ref=v5.4.1"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

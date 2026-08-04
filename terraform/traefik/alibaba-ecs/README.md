@@ -8,7 +8,7 @@ Traefik Hub on an Alibaba Cloud ECS instance — the multicluster **child** on A
 
 ```hcl
 module "traefik_alibaba_ecs" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/alibaba-ecs?ref=v5.3.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/alibaba-ecs?ref=v5.4.1"
 
   vswitch_id         = module.vpc.vswitch_id
   security_group_ids = module.vpc.security_group_ids
