@@ -82,7 +82,20 @@ resource "null_resource" "ack_cluster" {
       # Get the current context name from the ACK kubeconfig
       ACK_CONTEXT=$(kubectl --kubeconfig=ack-kubeconfig.yaml config current-context)
 
-      export KUBECONFIG=~/.kube/config:ack-kubeconfig.yaml
+      # ORDER IS LOAD-BEARING: `kubectl config view --flatten` resolves duplicate names
+      # FIRST-WINS, and ACK names every cluster it hands out plain `kubernetes`. With the
+      # ambient file first, a `kubernetes` entry left behind by an EARLIER ACK cluster
+      # outranks the one just created: the context below gets renamed and points at the
+      # right name, but that name still resolves to the previous cluster's dead endpoint.
+      #
+      # It fails as a connection timeout to an address nothing in this run ever mentions
+      # (2026-08-04: the CRD install dialed 8.222.142.86 while the live API server was
+      # 8.219.49.205), and it hits any operator who has stood this demo up before -- the
+      # first run on a clean machine always works, which is what kept it hidden.
+      #
+      # Listing the new config first makes the cluster we just built win its own name.
+      # Only same-named entries are affected, which are precisely the stale ACK ones.
+      export KUBECONFIG=ack-kubeconfig.yaml:~/.kube/config
       kubectl config view --flatten > merged.yaml
       mv merged.yaml ~/.kube/config
 
