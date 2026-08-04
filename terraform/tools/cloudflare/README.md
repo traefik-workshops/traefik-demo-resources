@@ -6,7 +6,7 @@ Creates a single Cloudflare DNS record (A or CNAME) with optional proxying.
 
 ```hcl
 module "dns" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/cloudflare?ref=v5.4.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/cloudflare?ref=v5.4.3"
 
   zone_id     = var.cf_zone_id
   domain      = "demo.traefik.ai"

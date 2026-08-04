@@ -6,7 +6,7 @@ Deploys the Milvus vector database into a Kubernetes cluster via Helm.
 
 ```hcl
 module "milvus" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/milvus/k8s?ref=v5.4.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/milvus/k8s?ref=v5.4.3"
 
   namespace = "milvus"
 }

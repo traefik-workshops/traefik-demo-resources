@@ -8,7 +8,7 @@ Each instance's tags (dotted `traefik.*` keys, exactly like EC2/Azure/OCI tags) 
 
 ```hcl
 module "whoami_alibaba_ecs" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/alibaba-ecs?ref=v5.4.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/alibaba-ecs?ref=v5.4.3"
 
   vswitch_id         = module.vpc.vswitch_id
   security_group_ids = module.vpc.security_group_ids

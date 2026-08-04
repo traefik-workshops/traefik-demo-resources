@@ -6,7 +6,7 @@ Provisions a DigitalOcean Kubernetes (DOKS) cluster with optional autoscaling an
 
 ```hcl
 module "doks" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/digitalocean/doks?ref=v5.4.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/digitalocean/doks?ref=v5.4.3"
 
   cluster_name     = "demo"
   cluster_location = "nyc2"
