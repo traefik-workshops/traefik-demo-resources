@@ -77,6 +77,12 @@ locals {
     # Inert here: only the docker-provider leg needs the socket bound in or extra
     # containers provisioned. The shared template requires both keys regardless --
     # templatefile hard-errors on a key the template uses but the caller omits.
+    # Not offered by this module: only a guest whose ROOT is too small for the container
+    # engine needs one (a KubeVirt containerDisk is fixed at the image's virtual size).
+    # The key must still be passed -- templatefile hard-errors on a key the template uses
+    # but the caller omits, which is how adding it to ONE of the nine renderers broke the
+    # other eight.
+    data_disk            = null
     mount_docker_socket  = false
     ssh_public_key       = var.ssh_public_key
     extra_runcmd         = []

@@ -78,19 +78,25 @@ locals {
     env_vars             = local.env_vars_list
     file_provider_config = var.file_provider_config
     extra_files          = var.extra_files
-    mount_docker_socket  = var.mount_docker_socket
-    ssh_public_key       = var.ssh_public_key
-    extra_runcmd         = var.extra_runcmd
-    performance_tuning   = local.performance_tuning
-    otlp_address         = module.config.otlp_endpoint
-    instance_name        = local.instance_key
-    dashboard_config     = "" # Optional
-    vip                  = "" # Optional
-    keepalived_priority  = 100
-    network_interface    = "ens192" # vmxnet3 NIC name on Ubuntu cloud images
-    dns_traefiker        = { enabled = false, version = "v1.0.4", chart = "", unique_domain = false, domain = "", enable_airlines_subdomain = false, ip_override = "", proxied = false }
-    enable_preview_mode  = var.enable_preview_mode
-    preview_image        = module.config.image_full
+    # Not offered by this module: only a guest whose ROOT is too small for the container
+    # engine needs one (a KubeVirt containerDisk is fixed at the image's virtual size).
+    # The key must still be passed -- templatefile hard-errors on a key the template uses
+    # but the caller omits, which is how adding it to ONE of the nine renderers broke the
+    # other eight.
+    data_disk           = null
+    mount_docker_socket = var.mount_docker_socket
+    ssh_public_key      = var.ssh_public_key
+    extra_runcmd        = var.extra_runcmd
+    performance_tuning  = local.performance_tuning
+    otlp_address        = module.config.otlp_endpoint
+    instance_name       = local.instance_key
+    dashboard_config    = "" # Optional
+    vip                 = "" # Optional
+    keepalived_priority = 100
+    network_interface   = "ens192" # vmxnet3 NIC name on Ubuntu cloud images
+    dns_traefiker       = { enabled = false, version = "v1.0.4", chart = "", unique_domain = false, domain = "", enable_airlines_subdomain = false, ip_override = "", proxied = false }
+    enable_preview_mode = var.enable_preview_mode
+    preview_image       = module.config.image_full
   })
 
   # Self-register the Traefik VM's own dashboard via its vsphere provider
