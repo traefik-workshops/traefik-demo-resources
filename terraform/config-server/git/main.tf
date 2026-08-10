@@ -6,12 +6,17 @@
 # entrypoint — the SAME route the spokes already use for collector.<domain>, so it reaches
 # every spoke (on-prem AND cloud) and the operator with zero new networking.
 #
-# The spokes git-pull <gateway>/dynamic.yaml from here into their file-provider watch dir and
-# hot-reload; terraform pushes changes here instead of baking them into user_data. No token —
-# a short-lived demo on a private lab net (see the repo README). The repo lives on an emptyDir:
-# it is the SOURCE OF TRUTH only transiently — terraform re-pushes the full desired config on
-# every apply, so a pod restart (empty repo re-seeded by the entrypoint) self-heals on the next
-# apply. Persistence would only matter for out-of-band commits, which the demo does not make.
+# The READ path is raw HTTP: a post-receive hook checks the pushed tree out to a web root
+# Apache serves at /config/<path>. That is what the spokes poll — a Hub provider's
+# configEndpoint (gce/oci/ocici/vsphere: base services the provider injects discovered
+# servers into) or Traefik's own http provider (a file-provider-shaped dynamic.yaml) —
+# instead of baking config into user_data, which made every routing change a VM
+# RECREATION. The WRITE path is terraform: var.files pushes the desired tree
+# (null_resource.push below). No token — a short-lived demo on a private lab net (see the
+# repo README). The repo lives on an emptyDir: it is the SOURCE OF TRUTH only transiently —
+# terraform re-pushes the full desired config on every apply, so a pod restart (empty repo
+# re-seeded by the entrypoint) self-heals on the next apply. Persistence would only matter
+# for out-of-band commits, which the demo does not make.
 # =============================================================================
 
 locals {
@@ -119,6 +124,84 @@ resource "null_resource" "ingressroute" {
                 namespace: ${var.namespace}
                 port: 80
       YAML
+    EOT
+  }
+
+  depends_on = [kubernetes_deployment_v1.git, kubernetes_service_v1.git]
+}
+
+# The GitOps WRITE path: push var.files as the repo's tree, one commit per sync.
+# The post-receive hook then publishes it raw under /config/, where the spokes'
+# Hub providers poll their configEndpoint URLs — so changing routing intent is
+# THIS resource re-running, never a gateway VM being replaced.
+#
+# Two deliberate choices:
+#   - The push tunnels through `kubectl port-forward` to the Service instead of
+#     the public git.<domain> URL: on a FRESH standup the DNS record
+#     (dns-traefiker) and the ACME cert land minutes after the Deployment is
+#     Ready, and the push is load-bearing (a provider polling an empty repo
+#     serves no services). kubectl is already this module's delivery tool (the
+#     IngressRoute above), and the port-forward needs nothing but the
+#     kubeconfig context every demo merges during apply.
+#   - It re-runs on EVERY apply (timestamp trigger), not on a content hash: the
+#     repo lives on an emptyDir, so a pod restart re-seeds an EMPTY repo and a
+#     hash-gated push would never notice — `terraform apply` must always
+#     restore the full desired tree (the transient-source-of-truth contract in
+#     the header). The push itself is idempotent: an unchanged tree makes no
+#     commit.
+resource "null_resource" "push" {
+  count = length(var.files) > 0 ? 1 : 0
+
+  triggers = {
+    always = timestamp()
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["bash", "-c"]
+    command     = <<-EOT
+      set -euo pipefail
+      ctx=${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}
+
+      kubectl $ctx -n '${var.namespace}' rollout status 'deploy/${var.name}' --timeout=180s
+
+      # Port-forward on a RANDOM local port (:80 -> the git Service) so parallel
+      # demo standups on one machine can't collide; parse the port kubectl picked.
+      pf_log=$(mktemp)
+      work=$(mktemp -d)
+      kubectl $ctx -n '${var.namespace}' port-forward 'svc/${var.name}' :80 >"$pf_log" 2>&1 &
+      pf_pid=$!
+      trap 'kill "$pf_pid" 2>/dev/null || true; rm -rf "$pf_log" "$work"' EXIT
+
+      port=""
+      for _ in $(seq 1 30); do
+        port=$(sed -n 's/^Forwarding from 127.0.0.1:\([0-9][0-9]*\).*/\1/p' "$pf_log" | head -n 1)
+        [ -n "$port" ] && break
+        sleep 1
+      done
+      if [ -z "$port" ]; then
+        echo "git-config-server port-forward never came up:" >&2
+        cat "$pf_log" >&2
+        exit 1
+      fi
+
+      git clone -q "http://127.0.0.1:$port/config.git" "$work/repo"
+      cd "$work/repo"
+
+      # The pushed tree IS the desired state: clear everything tracked, then
+      # write the full file set (portable across BSD/GNU userlands).
+      find . -mindepth 1 -maxdepth 1 -not -name .git -exec rm -rf {} +
+      %{~for path, content in var.files}
+      mkdir -p "$(dirname '${path}')"
+      printf '%s' '${base64encode(content)}' | openssl base64 -d -A > '${path}'
+      %{~endfor}
+
+      git add -A
+      if git diff --cached --quiet; then
+        echo "config repo already up to date"
+      else
+        git -c user.name=terraform -c user.email=terraform@demo commit -q -m "terraform: sync config tree"
+        git push -q origin HEAD:main
+      fi
     EOT
   }
 

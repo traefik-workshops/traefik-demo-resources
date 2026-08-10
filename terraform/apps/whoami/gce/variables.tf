@@ -1,21 +1,20 @@
 variable "apps" {
-  description = "Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: `traefik_labels` is a map of dotted Traefik label -> value, JSON-encoded into the single `traefik` metadata item (GCE metadata keys can't contain dots); optional `labels` are plain (dotless) GCE labels for provider constraints only. { name = { replicas, port, name, environment, traefik_labels, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container."
+  description = "Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: instead of dotted traefik.* tags, an app's `labels` map carries plain GCE labels — including the service-name label the Hub gce provider reads (e.g. `traefik-service = \"whoami\"`), whose value names the ONE service the app's VMs back. Routing intent lives in the gateway's base configuration, never here. { name = { replicas, port, name, environment, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container."
   type        = any
   default     = {}
 
-  # The gce provider expects each app's `traefik` metadata value to be a JSON
-  # OBJECT of dotted string labels. jsonencode() (in main.tf) always emits valid
-  # JSON, but the wrong INPUT shape still encodes "validly" — a pre-encoded
-  # string becomes a JSON string, a nested map a JSON object of objects — and the
-  # provider then silently drops the VM from discovery (no error anywhere; the
-  # service just never gains the server). Fail the plan instead.
+  # GCE rejects invalid label values with an opaque API error at apply time;
+  # worse, a syntactically valid but WRONG value (uppercase gets caught, but a
+  # forgotten rename does not) silently detaches the VM from its service — the
+  # provider skips unlabeled/mismatched instances with no error anywhere. Catch
+  # the syntactic half at plan time.
   validation {
     condition = alltrue([
       for app in values(var.apps) : alltrue([
-        for k, v in try(app.traefik_labels, {}) : can(tostring(v)) && startswith(k, "traefik.")
+        for k, v in try(app.labels, {}) : can(regex("^[a-z][a-z0-9_-]{0,62}$", k)) && can(regex("^[a-z0-9_-]{0,63}$", v))
       ])
     ])
-    error_message = "traefik_labels must be a flat map of dotted `traefik.*` keys to STRING values (e.g. {\"traefik.enable\" = \"true\"}). A pre-jsonencode()d string or nested map encodes into a shape the gce provider silently ignores — the VM would vanish from discovery with no error."
+    error_message = "GCE labels must be lowercase [a-z0-9_-] (keys start with a letter, 63 chars max). The service-name label's value is a service name in the gateway's base configuration — it cannot carry dots, commas, or routing syntax."
   }
 }
 
@@ -50,7 +49,7 @@ variable "subnetwork" {
 }
 
 variable "common_labels" {
-  description = "Common GCE labels to apply to all VMs (dotless — provider constraints only, not traefik.* config)"
+  description = "Common GCE labels to apply to all VMs. Per-app `labels` win on collision; keep the service-name label per-app so each app names its own service."
   type        = map(string)
   default     = {}
 }

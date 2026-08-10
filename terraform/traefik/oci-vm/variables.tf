@@ -157,21 +157,30 @@ variable "performance_tuning" {
 # -----------------------------------------------------------------------------
 
 variable "oci_provider" {
-  description = "Traefik Hub oci provider configuration (hub.providers.oci). compartment_id defaults to the module's compartment_id; region defaults to the instance's own (from IMDS). No configFilePath/profile: useInstancePrincipal resolves the VM's identity keylessly (see enable_instance_principal)."
+  description = "Traefik Hub oci provider configuration (hub.providers.oci). compartment_id defaults to the module's compartment_id; region defaults to the instance's own (from IMDS). No configFilePath/profile: useInstancePrincipal resolves the VM's identity keylessly (see enable_instance_principal). The base configuration (the services — with port/strategy/health checks — that discovered IPs merge into, plus any routers/uplinks) comes from config_endpoint (a GitOps URL the provider polls, e.g. the hub's git-config-server) OR filename (a path baked onto the gateway — forces VM replacement on every config change, offline use only). At most one."
   type = object({
     enabled                = optional(bool, true)
     compartment_id         = optional(string, "")
     region                 = optional(string, "")
     use_instance_principal = optional(bool, true)
     ip_mode                = optional(string, "private")
-    # Base-config file the provider merges discovered IPs into (routers + services
-    # with their LB strategy live here). Deliver it via extra_files to a mounted
-    # path (e.g. /data/oci-base.yaml).
+    # GitOps URL the provider polls for the base config — the mechanism that
+    # makes a routing-intent change a config push, not a VM replacement.
+    config_endpoint             = optional(string, "")
+    config_insecure_skip_verify = optional(bool, false)
+    # Offline alternative: a base-config file on the gateway (deliver it via
+    # extra_files to a mounted path, e.g. /data/oci-base.yaml). Mutually
+    # exclusive with config_endpoint.
     filename             = optional(string, "")
     service_name_tag_key = optional(string, "TraefikServiceName")
     refresh_seconds      = optional(number, null)
   })
   default = {}
+
+  validation {
+    condition     = var.oci_provider.config_endpoint == "" || var.oci_provider.filename == ""
+    error_message = "oci_provider.config_endpoint (GitOps URL) and oci_provider.filename (path on the gateway) are mutually exclusive — the provider takes its base configuration from at most one source."
+  }
 }
 
 variable "multicluster_provider" {

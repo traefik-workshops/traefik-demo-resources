@@ -7,6 +7,15 @@
 # path) with an attached service account: the gce provider authenticates via
 # Application Default Credentials (the metadata server works with
 # --network host) and a roles/compute.viewer project binding.
+#
+# DISCOVERY CONTRACT (mirrors traefik/vsphere-vm): an instance carries ONLY a
+# service name — the value of one GCE label (gce_provider.service_name_label,
+# provider default `traefik-service`). All routing intent (routers, services,
+# middlewares, uplinks) lives in ONE base configuration the provider loads from
+# gce_provider.config_endpoint (a GitOps URL, e.g. the hub's git-config-server)
+# or gce_provider.filename (a path on the gateway) — exactly one. Base services
+# declare scheme/port but no servers; the provider injects one server per
+# discovered instance.
 # =============================================================================
 
 data "google_client_config" "current" {}
@@ -16,20 +25,24 @@ locals {
   project_id = coalesce(var.gce_provider.project_id, data.google_client_config.current.project)
 
   # hub.providers.gce static config as CLI flags (same delivery as the azureVM
-  # flags in traefik/azure-vm). No credentialsFile/credentialsJSON: ADC
-  # resolves the VM's attached service account.
+  # flags in traefik/azure-vm). The provider follows the vsphere contract: an
+  # instance carries ONLY a service name (the value of its service_name_label
+  # GCE label), and the routing intent comes from ONE base configuration —
+  # polled from config_endpoint (GitOps) or read from filename, exactly one.
+  # No credentialsFile/credentialsJSON: ADC resolves the VM's attached service
+  # account.
   gce_provider_args = var.gce_provider.enabled ? concat(
     [
       "--hub.providers.gce=true",
       "--hub.providers.gce.projectID=${local.project_id}",
       "--hub.providers.gce.ipMode=${var.gce_provider.ip_mode}",
-      "--hub.providers.gce.exposedByDefault=${var.gce_provider.exposed_by_default}",
     ],
     length(var.gce_provider.zones) > 0 ? ["--hub.providers.gce.zones=${join(",", var.gce_provider.zones)}"] : [],
-    var.gce_provider.default_rule != "" ? ["--hub.providers.gce.defaultRule=${var.gce_provider.default_rule}"] : [],
-    var.gce_provider.constraints != "" ? ["--hub.providers.gce.constraints=${var.gce_provider.constraints}"] : [],
+    var.gce_provider.service_name_label != "" ? ["--hub.providers.gce.serviceNameLabel=${var.gce_provider.service_name_label}"] : [],
+    var.gce_provider.config_endpoint != "" ? ["--hub.providers.gce.configEndpoint=${var.gce_provider.config_endpoint}"] : [],
+    var.gce_provider.config_insecure_skip_verify ? ["--hub.providers.gce.configTLS.insecureSkipVerify=true"] : [],
+    var.gce_provider.filename != "" ? ["--hub.providers.gce.filename=${var.gce_provider.filename}"] : [],
     var.gce_provider.refresh_seconds != null ? ["--hub.providers.gce.refreshSeconds=${var.gce_provider.refresh_seconds}"] : [],
-    var.gce_provider.firewall_port_discovery ? ["--hub.providers.gce.firewallPortDiscovery=true"] : [],
   ) : []
 
   # Use extracted CLI arguments from Helm template (includes file provider if configured)
@@ -97,20 +110,11 @@ locals {
     preview_image        = module.config.image_full
   })
 
-  # Self-register the Traefik VM's own dashboard via its gce provider
-  # (-> dashboard@gce). Unlike Azure/EC2 tags, GCE workload config is the
-  # single `traefik` METADATA item holding a JSON object of Traefik labels
-  # (metadata keys can't contain dots). Disable when the dashboard is
-  # advertised another way (e.g. a file-rule uplink): without traefik.enable
-  # the VM isn't self-discovered at all, so no redundant self-router appears.
-  dashboard_metadata = var.enable_dashboard_discovery ? {
-    traefik = jsonencode({
-      "traefik.enable"                                           = "true"
-      "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-      "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-      "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-    })
-  } : {}
+  # NO metadata self-registration: the gce provider reads no per-VM Traefik
+  # labels or metadata blobs any more — an instance can only carry a service
+  # name via its service_name_label GCE label, and this gateway VM carries
+  # none. Advertise the dashboard through the base configuration instead
+  # (a router on api@internal), which is where all routing intent lives.
 }
 
 # ADC inside the container resolves this identity via the metadata server
@@ -145,10 +149,9 @@ resource "google_project_iam_member" "viewer" {
 }
 
 # The VM (and its firewall) live in the shared compute/gcp/vm module. This
-# caller keeps everything role-specific: the rendered cloud-init and the
-# `traefik` dashboard metadata (built above into local.user_data /
-# local.dashboard_metadata), the service account, and the compute.viewer
-# binding. The compute module just materializes the instance.
+# caller keeps everything role-specific: the rendered cloud-init (built above
+# into local.user_data), the service account, and the compute.viewer binding.
+# The compute module just materializes the instance.
 module "compute" {
   source = "../../compute/gcp/vm"
 
@@ -160,10 +163,7 @@ module "compute" {
 
   instances = {
     (local.instance_key) = {
-      metadata = merge(
-        { user-data = local.user_data },
-        local.dashboard_metadata
-      )
+      metadata   = { user-data = local.user_data }
       labels     = var.extra_labels
       network_ip = var.private_ip
     }

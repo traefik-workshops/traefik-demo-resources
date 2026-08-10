@@ -4,9 +4,9 @@ Traefik Hub on one GCE VM — the GCP sibling of `traefik/ec2`/`traefik/azure-vm
 
 Composes `traefik/shared` (extracted Helm config) and `traefik/cloud-init` exactly like `traefik/ec2`. The gce provider ships only in a preview image (`ghcr.io/zalbiraw/traefik-hub`), so the demo sets `enable_preview_mode = true` + `custom_image_*` and the VM runs the image as a docker container (`--network host`, so the metadata server/ADC and the uplink work).
 
-Auth is a module-created **service account attached to the VM** (Application Default Credentials) + a `roles/compute.viewer` project binding (`enable_viewer_role`) — no key file. The module appends the provider flags (`--hub.providers.gce.projectID/zones/ipMode/exposedByDefault/...`) to `custom_arguments`; `project_id` defaults from `data.google_client_config`.
+Auth is a module-created **service account attached to the VM** (Application Default Credentials) + a `roles/compute.viewer` project binding (`enable_viewer_role`) — no key file. The module appends the provider flags (`--hub.providers.gce.projectID/zones/ipMode/serviceNameLabel/configEndpoint/...`) to `custom_arguments`; `project_id` defaults from `data.google_client_config`.
 
-**Workload config note:** the gce provider reads Traefik labels from the single `traefik` **metadata item** (a JSON object — GCE metadata keys can't contain dots), not from tags. `enable_dashboard_discovery` self-registers the dashboard that way; GCE *labels* feed provider `constraints` only.
+**Discovery contract (mirrors `traefik/vsphere-vm`):** an instance carries ONLY a service name — the value of one GCE label (`gce_provider.service_name_label`, provider default `traefik-service`; values are lowercase `[a-z0-9_-]` and single-valued, so one instance backs one service). All routing intent (routers, services, middlewares, uplinks) lives in ONE base configuration the provider loads from `gce_provider.config_endpoint` (a GitOps URL — see `terraform/config-server/git`) or `gce_provider.filename` — exactly one, the provider cannot boot without it. Base services declare `loadBalancer.scheme`/`port` but no servers; the provider injects one server per discovered instance. There is no `exposedByDefault`/`constraints`/`defaultRule` and no per-VM metadata blob any more.
 
 ## Example usage
 
@@ -38,20 +38,33 @@ module "gce_traefik" {
     }
   }
 
-  # Advertise the provider-discovered service over the uplink (same shape as traefik/ec2).
-  file_provider_config = yamlencode({
-    http = {
-      uplinks = { gce-whoami = { entryPoints = ["gceuplink"] } }
-      routers = {
-        gce-whoami = {
-          rule    = "PathPrefix(`/`)"
-          service = "whoami@gce"
-          uplinks = ["gce-whoami"]
-        }
-      }
-    }
-  })
+  # The provider's base configuration — polled from a GitOps URL (the hub's
+  # git-config-server, see terraform/config-server/git). Instances labeled
+  # `traefik-service: whoami` become the servers of the `whoami` service; the
+  # router + uplink advertise it over the :9443 uplink entrypoint. Changing
+  # routing intent = pushing a new document, never replacing the VM.
+  gce_provider = {
+    config_endpoint = "https://git.example.com/config/gce/dynamic.yaml"
+  }
 }
+```
+
+The document served at that URL (no servers — the provider injects them):
+
+```yaml
+http:
+  uplinks:
+    gce-whoami:
+      entryPoints: [gceuplink]
+  routers:
+    gce-whoami:
+      rule: PathPrefix(`/`)
+      service: whoami
+      uplinks: [gce-whoami]
+  services:
+    whoami:
+      loadBalancer:
+        port: "80"
 ```
 
 ## Prerequisites
@@ -63,7 +76,8 @@ module "gce_traefik" {
 ## Notes
 
 - One VM (no replica set) — the parent dials `values(module.gce_traefik.private_ips)[0]` on `:9443`.
-- `enable_dashboard_discovery = false` when the dashboard is advertised via a file-rule uplink (same cleanup as the EC2/Azure spokes).
+- The gateway VM never self-registers: it carries no `service_name_label` label, so its own provider ignores it. Advertise the dashboard through the base configuration (a router on `api@internal`).
+- A gateway that discovers by another mechanism (e.g. the docker-provider leg) sets `gce_provider = { enabled = false }` — an enabled gce provider requires a base-config source and cannot boot bare.
 - There is deliberately no `traefik/cloudrun` sibling: Cloud Run can't host a raw `:9443` uplink listener, so the cloudRun-discovering child runs in-cluster on GKE instead.
 
 <!-- BEGIN_TF_DOCS -->
@@ -110,7 +124,6 @@ module "gce_traefik" {
 | <a name="input_enable_ai_gateway"></a> [enable\_ai\_gateway](#input\_enable\_ai\_gateway) | Enable Traefik Hub AI Gateway features | `bool` | `false` | no |
 | <a name="input_enable_api_gateway"></a> [enable\_api\_gateway](#input\_enable\_api\_gateway) | Enable Traefik Hub API Gateway features | `bool` | `false` | no |
 | <a name="input_enable_dashboard"></a> [enable\_dashboard](#input\_enable\_dashboard) | Enable Traefik dashboard | `bool` | `true` | no |
-| <a name="input_enable_dashboard_discovery"></a> [enable\_dashboard\_discovery](#input\_enable\_dashboard\_discovery) | Self-register the Traefik VM via the `traefik` metadata JSON item (traefik.enable + dashboard router/service) so its OWN gce provider discovers the dashboard as dashboard@gce. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all. | `bool` | `true` | no |
 | <a name="input_enable_debug"></a> [enable\_debug](#input\_enable\_debug) | Enable Traefik debug mode (pprof) | `bool` | `false` | no |
 | <a name="input_enable_firewall"></a> [enable\_firewall](#input\_enable\_firewall) | Create a firewall rule opening firewall\_ports to the VM from firewall\_source\_ranges (mirrors compute/azure/vnet's NSG + extra\_ingress\_ports). Disable when the network already allows it (e.g. default network's default-allow-internal). | `bool` | `true` | no |
 | <a name="input_enable_mcp_gateway"></a> [enable\_mcp\_gateway](#input\_enable\_mcp\_gateway) | Enable MCP Gateway (Claude, etc.) | `bool` | `false` | no |
@@ -124,13 +137,13 @@ module "gce_traefik" {
 | <a name="input_enable_public_ip"></a> [enable\_public\_ip](#input\_enable\_public\_ip) | Attach an ephemeral public IP to the VM. Off by default — the parent dials the private IP (same network). | `bool` | `false` | no |
 | <a name="input_enable_viewer_role"></a> [enable\_viewer\_role](#input\_enable\_viewer\_role) | Grant roles/compute.viewer on the provider's project to the VM's service account (requires the caller to hold IAM-grant rights, e.g. Owner/Project IAM Admin). | `bool` | `true` | no |
 | <a name="input_extra_files"></a> [extra\_files](#input\_extra\_files) | Extra files to write to the VM at cloud-init time | <pre>list(object({<br/>    path    = string<br/>    content = string<br/>  }))</pre> | `[]` | no |
-| <a name="input_extra_labels"></a> [extra\_labels](#input\_extra\_labels) | Extra GCE labels to apply to the VM (dotless — constraints only, not traefik.* config) | `map(string)` | `{}` | no |
+| <a name="input_extra_labels"></a> [extra\_labels](#input\_extra\_labels) | Extra GCE labels to apply to the VM. Leave the provider's service\_name\_label out of it unless this gateway should be discovered as a server of that service itself. | `map(string)` | `{}` | no |
 | <a name="input_extra_runcmd"></a> [extra\_runcmd](#input\_extra\_runcmd) | Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg). | `list(string)` | `[]` | no |
 | <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML configuration for Traefik file provider | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted | `string` | `"/etc/traefik-hub/dynamic"` | no |
 | <a name="input_firewall_ports"></a> [firewall\_ports](#input\_firewall\_ports) | TCP ports the firewall rule opens on the VM. Default covers HTTP(S), the dashboard, and the Hub multicluster uplink entrypoint (:9443) the parent dials. | `list(number)` | <pre>[<br/>  80,<br/>  443,<br/>  8080,<br/>  9443<br/>]</pre> | no |
 | <a name="input_firewall_source_ranges"></a> [firewall\_source\_ranges](#input\_firewall\_source\_ranges) | Source CIDR ranges allowed by the firewall rule. Default covers the default network (10.128.0.0/9) and typical GKE node/pod ranges. | `list(string)` | <pre>[<br/>  "10.0.0.0/8"<br/>]</pre> | no |
-| <a name="input_gce_provider"></a> [gce\_provider](#input\_gce\_provider) | Traefik Hub gce provider configuration (hub.providers.gce). project\_id defaults to the caller's (data.google\_client\_config); zones empty = all zones. No credentialsFile/credentialsJSON: ADC resolves the VM's attached service account. | <pre>object({<br/>    enabled                 = optional(bool, true)<br/>    project_id              = optional(string, "")<br/>    zones                   = optional(list(string), [])<br/>    ip_mode                 = optional(string, "private")<br/>    exposed_by_default      = optional(bool, false)<br/>    default_rule            = optional(string, "")<br/>    constraints             = optional(string, "")<br/>    refresh_seconds         = optional(number, null)<br/>    firewall_port_discovery = optional(bool, false)<br/>  })</pre> | `{}` | no |
+| <a name="input_gce_provider"></a> [gce\_provider](#input\_gce\_provider) | Traefik Hub gce provider configuration (hub.providers.gce). The provider follows the<br/>vsphere contract: a machine carries ONLY a service name and the routing intent lives<br/>in a base configuration, not in per-VM labels or metadata blobs.<br/><br/>  service\_name\_label  the GCE LABEL whose VALUE names the service an instance backs<br/>                      (provider default `traefik-service`). GCE label values are<br/>                      lowercase [a-z0-9\_-] and single-valued, so ONE instance backs<br/>                      ONE service; instances sharing a value merge into one LB.<br/>  config\_endpoint     URL the gateway polls for the base config (GitOps), OR<br/>  filename            a path to it on the gateway host. Exactly one.<br/><br/>The base config declares each service's loadBalancer (scheme default http, port<br/>REQUIRED) with NO servers — the provider injects one server per discovered instance.<br/>project\_id defaults to the caller's (data.google\_client\_config); zones empty = all<br/>zones. No credentialsFile/credentialsJSON: ADC resolves the VM's attached service<br/>account. | <pre>object({<br/>    enabled                     = optional(bool, true)<br/>    project_id                  = optional(string, "")<br/>    zones                       = optional(list(string), [])<br/>    ip_mode                     = optional(string, "private")<br/>    service_name_label          = optional(string, "")<br/>    config_endpoint             = optional(string, "")<br/>    config_insecure_skip_verify = optional(bool, false)<br/>    filename                    = optional(string, "")<br/>    refresh_seconds             = optional(number, null)<br/>  })</pre> | `{}` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level (DEBUG, INFO, WARN, ERROR) | `string` | `"INFO"` | no |
 | <a name="input_machine_type"></a> [machine\_type](#input\_machine\_type) | GCE machine type | `string` | `"e2-medium"` | no |
 | <a name="input_mount_docker_socket"></a> [mount\_docker\_socket](#input\_mount\_docker\_socket) | Bind /var/run/docker.sock into the preview-mode Traefik container so its docker provider can reach the local daemon. Root-equivalent access to the host, so leave it off for any gateway that is not the docker-provider leg. | `bool` | `false` | no |

@@ -40,7 +40,7 @@ variable "subnet_id" {
 }
 
 variable "base_config" {
-  description = "The ociContainerInstances provider's base configuration (YAML): the services the discovered IPs merge into, plus routers/uplinks. Delivered as a CONFIGFILE volume mounted at dirname(ocici_provider.filename); set ocici_provider.filename to the in-container path."
+  description = "The ociContainerInstances provider's base configuration (YAML) for the OFFLINE filename path: the services the discovered IPs merge into, plus routers/uplinks. Delivered as a CONFIGFILE volume mounted at dirname(ocici_provider.filename); set ocici_provider.filename to the in-container path. Unused (leave empty) when ocici_provider.config_endpoint serves the base configuration instead."
   type        = string
   default     = ""
 }
@@ -104,7 +104,7 @@ variable "oci_private_key" {
 # -----------------------------------------------------------------------------
 
 variable "ocici_provider" {
-  description = "Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment_id defaults to the module's compartment_id. Auth defaults to resource principal (enable_resource_principal); use_instance_principal is an escape hatch that doesn't work on container instances (no IMDS flow) and is mutually exclusive with it. Without nsg_port_discovery the provider falls back to the instance's lowest declared container port."
+  description = "Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment_id defaults to the module's compartment_id. Auth defaults to resource principal (enable_resource_principal); use_instance_principal is an escape hatch that doesn't work on container instances (no IMDS flow) and is mutually exclusive with it. The base configuration (the services — with port/strategy/health checks — that discovered IPs merge into, plus any routers/uplinks) comes from config_endpoint (a GitOps URL the provider polls, e.g. the hub's git-config-server) OR filename (a CONFIGFILE volume baked into the instance via base_config — forces instance replacement on every config change, offline use only). Exactly one when enabled: this provider cannot boot without a base configuration."
   type = object({
     enabled                = optional(bool, true)
     compartment_id         = optional(string, "")
@@ -112,13 +112,23 @@ variable "ocici_provider" {
     use_instance_principal = optional(bool, false)
     config_file_path       = optional(string, "/etc/oci/config")
     ip_mode                = optional(string, "private")
-    # Base-config file the provider merges discovered IPs into (routers + services
-    # with their LB strategy live here). Delivered via the container's config volume.
+    # GitOps URL the provider polls for the base config — the mechanism that
+    # makes a routing-intent change a config push, not an instance replacement.
+    config_endpoint             = optional(string, "")
+    config_insecure_skip_verify = optional(bool, false)
+    # Offline alternative: a base-config file in the container (delivered as a
+    # CONFIGFILE volume from var.base_config). Mutually exclusive with
+    # config_endpoint.
     filename             = optional(string, "")
     service_name_tag_key = optional(string, "TraefikServiceName")
     refresh_seconds      = optional(number, null)
   })
   default = {}
+
+  validation {
+    condition     = !var.ocici_provider.enabled || ((var.ocici_provider.config_endpoint == "") != (var.ocici_provider.filename == ""))
+    error_message = "Set exactly one of ocici_provider.config_endpoint (GitOps URL) or ocici_provider.filename (path in the container) — the provider takes its routers/services from one base configuration and cannot boot without it."
+  }
 }
 
 variable "multicluster_provider" {

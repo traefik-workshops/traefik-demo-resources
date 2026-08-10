@@ -27,7 +27,13 @@ variable "ingress_entrypoint" {
 }
 
 variable "kubeconfig_context" {
-  description = "kubectl context for the IngressRoute local-exec apply — the ambient context the k3s module merges (k3s-<vm_name>). Empty = ambient default context."
+  description = "kubectl context for the IngressRoute local-exec apply and the config push port-forward — the ambient context the compute module merges (k3s-<vm_name> / gke-<cluster> / oke-<cluster>). Empty = ambient default context (fine for a single demo; parallel standups MUST pin it)."
   type        = string
   default     = ""
+}
+
+variable "files" {
+  description = "The config repo's desired content: repo path -> file content (e.g. { \"vm/dynamic.yaml\" = yamlencode(...) }). Non-empty makes terraform PUSH the tree on every content change — one commit replacing the repo's previous tree — and the post-receive hook publishes it raw at https://<ingress_host>/config/<path>, which is what a Hub provider's configEndpoint polls. The push rides a kubectl port-forward straight to the Service, so it needs neither the git.<domain> DNS record nor the ingress cert to be ready — a fresh standup can push before dns-traefiker/ACME converge. This is the GitOps write path: changing routing intent re-runs only this push, never a gateway VM."
+  type        = map(string)
+  default     = {}
 }

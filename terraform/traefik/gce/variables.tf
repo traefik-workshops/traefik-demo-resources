@@ -79,7 +79,7 @@ variable "firewall_source_ranges" {
 }
 
 variable "extra_labels" {
-  description = "Extra GCE labels to apply to the VM (dotless — constraints only, not traefik.* config)"
+  description = "Extra GCE labels to apply to the VM. Leave the provider's service_name_label out of it unless this gateway should be discovered as a server of that service itself."
   type        = map(string)
   default     = {}
 }
@@ -125,19 +125,41 @@ variable "performance_tuning" {
 # -----------------------------------------------------------------------------
 
 variable "gce_provider" {
-  description = "Traefik Hub gce provider configuration (hub.providers.gce). project_id defaults to the caller's (data.google_client_config); zones empty = all zones. No credentialsFile/credentialsJSON: ADC resolves the VM's attached service account."
+  description = <<-EOT
+    Traefik Hub gce provider configuration (hub.providers.gce). The provider follows the
+    vsphere contract: a machine carries ONLY a service name and the routing intent lives
+    in a base configuration, not in per-VM labels or metadata blobs.
+
+      service_name_label  the GCE LABEL whose VALUE names the service an instance backs
+                          (provider default `traefik-service`). GCE label values are
+                          lowercase [a-z0-9_-] and single-valued, so ONE instance backs
+                          ONE service; instances sharing a value merge into one LB.
+      config_endpoint     URL the gateway polls for the base config (GitOps), OR
+      filename            a path to it on the gateway host. Exactly one.
+
+    The base config declares each service's loadBalancer (scheme default http, port
+    REQUIRED) with NO servers — the provider injects one server per discovered instance.
+    project_id defaults to the caller's (data.google_client_config); zones empty = all
+    zones. No credentialsFile/credentialsJSON: ADC resolves the VM's attached service
+    account.
+  EOT
   type = object({
-    enabled                 = optional(bool, true)
-    project_id              = optional(string, "")
-    zones                   = optional(list(string), [])
-    ip_mode                 = optional(string, "private")
-    exposed_by_default      = optional(bool, false)
-    default_rule            = optional(string, "")
-    constraints             = optional(string, "")
-    refresh_seconds         = optional(number, null)
-    firewall_port_discovery = optional(bool, false)
+    enabled                     = optional(bool, true)
+    project_id                  = optional(string, "")
+    zones                       = optional(list(string), [])
+    ip_mode                     = optional(string, "private")
+    service_name_label          = optional(string, "")
+    config_endpoint             = optional(string, "")
+    config_insecure_skip_verify = optional(bool, false)
+    filename                    = optional(string, "")
+    refresh_seconds             = optional(number, null)
   })
   default = {}
+
+  validation {
+    condition     = !var.gce_provider.enabled || ((var.gce_provider.config_endpoint == "") != (var.gce_provider.filename == ""))
+    error_message = "Set exactly one of gce_provider.config_endpoint (GitOps URL) or gce_provider.filename (path on the gateway) — the provider takes its routers/services from one base configuration and cannot boot without it."
+  }
 }
 
 variable "multicluster_provider" {
@@ -365,12 +387,6 @@ variable "enable_dashboard" {
 
 variable "dashboard_insecure" {
   description = "Enable insecure dashboard access (no auth)"
-  type        = bool
-  default     = true
-}
-
-variable "enable_dashboard_discovery" {
-  description = "Self-register the Traefik VM via the `traefik` metadata JSON item (traefik.enable + dashboard router/service) so its OWN gce provider discovers the dashboard as dashboard@gce. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
   type        = bool
   default     = true
 }

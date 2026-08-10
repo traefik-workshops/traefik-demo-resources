@@ -2,15 +2,15 @@
 
 Provisions one or more Traefik `whoami` instances on GCE VMs — the GCP sibling of `apps/whoami/ec2` and `apps/whoami/azure-vm`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`). The `apps` map reads almost identically to the EC2/Azure modules — with one deliberate difference:
 
-## The workload config is JSON metadata, not tags
+## The machine carries only a service name
 
-GCE metadata keys must match `[a-zA-Z0-9-_]+` — they **can't contain dots**, so `traefik.enable`-style keys are impossible. The Traefik Hub `gce` provider therefore reads **one metadata item with key `traefik` whose value is a JSON object of Traefik labels**:
+GCE cannot carry routing intent on the machine: label keys and values are limited to lowercase `[a-z0-9_-]` (63 chars max), so neither dotted `traefik.*` keys nor rule syntax fit. Under the Hub `gce` provider's contract a VM carries **only a service name** — the value of one plain GCE label (the provider's `serviceNameLabel`, default `traefik-service`), set through the app's `labels` map:
 
-```json
-{"traefik.enable": "true", "traefik.http.services.whoami.loadbalancer.server.port": "80"}
+```hcl
+labels = { traefik-service = "whoami" }
 ```
 
-This module takes a `traefik_labels` map per app (dotted label → value) and `jsonencode()`s it into that item. Plain GCE `labels` (dotless) are separate — the provider matches its `constraints` expression against them only; they carry no routing config.
+The label value is single-valued (no comma lists), so **one VM backs one service**; VMs sharing a value merge into one load balancer. Everything ABOUT the service — port, scheme, LB strategy, health checks, routers — lives in the base configuration the gateway's gce provider loads over `configEndpoint` (GitOps) or `filename`, never on the VM.
 
 ## Example usage
 
@@ -36,12 +36,11 @@ module "whoami_gce" {
       replicas = 2
       port     = 80
       name     = "whoami-gce" # body shows `Name: whoami-gce`
-      traefik_labels = {
-        "traefik.enable"                                         = "true"
-        "traefik.http.services.whoami.loadbalancer.server.port" = "80"
-      }
       labels = {
-        env = "demo" # dotless GCE label — constraints matching only
+        # The ONLY workload config on the VM: the service these VMs back. The
+        # service itself (port/strategy/routers) is defined in the gateway's
+        # base configuration.
+        traefik-service = "whoami"
       }
     }
   }
@@ -79,8 +78,8 @@ No resources.
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: `traefik_labels` is a map of dotted Traefik label -> value, JSON-encoded into the single `traefik` metadata item (GCE metadata keys can't contain dots); optional `labels` are plain (dotless) GCE labels for provider constraints only. { name = { replicas, port, name, environment, traefik\_labels, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
-| <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Common GCE labels to apply to all VMs (dotless — provider constraints only, not traefik.* config) | `map(string)` | `{}` | no |
+| <a name="input_apps"></a> [apps](#input\_apps) | Map of applications to deploy to GCE VMs. Each app can have multiple replicas. Same shape as apps/whoami/ec2 EXCEPT the workload config: instead of dotted traefik.* tags, an app's `labels` map carries plain GCE labels — including the service-name label the Hub gce provider reads (e.g. `traefik-service = "whoami"`), whose value names the ONE service the app's VMs back. Routing intent lives in the gateway's base configuration, never here. { name = { replicas, port, name, environment, labels } } — optional `environment` (map) is merged over the module-level `environment` into the container. | `any` | `{}` | no |
+| <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Common GCE labels to apply to all VMs. Per-app `labels` win on collision; keep the service-name label per-app so each app names its own service. | `map(string)` | `{}` | no |
 | <a name="input_enable_firewall"></a> [enable\_firewall](#input\_enable\_firewall) | Create a firewall rule opening the app ports intra-network to these VMs (mirrors compute/azure/vnet's NSG). Disable when the network already allows it (e.g. default network's default-allow-internal). | `bool` | `true` | no |
 | <a name="input_enable_public_ip"></a> [enable\_public\_ip](#input\_enable\_public\_ip) | Attach an ephemeral public IP to each VM. Off by default — the Traefik child dials private IPs (ipMode=private). | `bool` | `false` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment variables passed to every whoami container (docker -e), e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision. | `map(string)` | `{}` | no |

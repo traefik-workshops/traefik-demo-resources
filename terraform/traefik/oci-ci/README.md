@@ -75,16 +75,15 @@ module "oci_ci_traefik" {
 
 | Name | Version |
 | ---- | ------- |
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.4 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
-| <a name="requirement_oci"></a> [oci](#requirement\_oci) | ~> 7.0 |
 
 ## Providers
 
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
-| <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
+| <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
 
 ## Resources
 
@@ -93,7 +92,7 @@ module "oci_ci_traefik" {
 | [null_resource.resource_principal_bounce](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [null_resource.resource_principal_dynamic_group](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [null_resource.resource_principal_policy](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
-| [oci_container_instances_container_instance.traefik](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/container_instances_container_instance) | resource |
+| [terraform_data.auth_guard](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) | resource |
 
 ## Inputs
 
@@ -102,7 +101,7 @@ module "oci_ci_traefik" {
 | <a name="input_compartment_id"></a> [compartment\_id](#input\_compartment\_id) | OCID of the compartment the container instance is created in (also the ociContainerInstances provider's default discovery scope) | `string` | n/a | yes |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | OCID of the existing subnet the container instance VNIC joins (the parent dials the instance's private IP :9443 in-VCN, e.g. compute/oracle/oke's nodes\_subnet\_id) | `string` | n/a | yes |
 | <a name="input_availability_domain"></a> [availability\_domain](#input\_availability\_domain) | Availability domain the container instance is placed in. Empty = the compartment's first AD (same pick as compute/oracle/oke). | `string` | `""` | no |
-| <a name="input_base_config"></a> [base\_config](#input\_base\_config) | The ociContainerInstances provider's base configuration (YAML): the services the discovered IPs merge into, plus routers/uplinks. Delivered as a CONFIGFILE volume mounted at dirname(ocici\_provider.filename); set ocici\_provider.filename to the in-container path. | `string` | `""` | no |
+| <a name="input_base_config"></a> [base\_config](#input\_base\_config) | The ociContainerInstances provider's base configuration (YAML) for the OFFLINE filename path: the services the discovered IPs merge into, plus routers/uplinks. Delivered as a CONFIGFILE volume mounted at dirname(ocici\_provider.filename); set ocici\_provider.filename to the in-container path. Unused (leave empty) when ocici\_provider.config\_endpoint serves the base configuration instead. | `string` | `""` | no |
 | <a name="input_container_memory_in_gbs"></a> [container\_memory\_in\_gbs](#input\_container\_memory\_in\_gbs) | Memory (GB) for the Traefik container instance | `number` | `4` | no |
 | <a name="input_container_ocpus"></a> [container\_ocpus](#input\_container\_ocpus) | OCPUs for the Traefik container instance (1 OCPU = 2 vCPUs on E4.Flex) | `number` | `1` | no |
 | <a name="input_custom_arguments"></a> [custom\_arguments](#input\_custom\_arguments) | Additional CLI arguments for Traefik | `list(string)` | `[]` | no |
@@ -140,7 +139,7 @@ module "oci_ci_traefik" {
 | <a name="input_nsg_ids"></a> [nsg\_ids](#input\_nsg\_ids) | Network security group OCIDs to attach to the container instance VNIC | `list(string)` | `[]` | no |
 | <a name="input_oci_config"></a> [oci\_config](#input\_oci\_config) | Content of an ~/.oci style config file — the ociContainerInstances provider's config-file credential, mounted as a CONFIGFILE volume at the directory of ocici\_provider.config\_file\_path. Its key\_file MUST point inside that mount (e.g. /etc/oci/key.pem). Required (with oci\_private\_key) when enable\_resource\_principal = false; unused otherwise. | `string` | `""` | no |
 | <a name="input_oci_private_key"></a> [oci\_private\_key](#input\_oci\_private\_key) | PEM content of the API signing key the oci\_config references (mounted as key.pem next to it). Required when enable\_resource\_principal = false; unused otherwise. | `string` | `""` | no |
-| <a name="input_ocici_provider"></a> [ocici\_provider](#input\_ocici\_provider) | Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment\_id defaults to the module's compartment\_id. Auth defaults to resource principal (enable\_resource\_principal); use\_instance\_principal is an escape hatch that doesn't work on container instances (no IMDS flow) and is mutually exclusive with it. Without nsg\_port\_discovery the provider falls back to the instance's lowest declared container port. | <pre>object({<br/>    enabled                = optional(bool, true)<br/>    compartment_id         = optional(string, "")<br/>    region                 = optional(string, "")<br/>    use_instance_principal = optional(bool, false)<br/>    config_file_path       = optional(string, "/etc/oci/config")<br/>    ip_mode                = optional(string, "private")<br/>    # Base-config file the provider merges discovered IPs into (routers + services<br/>    # with their LB strategy live here). Delivered via the container's config volume.<br/>    filename             = optional(string, "")<br/>    service_name_tag_key = optional(string, "TraefikServiceName")<br/>    refresh_seconds      = optional(number, null)<br/>  })</pre> | `{}` | no |
+| <a name="input_ocici_provider"></a> [ocici\_provider](#input\_ocici\_provider) | Traefik Hub ociContainerInstances provider configuration (hub.providers.ociContainerInstances). compartment\_id defaults to the module's compartment\_id. Auth defaults to resource principal (enable\_resource\_principal); use\_instance\_principal is an escape hatch that doesn't work on container instances (no IMDS flow) and is mutually exclusive with it. The base configuration (the services — with port/strategy/health checks — that discovered IPs merge into, plus any routers/uplinks) comes from config\_endpoint (a GitOps URL the provider polls, e.g. the hub's git-config-server) OR filename (a CONFIGFILE volume baked into the instance via base\_config — forces instance replacement on every config change, offline use only). Exactly one when enabled: this provider cannot boot without a base configuration. | <pre>object({<br/>    enabled                = optional(bool, true)<br/>    compartment_id         = optional(string, "")<br/>    region                 = optional(string, "")<br/>    use_instance_principal = optional(bool, false)<br/>    config_file_path       = optional(string, "/etc/oci/config")<br/>    ip_mode                = optional(string, "private")<br/>    # GitOps URL the provider polls for the base config — the mechanism that<br/>    # makes a routing-intent change a config push, not an instance replacement.<br/>    config_endpoint             = optional(string, "")<br/>    config_insecure_skip_verify = optional(bool, false)<br/>    # Offline alternative: a base-config file in the container (delivered as a<br/>    # CONFIGFILE volume from var.base_config). Mutually exclusive with<br/>    # config_endpoint.<br/>    filename             = optional(string, "")<br/>    service_name_tag_key = optional(string, "TraefikServiceName")<br/>    refresh_seconds      = optional(number, null)<br/>  })</pre> | `{}` | no |
 | <a name="input_otlp_address"></a> [otlp\_address](#input\_otlp\_address) | OTLP collector endpoint | `string` | `""` | no |
 | <a name="input_otlp_service_name"></a> [otlp\_service\_name](#input\_otlp\_service\_name) | Service name for telemetry | `string` | `"traefik"` | no |
 | <a name="input_shape"></a> [shape](#input\_shape) | Container instance shape (flex shapes are sized by container\_ocpus/container\_memory\_in\_gbs) | `string` | `"CI.Standard.E4.Flex"` | no |

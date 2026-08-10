@@ -38,10 +38,15 @@ locals {
       "--hub.providers.ociContainerInstances.ipMode=${var.ocici_provider.ip_mode}",
       # Nutanix-style: discovery only resolves container-instance IPs and groups
       # them by the service-name freeform tag; the services (with LB strategy)
-      # live in this base-config file.
-      "--hub.providers.ociContainerInstances.filename=${var.ocici_provider.filename}",
+      # live in the base configuration.
       "--hub.providers.ociContainerInstances.serviceNameTagKey=${var.ocici_provider.service_name_tag_key}",
     ],
+    # The base configuration source — a polled GitOps URL (config push, not
+    # instance replacement) or a baked CONFIGFILE volume. Exactly one (a
+    # variable validation enforces it; the provider cannot boot bare).
+    var.ocici_provider.config_endpoint != "" ? ["--hub.providers.ociContainerInstances.configEndpoint=${var.ocici_provider.config_endpoint}"] : [],
+    var.ocici_provider.config_insecure_skip_verify ? ["--hub.providers.ociContainerInstances.configTLS.insecureSkipVerify=true"] : [],
+    var.ocici_provider.filename != "" ? ["--hub.providers.ociContainerInstances.filename=${var.ocici_provider.filename}"] : [],
     # Exactly one auth flag (see the header note): resource principal (the
     # keyless default) > instance principal (escape hatch — a precondition
     # keeps the two toggles mutually exclusive, the gateway rejects the

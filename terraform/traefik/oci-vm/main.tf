@@ -23,10 +23,14 @@ locals {
       "--hub.providers.oci.ipMode=${var.oci_provider.ip_mode}",
       # Nutanix-style discovery: the provider only resolves instance IPs and groups
       # them by the service-name freeform tag, then merges them into the services
-      # defined in this base-config file (routing/LB/strategy live there).
-      "--hub.providers.oci.filename=${var.oci_provider.filename}",
+      # defined in the base configuration (routing/LB/strategy live there).
       "--hub.providers.oci.serviceNameTagKey=${var.oci_provider.service_name_tag_key}",
     ],
+    # The base configuration source — a polled GitOps URL (config push, not VM
+    # replacement) or a baked file. At most one (a variable validation enforces it).
+    var.oci_provider.config_endpoint != "" ? ["--hub.providers.oci.configEndpoint=${var.oci_provider.config_endpoint}"] : [],
+    var.oci_provider.config_insecure_skip_verify ? ["--hub.providers.oci.configTLS.insecureSkipVerify=true"] : [],
+    var.oci_provider.filename != "" ? ["--hub.providers.oci.filename=${var.oci_provider.filename}"] : [],
     var.oci_provider.use_instance_principal ? ["--hub.providers.oci.useInstancePrincipal=true"] : [],
     var.oci_provider.region != "" ? ["--hub.providers.oci.region=${var.oci_provider.region}"] : [],
     var.oci_provider.refresh_seconds != null ? ["--hub.providers.oci.refreshSeconds=${var.oci_provider.refresh_seconds}"] : [],
