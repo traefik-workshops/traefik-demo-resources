@@ -1,0 +1,86 @@
+# Gitleaks policy for traefik-demo-resources
+#
+# This repository is a PUBLIC demo library. Every finding suppressed below was
+# verified finding-by-finding (2026-08-10) to be a deliberate, fixed demo
+# default -- seed passwords and OIDC client secrets that the demos ship and
+# document on purpose. None is a live external credential. Owner ruling:
+# suppress, do not rotate.
+#
+# Keep entries NARROW: each allowlist pairs specific paths with the specific
+# rule(s) that fire there. Do not add blanket rule or path exemptions.
+
+[extend]
+# Keep the full default ruleset active; we only allowlist verified findings.
+useDefault = true
+
+# Keycloak demo realm OIDC client secret -- the fixed "traefik" client seed
+# that ships openly in this library's values files (74 occurrences across 7
+# files at HEAD). Intentional, ships in a public demo library.
+[[allowlists]]
+description = "Keycloak demo realm client-secret seed (current layout)"
+targetRules = ["generic-api-key"]
+paths = [
+  '''^helm/keycloak/values\.yaml$''',
+  '''^terraform/security/keycloak/k8s/tokens\.tf$''',
+]
+
+# Same Keycloak demo realm seed, pre-restructure layout. These paths exist
+# only in history; pinned to the exact commits gitleaks attributes them to.
+[[allowlists]]
+description = "Keycloak demo realm client-secret seed (historical layout, removed paths)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+commits = ["0f0a0e6217ee32b69959ec52ff1d8b83daa9614d"]
+paths = [
+  '''^keycloak/helm/values\.yaml$''',
+  '''^keycloak/helm/templates/realm\.yaml$''',
+]
+
+# gov / higher-ed demo values shipped the same shared demo client secret.
+# Historical paths only; pinned to the introducing commit.
+[[allowlists]]
+description = "gov + higher-ed demo values: shared demo client-secret seed (historical)"
+targetRules = ["generic-api-key"]
+condition = "AND"
+commits = ["e5020b59b623c395645d09ee7e8701cdd7f0a509"]
+paths = [
+  '''^gov/helm/values\.yaml$''',
+  '''^higher-ed/helm/values\.yaml$''',
+]
+
+# Fixed seed passwords for demo IdP users (Keycloak token Job, Cognito and
+# Entra ID demo users created by whoever applies the demo). Dictionary-word
+# placeholders, documented demo defaults -- intentional.
+[[allowlists]]
+description = "Demo IdP seeded-user passwords (Keycloak/Cognito/Entra ID)"
+targetRules = ["hashicorp-tf-password"]
+paths = [
+  '''^terraform/security/keycloak/k8s/tokens\.tf$''',
+  '''^terraform/security/cognito/main\.tf$''',
+  '''^terraform/security/entraid/main\.tf$''',
+]
+
+# Packer build-time / bootstrap SSH password for throwaway local Nutanix NKP
+# images (bastion + registry). The password only exists inside images the
+# user builds themselves; intentional demo default.
+[[allowlists]]
+description = "Nutanix NKP packer/bootstrap SSH password for throwaway demo images"
+targetRules = ["hashicorp-tf-password"]
+paths = [
+  '''^terraform/compute/nutanix/nkp/bastion_image/packer/nkp\.pkr\.hcl$''',
+  '''^terraform/compute/nutanix/nkp/registry_image/packer/registry\.pkr\.hcl$''',
+  '''^terraform/compute/nutanix/nkp/registry/main\.tf$''',
+]
+
+# Docs example: portal API description shows a curl token request against the
+# demo Keycloak realm using the demo user password. Historical path only;
+# pinned to the two commits gitleaks attributes it to.
+[[allowlists]]
+description = "airlines portal docs curl example against demo Keycloak realm (historical)"
+targetRules = ["curl-auth-header"]
+condition = "AND"
+commits = [
+  "dd510ffdea73bd9cd230aebaccb5dde215a36c0c",
+  "3f701d0993bc26a3ca7d23a41773e15b067f6d06",
+]
+paths = ['''^airlines/helm/templates/portal\.yaml$''']
