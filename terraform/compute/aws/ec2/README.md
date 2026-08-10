@@ -6,7 +6,7 @@ Provisions a fleet of EC2 instances from an `apps` map (each app supports replic
 
 ```hcl
 module "ec2" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/ec2?ref=v6.1.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/ec2?ref=v6.1.1"
 
   apps = {
     "whoami" = {
