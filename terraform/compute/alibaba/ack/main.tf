@@ -78,9 +78,19 @@ resource "null_resource" "ack_cluster" {
   provisioner "local-exec" {
 
     command = <<EOT
-      echo '${data.alicloud_cs_cluster_credential.kubeconfig.kube_config}' > ack-kubeconfig.yaml
+      set -eu
+
+      src=$(mktemp)
+      echo '${data.alicloud_cs_cluster_credential.kubeconfig.kube_config}' > "$src"
       # Get the current context name from the ACK kubeconfig
-      ACK_CONTEXT=$(kubectl --kubeconfig=ack-kubeconfig.yaml config current-context)
+      ACK_CONTEXT=$(kubectl --kubeconfig="$src" config current-context)
+
+      mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context.
+      # mkdir is the portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
 
       # ORDER IS LOAD-BEARING: `kubectl config view --flatten` resolves duplicate names
       # FIRST-WINS, and ACK names every cluster it hands out plain `kubernetes`. With the
@@ -95,15 +105,19 @@ resource "null_resource" "ack_cluster" {
       #
       # Listing the new config first makes the cluster we just built win its own name.
       # Only same-named entries are affected, which are precisely the stale ACK ones.
-      export KUBECONFIG=ack-kubeconfig.yaml:~/.kube/config
-      kubectl config view --flatten > merged.yaml
-      mv merged.yaml ~/.kube/config
+      merged=$(mktemp)
+      KUBECONFIG="$src:$HOME/.kube/config" kubectl config view --flatten > "$merged"
+      mv "$merged" "$HOME/.kube/config"
+      chmod 600 "$HOME/.kube/config"
 
+      # Explicit KUBECONFIG for the write-back half: an inherited $KUBECONFIG would
+      # otherwise send these renames to a different file than the one just written.
+      export KUBECONFIG="$HOME/.kube/config"
       kubectl config delete-context "ack-${var.cluster_name}" 2>/dev/null || true
       kubectl config rename-context "$ACK_CONTEXT" "ack-${var.cluster_name}"
       kubectl config use-context "ack-${var.cluster_name}"
 
-      rm ack-kubeconfig.yaml
+      rm -f "$src"
     EOT
   }
 

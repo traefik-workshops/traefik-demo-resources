@@ -79,6 +79,12 @@ variable "kubeconfig" {
   default     = ""
 }
 
+variable "kubeconfig_context" {
+  description = "kubectl/helm context for the CRD install (local-exec). Set it so the apply targets a named context instead of whatever the machine-global current-context happens to be at that instant (a parallel standup or a mid-apply context switch would otherwise install CRDs into the WRONG cluster). Combines with `kubeconfig` (context within that file). Empty = ambient kubeconfig / current context — today's behavior."
+  type        = string
+  default     = ""
+}
+
 variable "skip_gateway_api_crds" {
   description = "Skip Gateway API CRD installation"
   type        = bool

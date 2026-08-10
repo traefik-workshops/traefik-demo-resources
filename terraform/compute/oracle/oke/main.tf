@@ -286,14 +286,16 @@ resource "oci_containerengine_node_pool" "worker" {
 }
 
 # OKE does not support native taints on node pools.
-# Apply taints via kubectl after nodes are ready.
+# Apply taints via kubectl after nodes are ready, pinned to the context this
+# module itself just wrote (oke_cluster names it deterministically) — NEVER the
+# machine-global current-context, which a parallel standup can repoint mid-apply.
 resource "null_resource" "oke_taints" {
   for_each = { for wn in var.worker_nodes : wn.label => wn if try(length(wn.taint), 0) > 0 }
 
   provisioner "local-exec" {
     command = <<EOT
-      for node in $(kubectl get nodes -l node=${each.value.label} -o name 2>/dev/null); do
-        kubectl taint nodes "$node" node=${each.value.taint}:NoSchedule --overwrite 2>/dev/null || true
+      for node in $(kubectl --context "oke-${var.cluster_name}" get nodes -l node=${each.value.label} -o name 2>/dev/null); do
+        kubectl --context "oke-${var.cluster_name}" taint nodes "$node" node=${each.value.taint}:NoSchedule --overwrite 2>/dev/null || true
       done
     EOT
   }
@@ -324,19 +326,37 @@ resource "null_resource" "oke_cluster" {
   provisioner "local-exec" {
 
     command = <<EOT
-      echo '${data.oci_containerengine_cluster_kube_config.kubeconfig.content}' > oke-kubeconfig.yaml
-      # Get the current context name from the OKE kubeconfig
-      OKE_CONTEXT=$(kubectl --kubeconfig=oke-kubeconfig.yaml config current-context)
-      
-      export KUBECONFIG=~/.kube/config:oke-kubeconfig.yaml
-      kubectl config view --flatten > merged.yaml
-      mv merged.yaml ~/.kube/config
+      set -eu
 
+      src=$(mktemp)
+      echo '${data.oci_containerengine_cluster_kube_config.kubeconfig.content}' > "$src"
+      # Get the current context name from the OKE kubeconfig
+      OKE_CONTEXT=$(kubectl --kubeconfig="$src" config current-context)
+
+      mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context.
+      # mkdir is the portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
+
+      # New config first in the flatten: duplicate names resolve FIRST-WINS, so the
+      # cluster just built wins any same-named stale entry (see alibaba/ack for the
+      # full postmortem; OKE's generated names embed the cluster OCID so collisions
+      # are rare, but the cheap ordering guarantee beats relying on that).
+      merged=$(mktemp)
+      KUBECONFIG="$src:$HOME/.kube/config" kubectl config view --flatten > "$merged"
+      mv "$merged" "$HOME/.kube/config"
+      chmod 600 "$HOME/.kube/config"
+
+      # Explicit KUBECONFIG for the write-back half: an inherited $KUBECONFIG would
+      # otherwise send these renames to a different file than the one just written.
+      export KUBECONFIG="$HOME/.kube/config"
       kubectl config delete-context "oke-${var.cluster_name}" 2>/dev/null || true
       kubectl config rename-context "$OKE_CONTEXT" "oke-${var.cluster_name}"
       kubectl config use-context "oke-${var.cluster_name}"
 
-      rm oke-kubeconfig.yaml
+      rm -f "$src"
     EOT
   }
 

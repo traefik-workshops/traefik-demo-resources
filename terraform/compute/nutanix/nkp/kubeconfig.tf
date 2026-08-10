@@ -94,33 +94,11 @@ resource "null_resource" "update_kubeconfig" {
 
   provisioner "local-exec" {
     command = <<EOT
-      set -e
-      
-      LOCKFILE="/tmp/kubeconfig.lock"
+      set -eu
+
       TEMP_KUBECONFIG="/tmp/${var.cluster_name}.conf"
-      MERGED_KUBECONFIG="/tmp/${var.cluster_name}_merged.yaml"
-      
-      # Atomic Lock using mkdir
-      count=0
-      while ! mkdir "$LOCKFILE" 2>/dev/null; do
-        if [ $count -ge 30 ]; then
-            echo "Timeout waiting for lock $LOCKFILE" >&2
-            exit 1
-        fi
-        echo "Waiting for kubeconfig lock..."
-        sleep 1
-        count=$((count+1))
-      done
-
-      # Trap to ensure lock is released even on failure
-      cleanup() {
-        rm -f "$TEMP_KUBECONFIG" "$MERGED_KUBECONFIG"
-        rmdir "$LOCKFILE" 2>/dev/null || true
-      }
-      trap cleanup EXIT
-
       echo '${data.external.kubeconfig.result["content"]}' > "$TEMP_KUBECONFIG"
-      
+
       # Validate the generated kubeconfig
       if ! kubectl --kubeconfig="$TEMP_KUBECONFIG" config view >/dev/null 2>&1; then
           echo "Error: Generated kubeconfig is invalid" >&2
@@ -129,7 +107,7 @@ resource "null_resource" "update_kubeconfig" {
 
       # Get the Original Context Name from the temp file
       ORIG_CONTEXT=$(kubectl --kubeconfig="$TEMP_KUBECONFIG" config current-context)
-      
+
       # Get the User Name associated with the context
       ORIG_USER=$(kubectl --kubeconfig="$TEMP_KUBECONFIG" config view -o jsonpath="{.contexts[?(@.name==\"$ORIG_CONTEXT\")].context.user}")
 
@@ -143,26 +121,38 @@ resource "null_resource" "update_kubeconfig" {
         "$ORIG_CONTEXT" \
         "${var.cluster_name}"
 
-      # Aggressive cleanup of BOTH target name and original source name from local config
+      mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context.
+      # Shared lock name across ALL merge sites in this library — a private
+      # lock only serializes NKP-vs-NKP, not NKP-vs-any-other-module.
+      # mkdir is the portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
+
+      # Aggressive cleanup of BOTH target name and original source name — pinned to
+      # the file the merge below rewrites, NOT an inherited $KUBECONFIG.
       # We ignore errors here in case they don't exist
+      export KUBECONFIG="$HOME/.kube/config"
       kubectl config delete-context "${var.cluster_name}" 2>/dev/null || true
       kubectl config delete-context "$ORIG_CONTEXT" 2>/dev/null || true
-      
+
       kubectl config delete-cluster "${var.cluster_name}" 2>/dev/null || true
-      
+
       # Delete the user if we found one
       if [ -n "$ORIG_USER" ]; then
           kubectl config delete-user "$ORIG_USER" 2>/dev/null || true
       fi
       # Also delete generic user name just in case
       kubectl config delete-user "${var.cluster_name}" 2>/dev/null || true
-      
-      # Merge - PUT NEW CONFIG FIRST so it takes precedence for conflicts
-      export KUBECONFIG="$TEMP_KUBECONFIG":~/.kube/config
-      kubectl config view --flatten > "$MERGED_KUBECONFIG"
-      mv "$MERGED_KUBECONFIG" ~/.kube/config
-      chmod 600 ~/.kube/config
 
+      # Merge - PUT NEW CONFIG FIRST so it takes precedence for conflicts
+      MERGED_KUBECONFIG=$(mktemp)
+      KUBECONFIG="$TEMP_KUBECONFIG:$HOME/.kube/config" kubectl config view --flatten > "$MERGED_KUBECONFIG"
+      mv "$MERGED_KUBECONFIG" "$HOME/.kube/config"
+      chmod 600 "$HOME/.kube/config"
+
+      rm -f "$TEMP_KUBECONFIG"
       echo "Kubeconfig updated for ${var.cluster_name}."
     EOT
   }

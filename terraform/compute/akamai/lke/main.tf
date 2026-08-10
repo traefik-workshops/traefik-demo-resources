@@ -63,25 +63,36 @@ resource "null_resource" "lke_cluster" {
   provisioner "local-exec" {
 
     command = <<EOT
-      TMPKUBE=/tmp/lke-kubeconfig-${var.cluster_name}.yaml
-      TMPMERGE=/tmp/lke-merged-${var.cluster_name}.yaml
-      LOCKDIR=/tmp/lke-kubeconfig-merge.lock
-      echo '${local.kubeconfig_raw}' > "$TMPKUBE"
+      set -eu
 
-      while ! mkdir "$LOCKDIR" 2>/dev/null; do sleep 0.5; done
-      trap "rm -rf '$LOCKDIR'" EXIT
+      src=$(mktemp)
+      echo '${local.kubeconfig_raw}' > "$src"
 
-      export KUBECONFIG=~/.kube/config:"$TMPKUBE"
-      kubectl config view --flatten > "$TMPMERGE"
-      mv "$TMPMERGE" ~/.kube/config
+      mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context. Held
+      # through the renames below — they rewrite the same file. mkdir is the
+      # portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
 
-      rm -rf "$LOCKDIR"
+      # New config first in the flatten: duplicate names resolve FIRST-WINS, so the
+      # cluster just built wins any same-named stale entry (see alibaba/ack for the
+      # full postmortem; LKE's generated names embed the cluster id so collisions
+      # are rare, but the cheap ordering guarantee beats relying on that).
+      merged=$(mktemp)
+      KUBECONFIG="$src:$HOME/.kube/config" kubectl config view --flatten > "$merged"
+      mv "$merged" "$HOME/.kube/config"
+      chmod 600 "$HOME/.kube/config"
 
+      # Explicit KUBECONFIG for the write-back half: an inherited $KUBECONFIG would
+      # otherwise send these renames to a different file than the one just written.
+      export KUBECONFIG="$HOME/.kube/config"
       kubectl config delete-context "${var.cluster_name_prefix}${var.cluster_name}" 2>/dev/null || true
       kubectl config rename-context "lke${linode_lke_cluster.traefik_demo.id}-ctx" "${var.cluster_name_prefix}${var.cluster_name}"
       kubectl config use-context "${var.cluster_name_prefix}${var.cluster_name}"
 
-      rm "$TMPKUBE"
+      rm -f "$src"
     EOT
   }
 

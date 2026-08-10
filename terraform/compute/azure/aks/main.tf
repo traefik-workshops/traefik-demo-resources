@@ -27,14 +27,16 @@ resource "azurerm_kubernetes_cluster" "traefik_demo" {
 }
 
 # AKS default_node_pool does not support node_taints.
-# Apply the first worker_node's taint via kubectl.
+# Apply the first worker_node's taint via kubectl, pinned to the context this
+# module itself just wrote (aks_cluster names it deterministically) — NEVER the
+# machine-global current-context, which a parallel standup can repoint mid-apply.
 resource "null_resource" "aks_default_taint" {
   count = length(var.worker_nodes) > 0 && try(length(var.worker_nodes[0].taint), 0) > 0 ? 1 : 0
 
   provisioner "local-exec" {
     command = <<EOT
-      for node in $(kubectl get nodes -l node=${var.worker_nodes[0].label} -o name 2>/dev/null); do
-        kubectl taint nodes "$node" node=${var.worker_nodes[0].taint}:NoSchedule --overwrite 2>/dev/null || true
+      for node in $(kubectl --context "aks-${var.cluster_name}" get nodes -l node=${var.worker_nodes[0].label} -o name 2>/dev/null); do
+        kubectl --context "aks-${var.cluster_name}" taint nodes "$node" node=${var.worker_nodes[0].taint}:NoSchedule --overwrite 2>/dev/null || true
       done
     EOT
   }

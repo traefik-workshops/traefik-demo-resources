@@ -105,6 +105,12 @@ variable "kubeconfig" {
   default     = ""
 }
 
+variable "kubeconfig_context" {
+  description = "kubectl context for the token-capture data source. Set it so the read targets a named context instead of the machine-global current-context (a data source re-evaluates at plan/refresh/destroy, so a parallel standup or a mid-run context switch would otherwise read the WRONG cluster). Combines with `kubeconfig` (context within that file); ignored when `host`/`client_certificate` build their own isolated context. Empty = ambient current-context — today's behavior."
+  type        = string
+  default     = ""
+}
+
 variable "instances" {
   type        = number
   default     = 1

@@ -107,7 +107,12 @@ data "external" "capture_tokens" {
 
   program = ["bash", "-c", <<-EOT
     set -e
-    
+
+    # Pin the kubectl context when given one. A data source re-evaluates at
+    # plan/refresh/destroy, so riding the machine-global current-context is
+    # exposed to a parallel standup or an operator switching contexts mid-run.
+    CTX="${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}"
+
     # Configure isolated kubectl context
     if [ -n "${var.kubeconfig}" ]; then
       export KUBECONFIG="${var.kubeconfig}"
@@ -124,16 +129,20 @@ data "external" "capture_tokens" {
       kubectl config set-credentials admin --client-certificate="$CERT_FILE" --client-key="$KEY_FILE" >/dev/null
       kubectl config set-context remote --cluster=remote --user=admin >/dev/null
       kubectl config use-context remote >/dev/null
-      
+
+      # The freshly-built config has exactly one context — a caller-supplied
+      # context name would not exist in it.
+      CTX=""
+
       # Ensure cleanup on exit
       trap 'rm -f "$KUBECONFIG_FILE" "$CERT_FILE" "$KEY_FILE"' EXIT
     fi
 
     # Wait for job completion
-    kubectl wait --for=condition=complete job/fetch-keycloak-tokens -n "${var.namespace}" --timeout=120s >&2
-    
+    kubectl $CTX wait --for=condition=complete job/fetch-keycloak-tokens -n "${var.namespace}" --timeout=120s >&2
+
     # Fetch logs (find the line starting with { and ending with })
-    kubectl logs job/fetch-keycloak-tokens -n "${var.namespace}" | grep '^{.*}$' | tail -n 1
+    kubectl $CTX logs job/fetch-keycloak-tokens -n "${var.namespace}" | grep '^{.*}$' | tail -n 1
   EOT
   ]
 }

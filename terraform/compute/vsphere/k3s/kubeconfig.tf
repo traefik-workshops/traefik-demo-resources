@@ -52,15 +52,23 @@ resource "null_resource" "update_kubeconfig" {
     # New file first in KUBECONFIG so a re-created cluster's fresh certs/IP win
     # over any stale ambient entry of the same name.
     command = <<-EOT
-      set -e
+      set -eu
       tmp=$(mktemp)
       printf '%s' "$K3S_KUBECONFIG" > "$tmp"
       mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context.
+      # mkdir is the portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
       merged=$(mktemp)
       KUBECONFIG="$tmp:$HOME/.kube/config" kubectl config view --flatten > "$merged"
       mv "$merged" "$HOME/.kube/config"
       chmod 600 "$HOME/.kube/config"
       rm -f "$tmp"
+      # Same file the merge just wrote — don't let an inherited $KUBECONFIG
+      # point use-context at a different config.
+      export KUBECONFIG="$HOME/.kube/config"
       kubectl config use-context "${local.ambient_context}"
     EOT
   }
