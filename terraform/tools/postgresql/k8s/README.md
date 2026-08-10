@@ -6,7 +6,7 @@ Deploys PostgreSQL on Kubernetes via Helm with a configurable password and datab
 
 ```hcl
 module "postgresql" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/postgresql/k8s?ref=v6.1.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/postgresql/k8s?ref=v6.1.2"
 
   name      = "postgres"
   namespace = "data"

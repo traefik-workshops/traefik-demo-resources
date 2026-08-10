@@ -6,7 +6,7 @@ Deploys Microsoft Presidio (PII detection / anonymization) into a Kubernetes clu
 
 ```hcl
 module "presidio" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/presidio/k8s?ref=v6.1.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/presidio/k8s?ref=v6.1.2"
 
   name      = "presidio"
   namespace = "presidio"
