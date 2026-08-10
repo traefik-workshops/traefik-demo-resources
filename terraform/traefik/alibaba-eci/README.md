@@ -12,7 +12,7 @@ Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: th
 
 ```hcl
 module "alibaba_eci_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/alibaba-eci?ref=v5.4.3"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/alibaba-eci?ref=v6.0.0"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

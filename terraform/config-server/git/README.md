@@ -9,7 +9,7 @@ Two paths:
 
 ```hcl
 module "config_server" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/config-server/git?ref=v5.4.3"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/config-server/git?ref=v6.0.0"
 
   namespace          = kubernetes_namespace_v1.traefik.metadata[0].name
   ingress_host       = "git.${var.domain}"
