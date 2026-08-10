@@ -9,7 +9,7 @@ variable "whoami_image" {
   # ACI leg took three 409s in a row during validation.
   type        = string
   description = "Whoami image to docker-run. A tag in the last path segment wins over whoami_version."
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "whoami_version" {

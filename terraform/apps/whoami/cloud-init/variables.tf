@@ -1,7 +1,7 @@
 variable "whoami_image" {
   type        = string
   description = "Whoami image to docker-run. Untagged references get `:` + whoami_version appended (e.g. `traefik/whoami` + `v1.11.0`)."
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "whoami_version" {

@@ -8,12 +8,11 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 
 | Path | Platform | Purpose |
 |---|---|---|
-| [`httpbin/k8s`](./httpbin/k8s) | k8s | httpbin in-cluster — useful for testing ingress, headers, redirects |
 | [`whoami/aci`](./whoami/aci) | Azure | whoami as ACI container groups (private vnet-injected IPs) |
 | [`whoami/alibaba-eci`](./whoami/alibaba-eci) | Alibaba | whoami as ECI container groups (private vswitch IPs; declared container port 80) |
 | [`whoami/alibaba-ecs`](./whoami/alibaba-ecs) | Alibaba | whoami on ECS instances (traefik config via dotted tags; uses `whoami/cloud-init`) |
 | [`whoami/azure-vm`](./whoami/azure-vm) | Azure | whoami on Azure Linux VMs (uses `whoami/cloud-init`) |
-| [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that docker-runs the whoami image (default: OTel-instrumented `zalbiraw/whoami` fork) on a VM |
+| [`whoami/cloud-init`](./whoami/cloud-init) | template | Cloud-init script that docker-runs the whoami image (default: OTel-instrumented `traefik-workshops/whoami` fork) on a VM |
 | [`whoami/cloudrun`](./whoami/cloudrun) | GCP | whoami as Cloud Run v2 services (traefik.* annotations; optional gen2 function) |
 | [`whoami/ec2`](./whoami/ec2) | AWS | whoami on EC2 (uses `whoami/cloud-init`) |
 | [`whoami/ecs`](./whoami/ecs) | AWS | whoami on ECS Fargate |
@@ -29,6 +28,6 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 
 ## When to add an app
 
-Almost never. The bar is: "is there a *demo concept* that whoami and httpbin can't carry?" If yes, add it. If no, use what's here.
+Almost never. The bar is: "is there a *demo concept* that whoami can't carry?" If yes, add it. If no, use what's here.
 
 The most common request is "an app that does X behavior" (slow response, error injection, large payload). Prefer adding a flag to `whoami/k8s` if possible.

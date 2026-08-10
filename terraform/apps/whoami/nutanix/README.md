@@ -1,6 +1,6 @@
 # apps/whoami/nutanix
 
-Provisions a Traefik `whoami` VM on Nutanix AHV via `compute/nutanix/vm`, with cloud-init (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) and Prism Central category-based service discovery.
+Provisions a Traefik `whoami` VM on Nutanix AHV via `compute/nutanix/vm`, with cloud-init (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`) and Prism Central category-based service discovery.
 
 ## Example usage
 
@@ -63,7 +63,7 @@ No resources.
 | <a name="input_vm_memory_mib"></a> [vm\_memory\_mib](#input\_vm\_memory\_mib) | Memory size in MiB | `number` | `1024` | no |
 | <a name="input_vm_num_sockets"></a> [vm\_num\_sockets](#input\_vm\_num\_sockets) | Number of sockets | `number` | `1` | no |
 | <a name="input_vm_num_vcpus_per_socket"></a> [vm\_num\_vcpus\_per\_socket](#input\_vm\_num\_vcpus\_per\_socket) | Number of vCPUs per socket | `number` | `1` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on the VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on the VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs

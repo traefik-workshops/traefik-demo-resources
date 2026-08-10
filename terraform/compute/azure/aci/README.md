@@ -15,7 +15,7 @@ module "compute" {
   subnet_id           = module.vnet.aci_subnet_id # delegated to Microsoft.ContainerInstance
 
   container_name   = "whoami"
-  image            = "ghcr.io/zalbiraw/whoami:v1.11.0"
+  image            = "ghcr.io/traefik-workshops/whoami:latest"
   container_cpu    = "0.5"
   container_memory = "1.0"
   commands         = ["/whoami", "--verbose"]

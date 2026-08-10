@@ -47,7 +47,7 @@ No resources.
 | <a name="input_apps"></a> [apps](#input\_apps) | Apps to run as Docker containers, keyed by app name. Each value: { replicas, name, environment, traefik\_labels }. `name` is the container basename AND the WHOAMI\_NAME the body echoes; `traefik_labels` is the discovery config the local docker provider reads. | `any` | `{}` | no |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Traefik labels applied to every container, merged under each app's own traefik\_labels. | `map(string)` | `{}` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | Environment variables applied to every container (the OTel block, typically). A per-app `environment` wins on collision. | `map(string)` | `{}` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run. A tag in the last path segment wins over whoami\_version. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run. A tag in the last path segment wins over whoami\_version. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used ONLY when whoami\_image carries none. | `string` | `"v1.11.0"` | no |
 
 ## Outputs

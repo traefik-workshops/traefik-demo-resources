@@ -7,7 +7,7 @@ variable "clusters" {
 variable "whoami_image" {
   description = "Whoami image every task runs."
   type        = string
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "environment" {

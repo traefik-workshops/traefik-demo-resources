@@ -53,7 +53,7 @@ variable "common_tags" {
 variable "whoami_image" {
   description = "Whoami image every container instance runs. Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "whoami_version" {

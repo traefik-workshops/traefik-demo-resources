@@ -45,7 +45,7 @@ variable "whoami_image" {
   type        = string
   # ghcr, not docker.io: container platforms' anonymous Docker Hub pulls get
   # rate-limited (ACI hit three straight 409s on first deploy, 2026-07).
-  default = "ghcr.io/zalbiraw/whoami:latest"
+  default = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "whoami_version" {

@@ -122,6 +122,7 @@ The annotations go on the **VirtualMachine**, not on `spec.template.metadata`. K
 
 | Name | Type |
 | ---- | ---- |
+| [kubectl_manifest.cloudinit](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 | [kubectl_manifest.vm](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 
 ## Inputs
@@ -138,7 +139,7 @@ The annotations go on the **VirtualMachine**, not on `spec.template.metadata`. K
 | <a name="input_memory"></a> [memory](#input\_memory) | Guest memory (spec.template.spec.domain.memory.guest), e.g. "2Gi". | `string` | `"2Gi"` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace the VirtualMachines are created in. It must permit privileged pods (PodSecurity `enforce: privileged`): virt-launcher needs /dev/kvm and tun, which baseline and restricted both reject. | `string` | `"apps"` | no |
 | <a name="input_run_strategy"></a> [run\_strategy](#input\_run\_strategy) | VirtualMachine runStrategy. `Always` keeps the guest running and restarts it if it stops. Never set this AND `running` — the API server rejects a VM that carries both, which is why this module has no `running` input. | `string` | `"Always"` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | OCI image whose whoami binary (entrypoint /whoami) is EXTRACTED with crane and run raw under the guest's systemd — there is no container runtime in the VM. Default is the OTel-instrumented fork, so the guests honour the OTEL\_* env below and earn their own service-graph node. An untagged reference resolves to `:latest`, crane's own default. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | OCI image whose whoami binary (entrypoint /whoami) is EXTRACTED with crane and run raw under the guest's systemd — there is no container runtime in the VM. Default is the OTel-instrumented fork, so the guests honour the OTEL\_* env below and earn their own service-graph node. An untagged reference resolves to `:latest`, crane's own default. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 
 ## Outputs
 

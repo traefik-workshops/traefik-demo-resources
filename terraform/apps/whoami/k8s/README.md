@@ -1,6 +1,6 @@
 # apps/whoami/k8s
 
-Deploys one or more Traefik `whoami` instances (default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) on Kubernetes as Deployments + Services, with optional Traefik `IngressRoute`, `Middleware` (strip-prefix), and Traefik Hub `Uplink` resources.
+Deploys one or more Traefik `whoami` instances (default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`) on Kubernetes as Deployments + Services, with optional Traefik `IngressRoute`, `Middleware` (strip-prefix), and Traefik Hub `Uplink` resources.
 
 ## Example usage
 
@@ -79,7 +79,7 @@ module "whoami" {
 | <a name="input_node_selector"></a> [node\_selector](#input\_node\_selector) | Node selector for pod scheduling | `map(string)` | `{}` | no |
 | <a name="input_uplink_enabled"></a> [uplink\_enabled](#input\_uplink\_enabled) | Advertise the route over a Traefik Hub multicluster uplink instead of serving it locally. When true the IngressRoute drops entryPoints and matches PathPrefix(`/`) (Hub attaches it to the uplink), so ingress\_route.host and ingress\_route.strip\_prefix are IGNORED for matching — the parent cluster owns the Host match. Supports at most one app with ingress\_route.enabled (one Uplink is shared). Requires uplink\_name. | `bool` | `false` | no |
 | <a name="input_uplink_name"></a> [uplink\_name](#input\_uplink\_name) | Uplink name to advertise on. Required when uplink\_enabled. Must match the child's --hub.uplinkEntryPoints.<name> entrypoint and the parent's <name>@multicluster service ref. | `string` | `""` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image for every app that doesn't set its own docker\_image. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image for every app that doesn't set its own docker\_image. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 
 ## Outputs
 

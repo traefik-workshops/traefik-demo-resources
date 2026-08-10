@@ -19,7 +19,7 @@ module "eci" {
       memory = 0.5
       containers = [{
         name  = "whoami"
-        image = "ghcr.io/zalbiraw/whoami:latest"
+        image = "ghcr.io/traefik-workshops/whoami:latest"
         ports = [{ port = 80 }]
       }]
       tags = { "traefik.enable" = "true" }

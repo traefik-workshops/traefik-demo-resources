@@ -1,6 +1,6 @@
 # apps/whoami/oci-vm
 
-Provisions one or more Traefik `whoami` instances on OCI Compute VMs — the OCI sibling of `apps/whoami/ec2` and `apps/whoami/azure-vm`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`). The `apps` map reads identically to the EC2 module.
+Provisions one or more Traefik `whoami` instances on OCI Compute VMs — the OCI sibling of `apps/whoami/ec2` and `apps/whoami/azure-vm`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`). The `apps` map reads identically to the EC2 module.
 
 Each VM's freeform tags (dotted `traefik.*` keys, exactly like EC2 instance tags) are the workload config a Traefik Hub `oci` provider (`traefik/oci-vm`) discovers.
 
@@ -56,19 +56,14 @@ module "whoami_oci_vm" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_oci"></a> [oci](#requirement\_oci) | ~> 7.0 |
 
 ## Providers
 
-| Name | Version |
-| ---- | ------- |
-| <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
+No providers.
 
 ## Resources
 
-| Name | Type |
-| ---- | ---- |
-| [oci_core_instance.whoami](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_instance) | resource |
+No resources.
 
 ## Inputs
 
@@ -86,7 +81,7 @@ module "whoami_oci_vm" {
 | <a name="input_ocpus"></a> [ocpus](#input\_ocpus) | OCPUs per VM (1 OCPU = 2 vCPUs on E4.Flex) | `number` | `1` | no |
 | <a name="input_shape"></a> [shape](#input\_shape) | Compute shape for all echo servers (flex shapes are sized by ocpus/memory\_in\_gbs) | `string` | `"VM.Standard.E4.Flex"` | no |
 | <a name="input_vm_image_ocid"></a> [vm\_image\_ocid](#input\_vm\_image\_ocid) | Boot image OCID. Empty = latest Canonical Ubuntu 24.04 platform image for the shape. | `string` | `""` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs

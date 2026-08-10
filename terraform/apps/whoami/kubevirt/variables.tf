@@ -14,7 +14,7 @@ variable "namespace" {
 variable "whoami_image" {
   description = "OCI image whose whoami binary (entrypoint /whoami) is EXTRACTED with crane and run raw under the guest's systemd — there is no container runtime in the VM. Default is the OTel-instrumented fork, so the guests honour the OTEL_* env below and earn their own service-graph node. An untagged reference resolves to `:latest`, crane's own default."
   type        = string
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "crane_version" {

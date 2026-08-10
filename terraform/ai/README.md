@@ -18,7 +18,6 @@ Most modules here run on **Kubernetes** (`<module>/k8s/`). A few run on **RunPod
 | [`ollama/k8s`](./ollama/k8s) | k8s | Ollama for local-style LLM serving (multiple models via flags) |
 | [`open-webui/k8s`](./open-webui/k8s) | k8s | Open WebUI frontend, points at the AI gateway or Ollama |
 | [`presidio/k8s`](./presidio/k8s) | k8s | Microsoft Presidio (PII analyzer/anonymizer) |
-| [`sqlcl/k8s`](./sqlcl/k8s) | k8s | Oracle SQLcl pod for hands-on demos |
 | [`weaviate/k8s`](./weaviate/k8s) | k8s | Weaviate vector DB |
 
 ## Common prerequisites

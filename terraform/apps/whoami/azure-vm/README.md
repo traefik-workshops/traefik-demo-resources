@@ -1,6 +1,6 @@
 # apps/whoami/azure-vm
 
-Provisions one or more Traefik `whoami` instances on Azure Linux VMs — the Azure sibling of `apps/whoami/ec2`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`). The `apps` map reads identically to the EC2 module.
+Provisions one or more Traefik `whoami` instances on Azure Linux VMs — the Azure sibling of `apps/whoami/ec2`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`). The `apps` map reads identically to the EC2 module.
 
 Each VM's Azure tags (dotted `traefik.*` keys, exactly like EC2 instance tags) are the workload config a Traefik Hub `azureVM` provider (`traefik/azure-vm`) discovers.
 
@@ -54,22 +54,14 @@ module "whoami_azure_vm" {
 | Name | Version |
 | ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
-| <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.0 |
 
 ## Providers
 
-| Name | Version |
-| ---- | ------- |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
+No providers.
 
 ## Resources
 
-| Name | Type |
-| ---- | ---- |
-| [azurerm_linux_virtual_machine.whoami](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_virtual_machine) | resource |
-| [azurerm_network_interface.whoami](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface) | resource |
-| [azurerm_network_interface_security_group_association.whoami](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface_security_group_association) | resource |
-| [azurerm_public_ip.whoami](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/public_ip) | resource |
+No resources.
 
 ## Inputs
 
@@ -88,7 +80,7 @@ module "whoami_azure_vm" {
 | <a name="input_network_security_group_id"></a> [network\_security\_group\_id](#input\_network\_security\_group\_id) | NSG ID to associate with the VM NICs (used only when enable\_network\_security\_group = true or create\_vnet = true; may be a same-run resource attribute). Subnet-level NSG rules still apply either way. | `string` | `""` | no |
 | <a name="input_subnet_id"></a> [subnet\_id](#input\_subnet\_id) | ID of the existing subnet the VM NICs join | `string` | `""` | no |
 | <a name="input_vm_size"></a> [vm\_size](#input\_vm\_size) | Azure VM size for all echo servers | `string` | `"Standard_B1s"` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs

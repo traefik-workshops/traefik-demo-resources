@@ -1,6 +1,6 @@
 # apps/whoami/vsphere
 
-Provisions one or more Traefik `whoami` instances on vSphere VMs — the on-prem sibling of `apps/whoami/ec2` / `apps/whoami/azure-vm` / `apps/whoami/gce`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`). Each replica is one small VM cloned from a user-provided **cloud-init-enabled Ubuntu cloud-image template**.
+Provisions one or more Traefik `whoami` instances on vSphere VMs — the on-prem sibling of `apps/whoami/ec2` / `apps/whoami/azure-vm` / `apps/whoami/gce`, reusing the `whoami/cloud-init` template (docker-run systemd unit; default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`). Each replica is one small VM cloned from a user-provided **cloud-init-enabled Ubuntu cloud-image template**.
 
 ## The workload config is guestinfo JSON, not tags
 
@@ -82,7 +82,7 @@ No resources.
 | <a name="input_num_cpus"></a> [num\_cpus](#input\_num\_cpus) | vCPU count per whoami VM | `number` | `1` | no |
 | <a name="input_resource_pool"></a> [resource\_pool](#input\_resource\_pool) | Name/path of the resource pool to place the VMs in. Takes precedence over cluster. | `string` | `""` | no |
 | <a name="input_service_tag_ids"></a> [service\_tag\_ids](#input\_service\_tag\_ids) | vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet. The category itself never reaches this module — IDs are globally unique, so attaching a tag needs no category name. | `map(string)` | `{}` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run on each VM. Untagged references get `:` + whoami\_version appended. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs

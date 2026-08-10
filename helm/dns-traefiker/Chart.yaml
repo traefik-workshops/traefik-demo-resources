@@ -12,7 +12,6 @@ maintainers:
 
 sources:
   - https://github.com/traefik-workshops/traefik-demo
-  - https://github.com/zalbiraw/dns-traefiker
 
 home: https://github.com/traefik-workshops/traefik-demo/tree/main/helm/dns-traefiker
 

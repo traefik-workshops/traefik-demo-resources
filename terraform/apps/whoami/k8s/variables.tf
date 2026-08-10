@@ -45,7 +45,7 @@ variable "namespace" {
 variable "whoami_image" {
   description = "Whoami image for every app that doesn't set its own docker_image."
   type        = string
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "environment" {

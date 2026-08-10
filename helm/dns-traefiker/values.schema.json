@@ -8,7 +8,7 @@
       "properties": {
         "repository": {
           "type": "string",
-          "default": "zalbiraw/dns-traefiker"
+          "default": "ghcr.io/traefik-workshops/dns-traefiker"
         },
         "pullPolicy": {
           "type": "string",

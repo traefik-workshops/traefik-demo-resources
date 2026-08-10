@@ -95,7 +95,7 @@ variable "lxc_disk_size" {
 variable "whoami_image" {
   description = "Whoami image docker-run on each VM (type = \"vm\"). LXC apps run the binary EXTRACTED from lxc_whoami_image instead (no docker in the container). Untagged references get `:` + whoami_version appended."
   type        = string
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "whoami_version" {
@@ -119,8 +119,8 @@ variable "lxc_template_file_id" {
 
 variable "lxc_whoami_image" {
   type        = string
-  description = "OCI image whose whoami binary (Entrypoint /whoami) is EXTRACTED with crane and run raw inside LXC containers — no docker-in-LXC. Default is the OTel-instrumented fork (ghcr.io/zalbiraw/whoami), so the LXC leg emits OTLP like the QEMU/k8s whoami and shows as its own service-graph node. Set to \"\" to fall back to the upstream traefik/whoami release binary (lxc_whoami_version), which has no tracing."
-  default     = "ghcr.io/zalbiraw/whoami:latest"
+  description = "OCI image whose whoami binary (Entrypoint /whoami) is EXTRACTED with crane and run raw inside LXC containers — no docker-in-LXC. Default is the OTel-instrumented fork (ghcr.io/traefik-workshops/whoami), so the LXC leg emits OTLP like the QEMU/k8s whoami and shows as its own service-graph node. Set to \"\" to fall back to the upstream traefik/whoami release binary (lxc_whoami_version), which has no tracing."
+  default     = "ghcr.io/traefik-workshops/whoami:latest"
 }
 
 variable "lxc_whoami_version" {

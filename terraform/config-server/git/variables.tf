@@ -12,7 +12,7 @@ variable "namespace" {
 variable "image" {
   description = "The git-config-server image (built from terraform/config-server/git/image)."
   type        = string
-  default     = "ghcr.io/zalbiraw/git-config-server:latest"
+  default     = "ghcr.io/traefik-workshops/git-config-server:latest"
 }
 
 variable "ingress_host" {

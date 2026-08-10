@@ -1,5 +1,5 @@
 image:
-  repository: zalbiraw/dns-traefiker
+  repository: ghcr.io/traefik-workshops/dns-traefiker
   pullPolicy: Always
   tag: "latest"
 

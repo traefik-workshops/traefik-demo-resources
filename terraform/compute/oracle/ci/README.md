@@ -24,7 +24,7 @@ module "ci" {
       display_name = "whoami-1"
       containers = [{
         display_name = "whoami"
-        image_url    = "ghcr.io/zalbiraw/whoami:latest"
+        image_url    = "ghcr.io/traefik-workshops/whoami:latest"
         environment_variables = {
           WHOAMI_NAME = "whoami-1"
         }

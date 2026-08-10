@@ -2,7 +2,7 @@
 
 > **Status:** stub module. Intentionally minimal; expand only if a demo needs it. Documented at this minimum scope rather than removed because demo wrappers reference it.
 
-Renders a cloud-init template that installs Docker and `docker run`s the `whoami` image (default: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) as a systemd unit, publishing a configurable host port. No resources — output-only.
+Renders a cloud-init template that installs Docker and `docker run`s the `whoami` image (default: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`) as a systemd unit, publishing a configurable host port. No resources — output-only.
 
 ## Example usage
 
@@ -57,7 +57,7 @@ No resources.
 | <a name="input_environment"></a> [environment](#input\_environment) | Extra environment variables for the container (docker -e), e.g. OTEL\_* exporter config for the OTel-instrumented whoami fork. | `map(string)` | `{}` | no |
 | <a name="input_name"></a> [name](#input\_name) | Identifier surfaced as `Name:` in the whoami response | `string` | `""` | no |
 | <a name="input_port"></a> [port](#input\_port) | Host port whoami is published on (docker -p <port>:80) | `number` | `80` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run. Untagged references get `:` + whoami\_version appended (e.g. `traefik/whoami` + `v1.11.0`). | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image to docker-run. Untagged references get `:` + whoami\_version appended (e.g. `traefik/whoami` + `v1.11.0`). | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 | <a name="input_whoami_version"></a> [whoami\_version](#input\_whoami\_version) | Image tag used only when whoami\_image carries no tag. Must be a real tag for that repository (traefik/whoami tags carry a `v` prefix, e.g. v1.11.0). | `string` | `"v1.11.0"` | no |
 
 ## Outputs

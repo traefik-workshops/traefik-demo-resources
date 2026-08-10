@@ -37,7 +37,7 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 | Key | Default |
 |-----|---------|
 | `image` | (object) |
-| `image.repository` | `"zalbiraw/dns-traefiker"` |
+| `image.repository` | `"ghcr.io/traefik-workshops/dns-traefiker"` |
 | `image.pullPolicy` | `"Always"` |
 | `image.tag` | `"latest"` |
 | `imagePullSecrets` | `[]` |

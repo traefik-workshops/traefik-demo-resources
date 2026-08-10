@@ -1,6 +1,6 @@
 # apps/whoami/ecs
 
-Provisions Traefik `whoami` services (default image: the OTel-instrumented fork `ghcr.io/zalbiraw/whoami`) across one or more ECS clusters, wrapping `compute/aws/ecs`.
+Provisions Traefik `whoami` services (default image: the OTel-instrumented fork `ghcr.io/traefik-workshops/whoami`) across one or more ECS clusters, wrapping `compute/aws/ecs`.
 
 ## Example usage
 
@@ -65,7 +65,7 @@ No resources.
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs for ECS resources | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs for ECS resources | `list(string)` | `[]` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID for ECS resources | `string` | `""` | no |
-| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every task runs. | `string` | `"ghcr.io/zalbiraw/whoami:latest"` | no |
+| <a name="input_whoami_image"></a> [whoami\_image](#input\_whoami\_image) | Whoami image every task runs. | `string` | `"ghcr.io/traefik-workshops/whoami:latest"` | no |
 
 ## Outputs
 
