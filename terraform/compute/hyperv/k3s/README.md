@@ -13,7 +13,7 @@ The admin kubeconfig is SSH-fetched (k3s mints client certs on the node; there i
 
 ```hcl
 module "k3s" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/hyperv/k3s?ref=v6.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/hyperv/k3s?ref=v6.1.0"
 
   vm_name          = "hyperv-unified-ingress-k3s"
   host_winrm       = { host = "203.0.113.10", username = "Admin", password = var.host_admin_password }
