@@ -1,4 +1,4 @@
-# remove-vm.ps1 — idempotent teardown of one module-created VM: turn off, remove,
+# remove-vm.ps1 -- idempotent teardown of one module-created VM: turn off, remove,
 # delete the differencing disk + seed ISO. Runs ON the Hyper-V host (terraform's
 # destroy-time provisioner drives it over WinRM). Safe on an already-absent VM, so
 # a re-run after a half-finished destroy converges instead of failing.

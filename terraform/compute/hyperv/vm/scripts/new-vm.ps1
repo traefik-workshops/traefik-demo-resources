@@ -1,12 +1,12 @@
-# new-vm.ps1 — idempotent one-shot: NoCloud seed ISO + differencing VHDX + Hyper-V VM.
+# new-vm.ps1 -- idempotent one-shot: NoCloud seed ISO + differencing VHDX + Hyper-V VM.
 #
 # Runs ON the Hyper-V host (terraform drives it over WinRM). Convergence model is
-# recreate-from-scratch: if the VM exists it is torn down first — terraform only calls
+# recreate-from-scratch: if the VM exists it is torn down first -- terraform only calls
 # this on create/replace, and a differencing disk is disposable by definition.
 #
 # QUOTING RULE (repo-wide): single-quoted PowerShell strings do NOT collapse backtick
-# escapes — 'HostSNI(``*``)' stores TWO literal backticks. Nothing here interpolates
-# label values (labels are VMM-side, base64-delivered — see apps/whoami/hyperv), but
+# escapes -- 'HostSNI(``*``)' stores TWO literal backticks. Nothing here interpolates
+# label values (labels are VMM-side, base64-delivered -- see apps/whoami/hyperv), but
 # keep every string that could ever carry a backtick double-quoted all the same.
 [CmdletBinding()]
 param(
@@ -26,7 +26,7 @@ function Log([string]$m) { Write-Host "==> [$Name] $m" }
 if (-not (Test-Path $ParentVhdx)) { throw "parent VHDX not found: $ParentVhdx (host prep's golden phase builds it)" }
 if ((Get-ItemProperty $ParentVhdx).IsReadOnly -ne $true) {
   # A writable parent is a corruption hazard: ANY write to it invalidates every child.
-  Log "parent VHDX is writable — marking it read-only (differencing-parent hygiene)"
+  Log "parent VHDX is writable -- marking it read-only (differencing-parent hygiene)"
   Set-ItemProperty $ParentVhdx -Name IsReadOnly -Value $true
 }
 foreach ($f in "user-data", "meta-data", "network-config") {
@@ -39,7 +39,7 @@ if (-not (Get-VMSwitch -Name $SwitchName -ErrorAction SilentlyContinue)) {
 # --- tear down any prior incarnation ----------------------------------------------
 $existing = Get-VM -Name $Name -ErrorAction SilentlyContinue
 if ($existing) {
-  Log "VM already exists — removing (recreate-from-scratch convergence)"
+  Log "VM already exists -- removing (recreate-from-scratch convergence)"
   if ($existing.State -ne "Off") { Stop-VM -Name $Name -TurnOff -Force }
   Remove-VM -Name $Name -Force
 }
@@ -94,12 +94,12 @@ $img = $fsi.CreateResultImage()
 Remove-Item $stage -Recurse -Force
 
 # ASSERT the label. cloud-init matches the NoCloud drive by FileSystemLabel: a wrong
-# label produces a VM that boots clean and silently ignores the whole seed — the
+# label produces a VM that boots clean and silently ignores the whole seed -- the
 # worst failure shape, so it is checked here rather than discovered in the guest.
 Mount-DiskImage -ImagePath $isoPath | Out-Null
 try {
   $label = (Get-DiskImage -ImagePath $isoPath | Get-Volume).FileSystemLabel
-  if ($label -cne "cidata") { throw "seed ISO label is '$label', want 'cidata' — cloud-init would ignore this seed" }
+  if ($label -cne "cidata") { throw "seed ISO label is '$label', want 'cidata' -- cloud-init would ignore this seed" }
 } finally {
   Dismount-DiskImage -ImagePath $isoPath | Out-Null
 }
@@ -125,8 +125,8 @@ if ($Generation -eq 2) {
   $hd = Get-VMHardDiskDrive -VM $vm
   Set-VMFirmware -VM $vm -BootOrder $hd, $dvd
 }
-# KVP (Data Exchange) + Guest Services on: KVP is how a human — and SCVMM's adapter
-# view — reads the guest address; the golden image bakes the daemon.
+# KVP (Data Exchange) + Guest Services on: KVP is how a human -- and SCVMM's adapter
+# view -- reads the guest address; the golden image bakes the daemon.
 Get-VMIntegrationService -VM $vm | Where-Object { -not $_.Enabled } |
   ForEach-Object { Enable-VMIntegrationService -VMIntegrationService $_ }
 
