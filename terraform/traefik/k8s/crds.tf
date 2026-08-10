@@ -19,8 +19,8 @@ resource "null_resource" "traefik_crds" {
     # repo cache, never a cluster.
     environment = var.kubeconfig != "" ? { KUBECONFIG = var.kubeconfig } : {}
     command     = <<-EOT
-      kctx=${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}
-      hctx=${var.kubeconfig_context != "" ? "--kube-context ${var.kubeconfig_context}" : ""}
+      kctx="${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}"
+      hctx="${var.kubeconfig_context != "" ? "--kube-context ${var.kubeconfig_context}" : ""}"
       helm repo add traefik https://traefik.github.io/charts --force-update
       helm template $hctx traefik-crds traefik/traefik-crds \
         --version 1.18.0 \

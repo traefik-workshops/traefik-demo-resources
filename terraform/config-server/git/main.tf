@@ -103,7 +103,7 @@ resource "null_resource" "ingressroute" {
   provisioner "local-exec" {
     interpreter = ["bash", "-c"]
     command     = <<-EOT
-      ctx=${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}
+      ctx="${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}"
       kubectl $ctx apply -f - <<'YAML'
       apiVersion: traefik.io/v1alpha1
       kind: IngressRoute
@@ -160,7 +160,7 @@ resource "null_resource" "push" {
     interpreter = ["bash", "-c"]
     command     = <<-EOT
       set -euo pipefail
-      ctx=${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}
+      ctx="${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}"
 
       kubectl $ctx -n '${var.namespace}' rollout status 'deploy/${var.name}' --timeout=180s
 
