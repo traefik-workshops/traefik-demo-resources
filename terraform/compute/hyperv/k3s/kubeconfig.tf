@@ -1,0 +1,91 @@
+# Kubeconfig retrieval — the honest part.
+#
+# k3s mints its admin client certs on the node at install time; there is no
+# API to fetch them (unlike a managed-k8s control plane). So this module SSHes
+# to the VM as var.ssh_user with var.ssh_private_key and cats
+# /etc/rancher/k3s/k3s.yaml (world-readable via --write-kubeconfig-mode 644 —
+# no sudo needed), rewriting 127.0.0.1 to the VM's static IP. The script
+# retries until k3s has written the file (first boot takes a minute or two),
+# so a single apply comes up green.
+#
+# Prerequisites:
+#   * the golden image's default user (var.ssh_user) must accept
+#     var.ssh_private_key — pass var.ssh_public_key so cloud-init authorizes
+#     it at first boot;
+#   * SSH REACHABILITY: on the hyperv demo the VM sits on the host's internal
+#     NAT switch, so this read rides the operator's WireGuard tunnel — the
+#     tunnel must be up before the full apply (and before a destroy, which
+#     refreshes this data source).
+#
+# The `wait_on` query key is LOAD-BEARING: the node address is a plan-known
+# static INPUT here (unlike proxmox, where it was an apply-time resource
+# attribute), so without an unknown value in the query terraform would run
+# this data source at PLAN time on the FIRST apply — before the VM exists —
+# and time out. Threading the VM's resource id in defers the read to apply.
+data "external" "kubeconfig" {
+  program = ["bash", "${path.module}/scripts/kubeconfig.sh"]
+
+  query = {
+    host        = local.node_ip
+    user        = var.ssh_user
+    private_key = var.ssh_private_key
+    timeout     = tostring(var.kubeconfig_timeout)
+    wait_on     = module.vm.instances[var.vm_name].id
+  }
+}
+
+locals {
+  kubeconfig = base64decode(data.external.kubeconfig.result.kubeconfig_b64)
+  kubeparsed = yamldecode(local.kubeconfig)
+}
+
+# Ambient-kubeconfig merge — the on-prem analogue of the cloud modules' CLI
+# merges (`aws eks update-kubeconfig` & co). k3s names its context/cluster/user
+# all `default`, which would collide across demos, so everything is renamed to
+# k3s-<vm_name> before merging. The rendered config is handed to the script via
+# environment so client certs never appear in the local-exec command echo.
+locals {
+  ambient_context = "k3s-${var.vm_name}"
+  kubeconfig_ambient = yamlencode({
+    apiVersion        = "v1"
+    kind              = "Config"
+    "current-context" = local.ambient_context
+    clusters          = [{ name = local.ambient_context, cluster = local.kubeparsed.clusters[0].cluster }]
+    users             = [{ name = local.ambient_context, user = local.kubeparsed.users[0].user }]
+    contexts          = [{ name = local.ambient_context, context = { cluster = local.ambient_context, user = local.ambient_context } }]
+  })
+}
+
+resource "null_resource" "update_kubeconfig" {
+  count = var.update_kubeconfig ? 1 : 0
+
+  provisioner "local-exec" {
+    environment = { K3S_KUBECONFIG = local.kubeconfig_ambient }
+    # New file first in KUBECONFIG so a re-created cluster's fresh certs win
+    # over any stale ambient entry of the same name.
+    command = <<-EOT
+      set -eu
+      tmp=$(mktemp)
+      printf '%s' "$K3S_KUBECONFIG" > "$tmp"
+      mkdir -p "$HOME/.kube"
+      # Serialize every read-modify-write of ~/.kube/config: two concurrent
+      # standups interleaving flatten+mv would erase each other's context.
+      # mkdir is the portable atomic primitive (macOS ships no flock(1)).
+      until mkdir ~/.kube/.merge.lock 2>/dev/null; do sleep 1; done
+      trap 'rmdir ~/.kube/.merge.lock' EXIT
+      merged=$(mktemp)
+      KUBECONFIG="$tmp:$HOME/.kube/config" kubectl config view --flatten > "$merged"
+      mv "$merged" "$HOME/.kube/config"
+      chmod 600 "$HOME/.kube/config"
+      rm -f "$tmp"
+      # Same file the merge just wrote — don't let an inherited $KUBECONFIG
+      # point use-context at a different config.
+      export KUBECONFIG="$HOME/.kube/config"
+      kubectl config use-context "${local.ambient_context}"
+    EOT
+  }
+
+  triggers = {
+    always_run = timestamp()
+  }
+}
