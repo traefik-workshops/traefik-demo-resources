@@ -113,7 +113,7 @@ variable "otlp_gate_address" {
 }
 
 variable "otlp_gate_image" {
-  description = "Image the OTLP gate init container runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them."
+  description = "Image the OTLP gate init container runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them. Defaults to an MCR image ON PURPOSE: ACI's anonymous pulls from Docker Hub are rate-limited, and a gate that cannot pull is a group that never starts. Measured 2026-08-11 on azure-unified-ingress, creating a group from curlimages/curl: 'RegistryErrorResponse: An error response is received from the docker registry index.docker.io'. MCR is Azure-native and imposes no such limit."
   type        = string
-  default     = "curlimages/curl:8.14.1"
+  default     = "mcr.microsoft.com/azurelinux/base/core:3.0"
 }
