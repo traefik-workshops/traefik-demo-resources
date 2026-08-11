@@ -12,7 +12,7 @@ Auth is a module-created **service account attached to the VM** (Application Def
 
 ```hcl
 module "gce_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/gce?ref=v6.1.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/gce?ref=v6.1.3"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

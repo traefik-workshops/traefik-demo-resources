@@ -14,7 +14,7 @@ Routerless discovery (`default_rule = "{{/*routerless*/}}"`) works exactly like 
 
 ```hcl
 module "traefik_vsphere" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vsphere-vm?ref=v6.1.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vsphere-vm?ref=v6.1.3"
 
   datacenter = "dc-01"
   datastore  = "datastore-01"

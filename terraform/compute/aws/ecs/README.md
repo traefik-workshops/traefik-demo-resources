@@ -6,7 +6,7 @@ Provisions one or more ECS clusters and the underlying task definitions/services
 
 ```hcl
 module "ecs" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/ecs?ref=v6.1.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/aws/ecs?ref=v6.1.3"
 
   name = "demo"
   clusters = {

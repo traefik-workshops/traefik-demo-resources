@@ -2,13 +2,13 @@
 
 A Helm chart for Microsoft Presidio Analyzer
 
-- **Chart version:** `6.1.2` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `6.1.3` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `2.2.362`
 
 ## Install
 
 ```bash
-helm install my-presidio oci://ghcr.io/traefik-workshops/presidio --version 6.1.2
+helm install my-presidio oci://ghcr.io/traefik-workshops/presidio --version 6.1.3
 ```
 
 From source (for development against this repo):

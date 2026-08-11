@@ -14,7 +14,7 @@ The weighted mix per iteration: ~60% public edge GETs (lb / whoami / mocking / m
 
 ```hcl
 module "loadgen_unified_ingress" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s/loadgen/traefik-hub?ref=v6.1.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s/loadgen/traefik-hub?ref=v6.1.3"
 
   namespace              = "monitoring"
   domain                 = "unified.demo.traefik.ai"

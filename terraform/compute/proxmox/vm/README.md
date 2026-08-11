@@ -8,7 +8,7 @@ Both `traefik/proxmox-vm` (one gateway VM) and `apps/whoami/proxmox` (N whoami V
 
 ```hcl
 module "vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/vm?ref=v6.1.2"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/vm?ref=v6.1.3"
 
   node_name     = "pve"
   datastore_id  = "local-lvm"
