@@ -43,10 +43,10 @@ otlp_gate_address = "https://collector.example.com"
 ```
 
 It adds an init container that blocks the workload from starting until that endpoint
-**accepts an OTLP write** — bounded at 30 minutes, then starts anyway. It renders the same
-`cloud-init-snippets/otlp-collector-gate.sh.tpl` that every VM leg in this library already
-runs on first boot; containers just needed a different delivery, because the workload images
-here are scratch and there is no cloud-init to hook.
+**accepts an OTLP write** — bounded at 30 minutes, then starts anyway. It is the container-native counterpart of the
+`cloud-init-snippets/otlp-collector-gate.sh.tpl` every VM leg runs on first boot — same
+intent, same 30-minute bound, but it verifies TLS (see the notes below) and is delivered as
+an init container, because the workload images here are scratch with no cloud-init to hook.
 
 Why it is not optional in practice: an exporter that makes its first export against an
 endpoint that is not up yet goes dark for **30–45 minutes** before it recovers on its own.
@@ -83,7 +83,7 @@ and only from inside its own network.
 - `enable_system_identity` applies to every group in the call; when set, `instances[<key>].principal_id` exposes the identity for a downstream role assignment.
 - `otlp_gate_image` only needs a shell and curl. It defaults to an **MCR** image, not Docker Hub: ACI's anonymous Docker Hub pulls are rate-limited, and creating a group from `curlimages/curl` returned `RegistryErrorResponse ... index.docker.io` on the very first try (azure-unified-ingress, 2026-08-11). A gate that cannot pull is a group that never starts, which is a far worse failure than the one it prevents.
 - Init containers run to completion in order before the main container, and the gate always exits 0 — a non-zero exit would leave the group restarting instead of degrading to "runs, reports late".
-- The probe uses the shared snippet's `curl -skf`, so it does **not** verify the collector's certificate. It waits for a `2xx`, which already requires the collector's route to exist; the residual window is the seconds between that route answering and Let's Encrypt issuing its certificate, during which Traefik serves its default self-signed one. That window is real — whoami-2 hit it at 13:18:24 on 2026-08-11 with `x509: certificate is valid for ...traefik.default` — but it is seconds wide, against the seven minutes the gate removes, and closing it would mean shipping a CA bundle the base image does not carry.
+- The probe **verifies the certificate**, and deliberately does not reuse the shared cloud-init snippet, which probes with `curl -skf`. That `-k` opens the gate while Traefik is still serving its own default self-signed cert, before Let's Encrypt has issued — and the workload's SDK verifies, so it fails anyway. Measured on azure-unified-ingress (2026-08-11): the gate printed `OTLP collector ready.` on its first attempt and the whoami it released then logged 62 consecutive `x509: certificate is valid for ...traefik.default`. The gate installs `ca-certificates` first (the base image ships none: curl exits 60, `ssl_verify_result=20`) and degrades loudly to insecure if that install fails.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

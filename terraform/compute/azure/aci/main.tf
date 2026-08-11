@@ -54,10 +54,55 @@ locals {
   # thing that differs.
   otlp_gate_enabled = var.otlp_gate_address != ""
 
-  otlp_gate_script = local.otlp_gate_enabled ? templatefile(
-    "${path.module}/../../../cloud-init-snippets/otlp-collector-gate.sh.tpl",
-    { otlp_address = var.otlp_gate_address }
-  ) : ""
+  # NOT the shared cloud-init snippet, and the difference is one flag that matters.
+  #
+  # That snippet probes with `curl -skf`. The -k skips certificate verification, so it
+  # goes green the moment Traefik answers 2xx -- INCLUDING while Traefik is still serving
+  # its own default self-signed certificate, before Let's Encrypt has issued. The
+  # workload's OTel SDK does verify, so the gate opens and the exporter immediately fails
+  # anyway. Measured on azure-unified-ingress 2026-08-11, gated run: the gate printed
+  # "OTLP collector ready." on its FIRST attempt at 14:26, and the whoami it had just
+  # released logged 62 consecutive
+  #
+  #   tls: failed to verify certificate: x509: certificate is valid for
+  #   <random>.<random>.traefik.default, not collector.<domain>
+  #
+  # over the next five minutes. A gate that opens on a door the workload cannot walk
+  # through is not a gate.
+  #
+  # So probe exactly as the workload does: verify the chain. The base image ships no CA
+  # bundle (curl exits 60, ssl_verify_result=20 -- measured), so install one first and
+  # degrade LOUDLY to insecure if that fails, because an unverified probe is still worth
+  # more than no probe.
+  otlp_gate_script = <<-EOT
+    set -u
+    addr="${var.otlp_gate_address}"
+
+    # The workload verifies TLS; this probe has to, or it opens too early.
+    verify="--fail"
+    if ! tdnf install -y -q ca-certificates >/dev/null 2>&1; then
+      echo "otlp-gate: WARNING could not install ca-certificates -- probing WITHOUT" >&2
+      echo "otlp-gate: certificate verification, so this gate can open during the ACME" >&2
+      echo "otlp-gate: window and the workload may still fail x509 for a few minutes." >&2
+      verify="--fail --insecure"
+    fi
+
+    for i in $(seq 1 180); do
+      if curl -s -o /dev/null $verify --max-time 5 \
+           -X POST -H 'Content-Type: application/json' \
+           -d '{"resourceMetrics":[]}' "$addr/v1/metrics"; then
+        echo "otlp-gate: $addr accepted a verified OTLP write -- starting the workload"
+        exit 0
+      fi
+      echo "otlp-gate: waiting for $addr to accept OTLP ($i/180)..."
+      sleep 10
+    done
+
+    # Bounded on purpose: a collector that never arrives must degrade this group to
+    # "runs, reports late", never to a container group that cannot start.
+    echo "otlp-gate: $addr never accepted a write in 30m -- starting anyway." >&2
+    exit 0
+  EOT
 }
 
 resource "azurerm_container_group" "this" {
