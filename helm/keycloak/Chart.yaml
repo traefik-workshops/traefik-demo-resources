@@ -2,7 +2,7 @@ apiVersion: v2
 name: keycloak
 description: Keycloak identity and access management with operator
 type: application
-version: 6.1.3
+version: 6.1.4
 appVersion: "26.6.3"
 kubeVersion: ">= 1.27.0-0"
 

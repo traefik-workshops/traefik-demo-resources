@@ -6,7 +6,7 @@ Deploys an Oracle Database 23ai (Free) StatefulSet with a matching Service into 
 
 ```hcl
 module "oracle_23ai" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/23ai/k8s?ref=v6.1.3"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/23ai/k8s?ref=v6.1.4"
 
   namespace = "oracle"
 }
