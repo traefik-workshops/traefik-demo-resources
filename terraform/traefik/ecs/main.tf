@@ -53,6 +53,17 @@ module "ecs" {
           security_group_ids = var.security_group_ids
           labels             = local.docker_labels
 
+          # custom_envs reached module.config and then went NOWHERE: its env_vars_list
+          # output had no consumer here, so the task definition rendered
+          # "environment": [] and every caller's custom_envs was silently dropped. The
+          # EC2 sibling wires this correctly (traefik/ec2/main.tf:17,55) -- ECS was missed.
+          #
+          # Live proof, aws-unified-ingress 2026-08-11: traefik-container was the ONLY
+          # service in Tempo whose spans lacked resource.cloud.provider, while
+          # traefik-hub, traefik-vm, whoami-vm and whoami-container all carried it.
+          # Invisible to routing tests, which is exactly why 15/15 passed over it.
+          environment = { for e in var.custom_envs : e.name => e.value }
+
           # The Hub image is scratch (no shell/cloud-init), so a config-init sidecar
           # writes the file-provider config into a shared volume Traefik mounts.
           volumes      = var.file_provider_config != "" ? ["dynamic"] : []
