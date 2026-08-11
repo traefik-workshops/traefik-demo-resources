@@ -63,6 +63,7 @@ No modules.
 | <a name="input_gpu_node_count"></a> [gpu\_node\_count](#input\_gpu\_node\_count) | GPU node count | `number` | `1` | no |
 | <a name="input_gpu_node_type"></a> [gpu\_node\_type](#input\_gpu\_node\_type) | GPU node type | `string` | `"g2-standard-8"` | no |
 | <a name="input_gpu_type"></a> [gpu\_type](#input\_gpu\_type) | GPU type | `string` | `"nvidia-l4"` | no |
+| <a name="input_kubeconfig_exec_env"></a> [kubeconfig\_exec\_env](#input\_kubeconfig\_exec\_env) | Environment variables pinned into the kubeconfig user's exec block (e.g. CLOUDSDK\_CONFIG), so kubectl against this context does not depend on the caller's ambient gcloud configuration. Requires update\_kubeconfig. | `map(string)` | `{}` | no |
 | <a name="input_update_kubeconfig"></a> [update\_kubeconfig](#input\_update\_kubeconfig) | Update kubeconfig after cluster creation | `bool` | `true` | no |
 | <a name="input_worker_nodes"></a> [worker\_nodes](#input\_worker\_nodes) | Worker node pool definitions. Each entry creates a dedicated node pool with the given label and taint. | <pre>list(object({<br/>    label = string<br/>    taint = string<br/>    count = number<br/>  }))</pre> | `[]` | no |
 

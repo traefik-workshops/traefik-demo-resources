@@ -46,4 +46,13 @@ module "echo_services" {
   subnet_ids         = var.subnet_ids
   security_group_ids = var.security_group_ids
   common_labels      = var.common_labels
+
+  # Wait for the collector before whoami starts, exactly as apps/whoami/cloud-init
+  # does on every VM sibling. THIS is the leg with no recovery path: the whoami fork's
+  # OTel SDK dials its endpoint at startup and an export that fails there stays failed
+  # for the life of the task — the backend then emits no spans and the service map
+  # loses the whole leg while every route still serves 200. Gating it is safe
+  # precisely because nothing is built on top of a backend (contrast traefik/ecs,
+  # whose NLB address the hub consumes as its uplink).
+  otlp_gate_address = var.otlp_gate_address
 }

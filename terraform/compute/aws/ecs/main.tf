@@ -27,11 +27,76 @@ locals {
     ]
   ])
 
+  # --- the OTLP collector gate, container-native --------------------------------
+  # EVERY VM leg in this library already waits for the collector before it starts
+  # emitting: traefik/{ec2,gce,azure-vm,oci-vm,proxmox-vm,vsphere-vm,hyperv-vm,
+  # morpheus-vm,alibaba-ecs} and apps/whoami/cloud-init all render
+  # cloud-init-snippets/otlp-collector-gate.sh.tpl into first boot. The CONTAINER
+  # legs never could: their images are scratch, there is no cloud-init, and so they
+  # were the only legs that started exporting into the void. compute/azure/aci got
+  # the container-native form in v6.1.9; this is the Fargate twin of it.
+  #
+  # Measured on aws-unified-ingress, 2026-08-11 -- the whoami-container tasks began
+  # at 09:16:36 and posted to collector.aws.demo.traefik.ai for the next eleven
+  # minutes without one export landing:
+  #
+  #   09:16:40  traces export: context deadline exceeded  (the name resolved, to the
+  #             PREVIOUS run's ELB, which had already been destroyed)
+  #   09:27:40  tls: failed to verify certificate: x509: certificate is valid for
+  #             aedd0a91f861d756149469ebdebea953..., not collector.aws.demo.traefik.ai
+  #
+  # The whoami fork's OTel SDK is the exporter with no recovery path: pointed at a
+  # dead endpoint at startup it stays dark, so that leg serves every request
+  # perfectly and reports nothing -- routing tests pass straight over it and the
+  # only symptom is a name missing from the service map.
+  #
+  # Terraform-side ordering does NOT fix this and cannot. observability/dns-gate
+  # blocks on the NAME resolving, and a name resolves perfectly well while it still
+  # points at the previous run's load balancer -- which is exactly the trace above.
+  # An init container asks the only question that settles it, from inside the task's
+  # own network: does this endpoint accept an OTLP write RIGHT NOW.
+  #
+  # DO NOT arm this on a container the collector's own existence depends on -- see
+  # the README and traefik/ecs. Trace what consumes a container's outputs first.
+  otlp_gate_enabled = var.otlp_gate_address != ""
+
+  otlp_gate_script = local.otlp_gate_enabled ? templatefile(
+    "${path.module}/../../../cloud-init-snippets/otlp-collector-gate.sh.tpl",
+    { otlp_address = var.otlp_gate_address }
+  ) : ""
+
+  # ECS runs a container marked non-essential to completion alongside the task, and
+  # `dependsOn: COMPLETE` is what holds the main container until it exits -- the same
+  # ordering ACI gets from a native init_container. The gate image only has to carry
+  # a shell and curl; the workload images here are scratch, which is why the probe
+  # cannot live in the container it protects.
+  otlp_gate_sidecars = local.otlp_gate_enabled ? [{
+    name  = "otlp-collector-gate"
+    image = var.otlp_gate_image
+    # Always exits 0 -- bounded, then it gives up deliberately. A non-zero exit would
+    # make ECS treat the task as failed and restart it forever, which is the wrong
+    # failure: "runs, reports late" beats "never runs".
+    command      = ["/bin/sh", "-c", local.otlp_gate_script]
+    essential    = false
+    environment  = {}
+    mount_points = []
+  }] : []
+
+  otlp_gate_depends_on = local.otlp_gate_enabled ? [{
+    name      = "otlp-collector-gate"
+    condition = "COMPLETE"
+  }] : []
+
   # Convert to map for for_each with global index for even distribution
   services_map = {
     for idx, svc in local.services : svc.service_key => merge(svc, {
       idx        = idx
       subnet_ids = [for i in range(length(svc.subnet_ids)) : svc.subnet_ids[(idx + i) % length(svc.subnet_ids)]]
+      # Appended, never replacing: traefik/ecs already ships a config-init sidecar the
+      # main container depends on, and dropping that would leave Traefik with no
+      # dynamic configuration at all.
+      sidecars   = concat(svc.sidecars, local.otlp_gate_sidecars)
+      depends_on = concat(svc.depends_on, local.otlp_gate_depends_on)
     })
   }
 

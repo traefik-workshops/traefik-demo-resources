@@ -23,6 +23,33 @@ module "ecs" {
 
 - AWS credentials with ECS/VPC permissions.
 
+## The OTLP collector gate
+
+`otlp_gate_address` adds an `otlp-collector-gate` sidecar that every task's main container
+waits on (`dependsOn: COMPLETE`) until the collector accepts an OTLP write. It is the Fargate
+form of `cloud-init-snippets/otlp-collector-gate.sh.tpl`, which every VM leg in this library
+already runs at first boot; the container legs are scratch images with no cloud-init, so they
+were the only ones that started exporting into the void. An exporter pointed at an endpoint
+that is not up yet stays dark, and the whoami fork's SDK has no recovery path at all. That is
+a leg that serves every request perfectly and reports nothing — routing tests pass over it,
+and it shows up only as a name missing from the service map.
+
+**Do not gate a container the collector's own existence depends on.** In the unified-ingress
+demos the hub consumes the ECS *gateway's* NLB address as its uplink, and the hub is what
+brings the collector up — so gating that container makes it wait for an endpoint that cannot
+exist until it starts. `traefik/ecs` therefore leaves the gate off and says so;
+`apps/whoami/ecs` turns it on, because nothing is built on top of a backend. Trace what
+consumes a container's outputs before gating it.
+
+**Terraform-side ordering does not substitute for this.** `observability/dns-gate` waits for
+the collector's DNS name to resolve, and a name resolves perfectly well while it still points
+at the *previous* run's load balancer: on aws-unified-ingress (2026-08-11) that gate returned
+`resolves -- spokes may boot` in under a second — 19 seconds after the EKS cluster went
+ACTIVE and minutes before this run's hub existed — against an ELB that had already been
+destroyed. The tasks it released then logged `context deadline exceeded` for eleven minutes.
+Worse, that gate sits upstream of the hub in those demos, so on a genuinely cold domain it
+deadlocks the apply outright and fails it at the timeout.
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -68,6 +95,8 @@ module "ecs" {
 | <a name="input_create_vpc"></a> [create\_vpc](#input\_create\_vpc) | Create VPC if vpc\_id is not provided | `bool` | `true` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Create a NAT gateway in the VPC (only when create\_vpc = true). Defaults false — Fargate tasks run in PUBLIC subnets with assign\_public\_ip (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost. | `bool` | `false` | no |
 | <a name="input_extra_ingress_ports"></a> [extra\_ingress\_ports](#input\_extra\_ingress\_ports) | Additional TCP ports to open on the created VPC's security group (only when create\_vpc = true). E.g. [9443] for a Hub multicluster uplink entrypoint fronted by an NLB. | `list(number)` | `[]` | no |
+| <a name="input_otlp_gate_address"></a> [otlp\_gate\_address](#input\_otlp\_gate\_address) | OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. Do NOT set it on a container the collector's own existence depends on (see README). | `string` | `""` | no |
+| <a name="input_otlp_gate_image"></a> [otlp\_gate\_image](#input\_otlp\_gate\_image) | Image the OTLP gate sidecar runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them. Defaults to an ECR Public image, NOT Docker Hub: anonymous Docker Hub pulls are rate-limited per source IP, every Fargate task in these demos egresses through one shared NAT gateway, and a gate that cannot pull is a task that never starts — a worse failure than the missing telemetry it prevents. The ACI twin hit exactly that with curlimages/curl (RegistryErrorResponse from index.docker.io, first try, 2026-08-11). | `string` | `"public.ecr.aws/amazonlinux/amazonlinux:2023"` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs | `list(string)` | `[]` | no |
 | <a name="input_task_role_arn"></a> [task\_role\_arn](#input\_task\_role\_arn) | IAM role ARN the task's containers assume (the task role — distinct from the execution role), e.g. so an in-task Traefik ECS provider can call the AWS ECS API. Empty = no task role. | `string` | `""` | no |

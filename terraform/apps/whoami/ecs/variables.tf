@@ -50,3 +50,9 @@ variable "security_group_ids" {
   type        = list(string)
   default     = []
 }
+
+variable "otlp_gate_address" {
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, a sidecar blocks each whoami task from starting until that endpoint accepts an OTLP write. Set it whenever the tasks export telemetry: the whoami fork's exporter has no recovery path, so a task that starts against a collector that is not up yet — or against a stale DNS record still pointing at a destroyed load balancer — serves traffic perfectly and reports nothing. Empty disables the gate."
+  type        = string
+  default     = ""
+}

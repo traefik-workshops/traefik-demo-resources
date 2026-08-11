@@ -108,6 +108,18 @@ resource "google_container_node_pool" "traefik_demo_gpu" {
   count = var.enable_gpu ? 1 : 0
 }
 
+# The kubeconfig user `get-credentials` writes. `rename-context` renames the CONTEXT
+# only, so the user keeps this generated name and stays the handle for set-credentials.
+locals {
+  kubeconfig_user = "gke_${data.google_client_config.traefik_demo.project}_${var.cluster_location}_${var.cluster_name}"
+
+  # One --exec-env flag per entry. Empty map -> empty string -> the set-credentials
+  # line below is omitted entirely, leaving `get-credentials`' output untouched.
+  kubeconfig_exec_env_flags = join(" ", [
+    for k, v in var.kubeconfig_exec_env : "--exec-env='${k}=${v}'"
+  ])
+}
+
 resource "null_resource" "gke_cluster" {
   provisioner "local-exec" {
     command = <<EOT
@@ -118,6 +130,7 @@ resource "null_resource" "gke_cluster" {
       kubectl config delete-context "gke-${var.cluster_name}" 2>/dev/null || true
       kubectl config rename-context "gke_${data.google_client_config.traefik_demo.project}_${var.cluster_location}_${var.cluster_name}" "gke-${var.cluster_name}"
       kubectl config use-context "gke-${var.cluster_name}"
+      ${length(var.kubeconfig_exec_env) > 0 ? "kubectl config set-credentials \"${local.kubeconfig_user}\" ${local.kubeconfig_exec_env_flags}" : ""}
     EOT
   }
 

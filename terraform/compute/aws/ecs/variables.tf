@@ -129,3 +129,15 @@ variable "task_role_arn" {
   type        = string
   default     = ""
 }
+
+variable "otlp_gate_address" {
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. Do NOT set it on a container the collector's own existence depends on (see README)."
+  type        = string
+  default     = ""
+}
+
+variable "otlp_gate_image" {
+  description = "Image the OTLP gate sidecar runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them. Defaults to an ECR Public image, NOT Docker Hub: anonymous Docker Hub pulls are rate-limited per source IP, every Fargate task in these demos egresses through one shared NAT gateway, and a gate that cannot pull is a task that never starts — a worse failure than the missing telemetry it prevents. The ACI twin hit exactly that with curlimages/curl (RegistryErrorResponse from index.docker.io, first try, 2026-08-11)."
+  type        = string
+  default     = "public.ecr.aws/amazonlinux/amazonlinux:2023"
+}

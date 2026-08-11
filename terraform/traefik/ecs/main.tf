@@ -34,6 +34,28 @@ module "ecs" {
 
   name                = "traefik"
   extra_ingress_ports = var.extra_ingress_ports
+
+  # DELIBERATELY NOT GATED on the collector, unlike apps/whoami/ecs next door. The
+  # compute module supports it (otlp_gate_address); this caller must not use it.
+  #
+  # In the unified-ingress demos the HUB is built on top of this child — the parent
+  # consumes this task's NLB DNS name as its uplink address, and the hub is what
+  # brings the collector up in the first place. Blocking this container on the
+  # collector would make it wait for an endpoint that cannot exist until it starts.
+  #
+  # That is the same shape as the terraform-side deadlock aws-unified-ingress shipped
+  # with at v1.3.3, where observability/dns-gate sat upstream of this module: the gate
+  # waited for a record whose publication it was itself blocking, and only a STALE
+  # record left over from a previous run ever let an apply through. Proven on the
+  # graph — `module.traefik.helm_release.traefik -> module.ecs_traefik.module.ecs.
+  # aws_lb.nlb` and `module.ecs_traefik (expand) -> module.otel_dns_gate (close)` —
+  # and the gate exits 1 on timeout, so on a genuinely cold domain the apply FAILS.
+  #
+  # It also buys nothing here. Hub's own OTLP exporters retry on an interval and
+  # recover once the collector answers; the leg with no recovery path is the whoami
+  # backend, and nothing is built on top of a backend, so that one gates safely.
+  # Trace what consumes a container's outputs before gating it.
+
   clusters = {
     traefik = {
       apps = {
