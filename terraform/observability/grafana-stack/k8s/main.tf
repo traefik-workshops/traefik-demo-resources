@@ -19,6 +19,7 @@ module "observability_grafana_loki" {
   namespace    = var.namespace
   tolerations  = var.tolerations
   extra_values = var.loki_extra_values
+  persistence  = var.loki_persistence
 }
 
 module "observability_grafana_tempo" {

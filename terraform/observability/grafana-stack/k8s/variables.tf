@@ -86,8 +86,14 @@ variable "grafana_extra_values" {
 
 variable "loki_extra_values" {
   type        = any
-  description = "Extra values to pass to the Loki deployment (e.g. per-cloud PVC size/storageClass overrides for its single-binary + bundled minio)."
+  description = "Extra values to pass to the Loki deployment."
   default     = {}
+}
+
+variable "loki_persistence" {
+  type        = bool
+  description = "Back Loki's single-binary store and its bundled MinIO with PersistentVolumeClaims instead of emptyDir. Default FALSE — Loki is the only chart in this stack that asks for storage, and each PVC becomes a real cloud disk that `terraform destroy` leaves behind (the CSI reclaim is async and loses the race with the cluster teardown). See the note in ../../grafana-loki/k8s/main.tf."
+  default     = false
 }
 
 variable "prometheus_url_override" {

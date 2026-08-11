@@ -15,6 +15,12 @@ variable "extra_values" {
   default     = {}
 }
 
+variable "persistence" {
+  type        = bool
+  description = "Back the single-binary Loki and its bundled MinIO with PersistentVolumeClaims instead of emptyDir. Default FALSE — see the teardown note in main.tf: a PVC here becomes a real cloud disk that survives `terraform destroy`. Set true only for an install meant to outlive its pods, and only where something reclaims the disks."
+  default     = false
+}
+
 variable "tolerations" {
   type = list(object({
     key      = string
