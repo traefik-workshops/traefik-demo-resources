@@ -89,6 +89,16 @@ variable "update_kubeconfig" {
 # Anything set here is written into users[].user.exec.env, so the context carries its own
 # authentication environment and works for any caller. Deliberately a free-form map: the
 # module stays generic and the caller owns the path.
+#
+# Pass CLOUDSDK_CONFIG (an isolated gcloud config directory holding an activated service
+# account) — NOT CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE. The override authenticates, but
+# it crashes `gcloud config config-helper`, which is the ONLY call gke-gcloud-auth-plugin
+# makes, so every kubectl dies after a full cluster build. Measured on gcloud SDK 579.0.0,
+# with the plugin's ~/.kube/gke_gcloud_auth_plugin_cache cleared between probes — that
+# cache is not keyed by CLOUDSDK_CONFIG, so a stale hit makes a broken configuration look
+# like a working one, which is exactly how the override once shipped:
+#   CLOUDSDK_CONFIG=<empty dir>       -> plugin rc=1, "no active account selected"
+#   CLOUDSDK_CONFIG=<isolated config> -> plugin rc=0, ExecCredential carrying a token
 variable "kubeconfig_exec_env" {
   type        = map(string)
   default     = {}
