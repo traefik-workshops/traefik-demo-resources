@@ -19,12 +19,10 @@ module "gke" {
 - `kubectl` and `gcloud` on PATH if `update_kubeconfig = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_google"></a> [google](#requirement\_google) | ~> 6.0 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
@@ -32,23 +30,28 @@ module "gke" {
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [google_container_cluster.traefik_demo](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_cluster) | resource |
 | [google_container_node_pool.traefik_demo_gpu](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_node_pool) | resource |
 | [google_container_node_pool.worker](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/container_node_pool) | resource |
 | [null_resource.gke_cluster](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [google_client_config.traefik_demo](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/client_config) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | GKE cluster name. | `string` | n/a | yes |
 | <a name="input_cluster_location"></a> [cluster\_location](#input\_cluster\_location) | GKE cluster location. | `string` | `"us-west1-a"` | no |
 | <a name="input_cluster_node_count"></a> [cluster\_node\_count](#input\_cluster\_node\_count) | Number of nodes for the cluster. | `number` | `1` | no |
@@ -66,7 +69,7 @@ module "gke" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | GKE cluster CA certificate |
 | <a name="output_host"></a> [host](#output\_host) | GKE cluster host (endpoint) |
 | <a name="output_network"></a> [network](#output\_network) | VPC network the cluster nodes sit on (the project's default network — the module doesn't create one). Join GCE/Traefik VMs to it so the cluster reaches them privately. |

@@ -49,8 +49,6 @@ module "whoami_vsphere" {
 - Per-VM ipMode override: the `traefik.vsphere.ipmode` label.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -60,6 +58,13 @@ module "whoami_vsphere" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/vsphere/vm | n/a |
 
 ## Resources
 

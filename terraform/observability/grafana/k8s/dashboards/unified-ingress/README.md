@@ -1,6 +1,4 @@
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -13,6 +11,10 @@
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.27 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

@@ -58,8 +58,6 @@ module "whoami_gce" {
 - `enable_firewall` (default on) opens the app ports intra-network via a tag-targeted rule (mirrors `compute/azure/vnet`'s NSG); the default network's `default-allow-internal` usually covers this already, so it's safe to disable there.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -69,6 +67,13 @@ module "whoami_gce" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/gcp/vm | n/a |
 
 ## Resources
 

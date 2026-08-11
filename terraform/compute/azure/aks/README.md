@@ -21,8 +21,6 @@ module "aks" {
 - `kubectl` on PATH if `update_kubeconfig = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -37,6 +35,10 @@ module "aks" {
 | ---- | ------- |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

@@ -17,8 +17,6 @@ module "oci_instance_principal" {
 - OCI credentials with IAM (dynamic group + policy) permissions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -31,6 +29,10 @@ module "oci_instance_principal" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

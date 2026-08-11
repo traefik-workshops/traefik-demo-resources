@@ -48,8 +48,6 @@ module "whoami_oci_ci" {
 - Per-instance IP-mode override: the `traefik.ocici.ipmode` tag.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -59,6 +57,12 @@ module "whoami_oci_ci" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_ci"></a> [ci](#module\_ci) | ../../../compute/oracle/ci | n/a |
 
 ## Resources
 

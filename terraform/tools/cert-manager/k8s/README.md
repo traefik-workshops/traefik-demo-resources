@@ -18,8 +18,6 @@ module "cert_manager" {
 - A working Kubernetes cluster with the `helm` provider configured.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -32,6 +30,10 @@ module "cert_manager" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

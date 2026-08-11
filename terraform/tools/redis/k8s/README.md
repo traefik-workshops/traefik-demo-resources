@@ -44,8 +44,6 @@ something reclaims the disk.
   `architecture: replication`. The release is a single instance whatever this is set to.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -58,6 +56,10 @@ something reclaims the disk.
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

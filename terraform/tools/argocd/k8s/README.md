@@ -20,8 +20,6 @@ module "argocd" {
 - Traefik installed in-cluster if `ingress = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -36,6 +34,10 @@ module "argocd" {
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

@@ -31,8 +31,6 @@ module "loadgen_unified_ingress" {
 - A reachable Keycloak realm with the configured client (direct-access grants enabled).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -45,6 +43,10 @@ module "loadgen_unified_ingress" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | ~> 1.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

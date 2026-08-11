@@ -20,8 +20,6 @@ module "dns" {
 - A Cloudflare API token (`CLOUDFLARE_API_TOKEN`) with DNS edit permissions on the target zone.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -34,6 +32,10 @@ module "dns" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_cloudflare"></a> [cloudflare](#provider\_cloudflare) | ~> 5 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

@@ -19,13 +19,11 @@ module "nkp_registry_image" {
 - The NKP bundle archive available locally.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
 | ---- | ------- |
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.4 |
 | <a name="requirement_nutanix"></a> [nutanix](#requirement\_nutanix) | >= 2.4.0 |
 
 ## Providers
@@ -34,6 +32,10 @@ module "nkp_registry_image" {
 | ---- | ------- |
 | <a name="provider_nutanix"></a> [nutanix](#provider\_nutanix) | >= 2.4.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+No modules.
 
 ## Resources
 

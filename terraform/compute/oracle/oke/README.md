@@ -20,8 +20,6 @@ module "oke" {
 - `kubectl` on PATH if `update_kubeconfig = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -43,6 +41,10 @@ module "oke" {
 | <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
 | <a name="provider_tls"></a> [tls](#provider\_tls) | ~> 4.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -63,6 +65,10 @@ module "oke" {
 | [oci_core_subnet.traefik_demo_nodes](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_subnet) | resource |
 | [oci_core_vcn.traefik_demo](https://registry.terraform.io/providers/oracle/oci/latest/docs/resources/core_vcn) | resource |
 | [tls_private_key.traefik_demo](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) | resource |
+| [external_external.cluster_token](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
+| [oci_containerengine_cluster_kube_config.kubeconfig](https://registry.terraform.io/providers/oracle/oci/latest/docs/data-sources/containerengine_cluster_kube_config) | data source |
+| [oci_core_images.traefik_demo](https://registry.terraform.io/providers/oracle/oci/latest/docs/data-sources/core_images) | data source |
+| [oci_identity_availability_domains.traefik_demo](https://registry.terraform.io/providers/oracle/oci/latest/docs/data-sources/identity_availability_domains) | data source |
 
 ## Inputs
 
@@ -86,6 +92,7 @@ module "oke" {
 | <a name="output_host"></a> [host](#output\_host) | OKE cluster host |
 | <a name="output_kubeconfig"></a> [kubeconfig](#output\_kubeconfig) | OKE cluster kubeconfig |
 | <a name="output_node_pool_id"></a> [node\_pool\_id](#output\_node\_pool\_id) | OKE node pool ID |
+| <a name="output_nodes_subnet_cidr"></a> [nodes\_subnet\_cidr](#output\_nodes\_subnet\_cidr) | CIDR of the nodes subnet — plan-known (a module literal), so callers can pin spoke instance addresses with cidrhost() and reference them before anything is applied. |
 | <a name="output_nodes_subnet_id"></a> [nodes\_subnet\_id](#output\_nodes\_subnet\_id) | OCID of the nodes subnet. Its security list allows all intra-VCN traffic (incl. :9443 uplinks), so whoami VMs / container instances and Traefik children can join it directly. This is a PRIVATE subnet (prohibit\_public\_ip\_on\_vnic) — instances get no public IPs and egress via the VCN's NAT gateway. |
 | <a name="output_token"></a> [token](#output\_token) | OKE cluster auth token |
 | <a name="output_vcn_id"></a> [vcn\_id](#output\_vcn\_id) | OCID of the cluster's VCN — VM/container-instance spokes (apps/whoami/oci-*, traefik/oci-*) join it |

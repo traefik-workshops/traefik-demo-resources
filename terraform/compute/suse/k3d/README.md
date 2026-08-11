@@ -18,8 +18,6 @@ module "k3d" {
 - `k3d` CLI on PATH.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -32,6 +30,10 @@ module "k3d" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_k3d"></a> [k3d](#provider\_k3d) | ~> 1.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

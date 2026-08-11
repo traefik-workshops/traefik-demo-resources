@@ -23,8 +23,6 @@ module "langfuse" {
 - All crypto defaults (`nextauth_secret`, `salt`, `encryption_key`, `subchart_password`, `init_user_password`) are demo values — rotate for anything real.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -41,6 +39,10 @@ module "langfuse" {
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

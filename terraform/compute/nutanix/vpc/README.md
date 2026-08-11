@@ -22,8 +22,6 @@ module "vpc" {
 - An existing external subnet to connect to.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -36,6 +34,10 @@ module "vpc" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_nutanix"></a> [nutanix](#provider\_nutanix) | >= 2.4.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

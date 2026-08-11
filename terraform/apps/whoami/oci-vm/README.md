@@ -49,8 +49,6 @@ module "whoami_oci_vm" {
 - Per-instance IP-mode override: the `traefik.oci.ipmode` tag.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -60,6 +58,13 @@ module "whoami_oci_vm" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/oracle/vm | n/a |
 
 ## Resources
 

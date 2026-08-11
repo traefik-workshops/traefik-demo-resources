@@ -22,8 +22,6 @@ module "granite_guardian" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -33,6 +31,12 @@ module "granite_guardian" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_granite"></a> [granite](#module\_granite) | ../../../compute/runpod/pod | n/a |
 
 ## Resources
 

@@ -49,8 +49,6 @@ provider "kubernetes" {
 - `k3s_extra_args` appends raw `k3s server` args for anything else (e.g. `--cluster-cidr`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -68,12 +66,23 @@ provider "kubernetes" {
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 | <a name="provider_vsphere"></a> [vsphere](#provider\_vsphere) | ~> 2.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
 | [null_resource.update_kubeconfig](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
-| [vsphere_virtual_machine.k3s](https://registry.terraform.io/providers/hashicorp/vsphere/latest/docs/resources/virtual_machine) | resource |
+| [vsphere_virtual_machine.k3s](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/resources/virtual_machine) | resource |
+| [external_external.kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
+| [vsphere_compute_cluster.this](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/compute_cluster) | data source |
+| [vsphere_datacenter.this](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/datacenter) | data source |
+| [vsphere_datastore.this](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/datastore) | data source |
+| [vsphere_network.this](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/network) | data source |
+| [vsphere_resource_pool.this](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/resource_pool) | data source |
+| [vsphere_virtual_machine.template](https://registry.terraform.io/providers/vmware/vsphere/latest/docs/data-sources/virtual_machine) | data source |
 
 ## Inputs
 
@@ -95,6 +104,9 @@ provider "kubernetes" {
 | <a name="input_resource_pool"></a> [resource\_pool](#input\_resource\_pool) | Name/path of the resource pool to place the VM in (e.g. "Cluster/Resources/demo"). Takes precedence over cluster. | `string` | `""` | no |
 | <a name="input_ssh_public_key"></a> [ssh\_public\_key](#input\_ssh\_public\_key) | Public key cloud-init authorizes for the template's default user at first boot. Empty = the template must already accept ssh\_private\_key. | `string` | `""` | no |
 | <a name="input_ssh_user"></a> [ssh\_user](#input\_ssh\_user) | SSH user the kubeconfig fetch logs in as (the Ubuntu cloud image default user is `ubuntu`) | `string` | `"ubuntu"` | no |
+| <a name="input_static_gateway"></a> [static\_gateway](#input\_static\_gateway) | Default gateway for var.static\_ip. Ignored on DHCP. | `string` | `""` | no |
+| <a name="input_static_ip"></a> [static\_ip](#input\_static\_ip) | Static address for the node, as CIDR (e.g. 10.10.10.10/24). Empty = DHCP. Needed where the network has no DHCP server, or where something downstream must know this node's address ahead of time — the demo's router publishes :80/:443 to it, so it cannot be a lease. | `string` | `""` | no |
+| <a name="input_static_nameservers"></a> [static\_nameservers](#input\_static\_nameservers) | Resolvers for var.static\_ip. Ignored on DHCP. | `list(string)` | <pre>[<br/>  "8.8.8.8",<br/>  "1.1.1.1"<br/>]</pre> | no |
 | <a name="input_tls_san"></a> [tls\_san](#input\_tls\_san) | Extra Subject Alternative Name for the k3s serving cert (--tls-san). The node's own IP is a SAN by default, so this is only needed to reach the API by another name (a DNS alias, a VIP). | `string` | `""` | no |
 | <a name="input_update_kubeconfig"></a> [update\_kubeconfig](#input\_update\_kubeconfig) | Merge this cluster into the ambient kubeconfig (~/.kube/config, context k3s-<vm\_name>) after creation and switch the current context to it — the on-prem analogue of the cloud modules' `update_kubeconfig`. | `bool` | `true` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Name for the k3s VM (also its hostname) | `string` | `"k3s"` | no |

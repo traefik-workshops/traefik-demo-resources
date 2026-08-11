@@ -28,25 +28,27 @@ module "vnet" {
 - Only ACI container groups can live in the delegated `aci` subnet; VMs join the `vms` subnet.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_azurerm"></a> [azurerm](#requirement\_azurerm) | ~> 4.0 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [azurerm_network_security_group.demo](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group) | resource |
 | [azurerm_network_security_rule.ingress](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_rule) | resource |
 | [azurerm_subnet.aci](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet) | resource |
@@ -58,7 +60,7 @@ module "vnet" {
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_name"></a> [name](#input\_name) | VNet name. | `string` | n/a | yes |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | Resource group the VNet (and NSG) are created in. | `string` | n/a | yes |
 | <a name="input_aci_subnet_cidr"></a> [aci\_subnet\_cidr](#input\_aci\_subnet\_cidr) | CIDR block for the ACI subnet (delegated to Microsoft.ContainerInstance — only container groups can live here). Default carves a /24 out of the VNet CIDR. | `string` | `"10.0.2.0/24"` | no |
@@ -70,7 +72,7 @@ module "vnet" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_aci_subnet_id"></a> [aci\_subnet\_id](#output\_aci\_subnet\_id) | ID of the subnet delegated to Microsoft.ContainerInstance (for ACI container groups) |
 | <a name="output_network_security_group_id"></a> [network\_security\_group\_id](#output\_network\_security\_group\_id) | Demo NSG ID |
 | <a name="output_security_group_ids"></a> [security\_group\_ids](#output\_security\_group\_ids) | Demo NSG ID as a one-element list (mirrors compute/aws/vpc) |

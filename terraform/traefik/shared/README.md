@@ -23,8 +23,6 @@ module "traefik_config" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -38,10 +36,15 @@ module "traefik_config" {
 | ---- | ------- |
 | <a name="provider_external"></a> [external](#provider\_external) | ~> 2.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
+| [external_external.helm_config](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 
@@ -65,6 +68,7 @@ module "traefik_config" {
 | <a name="input_enable_api_management"></a> [enable\_api\_management](#input\_enable\_api\_management) | Enable Traefik Hub API Management features (K8s only) | `bool` | `false` | no |
 | <a name="input_enable_dashboard"></a> [enable\_dashboard](#input\_enable\_dashboard) | Enable Traefik dashboard | `bool` | `true` | no |
 | <a name="input_enable_debug"></a> [enable\_debug](#input\_enable\_debug) | Enable Traefik debug mode (pprof) | `bool` | `false` | no |
+| <a name="input_enable_gitops_config"></a> [enable\_gitops\_config](#input\_enable\_gitops\_config) | GitOps fallback (constrained platforms only — OCI/vSphere/Nutanix/GCE). Instead of baking file\_provider\_config, the gateway POLLS gitops\_endpoint via Traefik's HTTP provider and hot-reloads on pollInterval — no VM-side sync, no file watch, no boot gate. terraform pushes the config to the hub git-config-server, which serves it raw. See terraform/config-server/git. | `bool` | `false` | no |
 | <a name="input_enable_mcp_gateway"></a> [enable\_mcp\_gateway](#input\_enable\_mcp\_gateway) | Enable MCP Gateway (Claude, etc.) | `bool` | `false` | no |
 | <a name="input_enable_offline_mode"></a> [enable\_offline\_mode](#input\_enable\_offline\_mode) | Enable Traefik Hub Offline mode | `bool` | `false` | no |
 | <a name="input_enable_otlp_access_logs"></a> [enable\_otlp\_access\_logs](#input\_enable\_otlp\_access\_logs) | Enable OTLP access logs | `bool` | `false` | no |
@@ -75,8 +79,11 @@ module "traefik_config" {
 | <a name="input_enable_prometheus"></a> [enable\_prometheus](#input\_enable\_prometheus) | Enable Prometheus metrics | `bool` | `false` | no |
 | <a name="input_entry_points"></a> [entry\_points](#input\_entry\_points) | Entry points configuration | <pre>map(object({<br/>    address  = string<br/>    port     = optional(number)<br/>    protocol = optional(string, "TCP")<br/>  }))</pre> | <pre>{<br/>  "traefik": {<br/>    "address": ":8080",<br/>    "port": 8080<br/>  },<br/>  "web": {<br/>    "address": ":80",<br/>    "port": 80<br/>  },<br/>  "websecure": {<br/>    "address": ":443",<br/>    "port": 443<br/>  }<br/>}</pre> | no |
 | <a name="input_extract_config"></a> [extract\_config](#input\_extract\_config) | Whether to run helm template extraction (for EC2/ECS/Nutanix) | `bool` | `false` | no |
-| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML content for Traefik file provider dynamic configuration | `string` | `""` | no |
+| <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML content for the Traefik file provider dynamic configuration, baked into the watch dir at boot. The well-configured path. Leave empty when enable\_gitops\_config is set — the config then arrives over the HTTP provider instead of being baked. | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted (platform-specific) | `string` | `"/file-provider"` | no |
+| <a name="input_gitops_endpoint"></a> [gitops\_endpoint](#input\_gitops\_endpoint) | GitOps HTTP-provider endpoint the gateway polls for its dynamic.yaml (e.g. https://git.<domain>/config/<gateway>/dynamic.yaml, served raw by the hub git-config-server). Used only when enable\_gitops\_config is set. | `string` | `""` | no |
+| <a name="input_gitops_insecure_skip_verify"></a> [gitops\_insecure\_skip\_verify](#input\_gitops\_insecure\_skip\_verify) | Skip TLS verification on the GitOps HTTP-provider endpoint. Needed for lab-cert hosts (morpheus); leave false on public clouds that trust git.<domain>. | `bool` | `false` | no |
+| <a name="input_gitops_poll_interval"></a> [gitops\_poll\_interval](#input\_gitops\_poll\_interval) | How often the GitOps HTTP provider re-fetches gitops\_endpoint (Traefik duration, e.g. 5s). This is the hot-reload latency. | `string` | `"5s"` | no |
 | <a name="input_is_staging_letsencrypt"></a> [is\_staging\_letsencrypt](#input\_is\_staging\_letsencrypt) | Use Let's Encrypt staging environment | `bool` | `false` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level (DEBUG, INFO, WARN, ERROR) | `string` | `"INFO"` | no |
 | <a name="input_multicluster_provider"></a> [multicluster\_provider](#input\_multicluster\_provider) | Traefik Hub multicluster provider configuration | <pre>object({<br/>    enabled      = optional(bool, false)<br/>    pollInterval = optional(number, null)<br/>    pollTimeout  = optional(number, null)<br/>    children     = optional(any, {})<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |

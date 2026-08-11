@@ -23,8 +23,6 @@ module "loadgen_aigateway" {
 - A reachable Keycloak realm with the configured client.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -37,6 +35,10 @@ module "loadgen_aigateway" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | ~> 1.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

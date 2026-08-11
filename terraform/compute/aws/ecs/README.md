@@ -24,8 +24,6 @@ module "ecs" {
 - AWS credentials with ECS/VPC permissions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -39,32 +37,47 @@ module "ecs" {
 | ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 5.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_vpc"></a> [vpc](#module\_vpc) | ../vpc | n/a |
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
+| [aws_cloudwatch_log_group.service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_group) | resource |
 | [aws_ecs_cluster.cluster](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_cluster) | resource |
 | [aws_ecs_service.service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_service) | resource |
 | [aws_ecs_task_definition.service](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecs_task_definition) | resource |
 | [aws_iam_role.ecs_task_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
 | [aws_iam_role_policy_attachment.ecs_task_execution](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
+| [aws_lb.nlb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb) | resource |
+| [aws_lb_listener.nlb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_listener) | resource |
+| [aws_lb_target_group.nlb](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb_target_group) | resource |
+| [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_clusters"></a> [clusters](#input\_clusters) | Map of ECS clusters with their applications | <pre>map(object({<br/>    apps = map(object({<br/>      replicas           = optional(number, 1)<br/>      subnet_ids         = optional(list(string), [])<br/>      port               = optional(number, 80)<br/>      docker_image       = optional(string, "traefik/whoami:latest")<br/>      docker_command     = optional(string, "")<br/>      labels             = optional(map(string), {})<br/>      environment        = optional(map(string), {})<br/>      security_group_ids = optional(list(string), [])<br/>    }))<br/>  }))</pre> | n/a | yes |
+| <a name="input_clusters"></a> [clusters](#input\_clusters) | Map of ECS clusters with their applications | <pre>map(object({<br/>    apps = map(object({<br/>      replicas           = optional(number, 1)<br/>      subnet_ids         = optional(list(string), [])<br/>      port               = optional(number, 80)<br/>      docker_image       = optional(string, "traefik/whoami:latest")<br/>      docker_command     = optional(string, "")<br/>      labels             = optional(map(string), {})<br/>      environment        = optional(map(string), {})<br/>      security_group_ids = optional(list(string), [])<br/><br/>      # Fargate task needs egress to pull images; set true (the module places<br/>      # tasks in public subnets) unless a NAT-routed private subnet is supplied.<br/>      assign_public_ip = optional(bool, false)<br/><br/>      # If set, front the task with an NLB on this port (a stable address — the<br/>      # Fargate-equivalent of an EC2 Elastic IP). Targets the task's `port`.<br/>      nlb_port = optional(number, null)<br/><br/>      # Make that NLB internal (private IPs only) instead of internet-facing — for a<br/>      # parent that dials the spoke privately within a shared VPC. Needs private<br/>      # (NAT-routed) subnet_ids + assign_public_ip = false.<br/>      nlb_internal = optional(bool, false)<br/><br/>      # Ephemeral task volumes (names) + the main container's mounts, for delivering<br/>      # config files into a scratch image (e.g. a config-init sidecar writes them).<br/>      volumes      = optional(list(string), [])<br/>      mount_points = optional(list(object({ name = string, path = string })), [])<br/><br/>      # Container start ordering, e.g. wait for a config-init sidecar to COMPLETE.<br/>      depends_on = optional(list(object({<br/>        name      = string<br/>        condition = optional(string, "START") # START | COMPLETE | SUCCESS | HEALTHY<br/>      })), [])<br/><br/>      # ECS container health check, exec'd INSIDE the container. Required when the<br/>      # discovering Traefik runs with healthyTasksOnly=true: a task with no health<br/>      # check reports HealthStatus=UNKNOWN and is filtered out, emptying the service.<br/>      # Scratch images have no curl — the whoami fork ships a self-probe for this<br/>      # (command = ["CMD", "/whoami", "-health-check"]).<br/>      health_check = optional(object({<br/>        command      = list(string)<br/>        interval     = optional(number, 10) # seconds between probes<br/>        timeout      = optional(number, 5)<br/>        retries      = optional(number, 3)<br/>        start_period = optional(number, 15) # grace before failures count<br/>      }), null)<br/><br/>      # Extra containers in the same task (sidecars: config writers, co-located<br/>      # backends reachable on localhost, etc.).<br/>      sidecars = optional(list(object({<br/>        name         = string<br/>        image        = string<br/>        command      = optional(list(string), [])<br/>        essential    = optional(bool, false)<br/>        environment  = optional(map(string), {})<br/>        mount_points = optional(list(object({ name = string, path = string })), [])<br/>      })), [])<br/>    }))<br/>  }))</pre> | n/a | yes |
 | <a name="input_name"></a> [name](#input\_name) | Name of the ECS Deployment | `string` | n/a | yes |
 | <a name="input_common_labels"></a> [common\_labels](#input\_common\_labels) | Common labels to apply to all resources | `map(string)` | `{}` | no |
 | <a name="input_create_vpc"></a> [create\_vpc](#input\_create\_vpc) | Create VPC if vpc\_id is not provided | `bool` | `true` | no |
+| <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Create a NAT gateway in the VPC (only when create\_vpc = true). Defaults false — Fargate tasks run in PUBLIC subnets with assign\_public\_ip (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost. | `bool` | `false` | no |
+| <a name="input_extra_ingress_ports"></a> [extra\_ingress\_ports](#input\_extra\_ingress\_ports) | Additional TCP ports to open on the created VPC's security group (only when create\_vpc = true). E.g. [9443] for a Hub multicluster uplink entrypoint fronted by an NLB. | `list(number)` | `[]` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs | `list(string)` | `[]` | no |
+| <a name="input_task_role_arn"></a> [task\_role\_arn](#input\_task\_role\_arn) | IAM role ARN the task's containers assume (the task role — distinct from the execution role), e.g. so an in-task Traefik ECS provider can call the AWS ECS API. Empty = no task role. | `string` | `""` | no |
 | <a name="input_vpc_id"></a> [vpc\_id](#input\_vpc\_id) | VPC ID for ECS resources | `string` | `""` | no |
 
 ## Outputs
 
 | Name | Description |
 | ---- | ----------- |
+| <a name="output_nlb_dns_names"></a> [nlb\_dns\_names](#output\_nlb\_dns\_names) | Map of service keys to their NLB DNS name (only services with nlb\_port set). The parent cluster dials https://<dns>:<nlb\_port>. |
 | <a name="output_services"></a> [services](#output\_services) | Map of all ECS services with their details |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC ID the ECS services run in (created VPC, or the provided vpc\_id). |
 <!-- END_TF_DOCS -->

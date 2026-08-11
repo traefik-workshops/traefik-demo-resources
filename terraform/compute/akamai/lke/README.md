@@ -20,8 +20,6 @@ module "lke" {
 - `kubectl` on PATH if `update_kubeconfig = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -40,6 +38,10 @@ module "lke" {
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
 | <a name="provider_linode"></a> [linode](#provider\_linode) | ~> 3.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

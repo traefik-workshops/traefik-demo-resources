@@ -24,8 +24,6 @@ Containers are started with no published ports: the gateway container runs `--ne
 The leg only works if the gateway has the Docker socket bound in (`mount_docker_socket = true` on the Traefik module). That is root-equivalent access to the host — fine for a demo VM whose only workload is whoami, and never appropriate for a gateway fronting anything real.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -35,6 +33,10 @@ The leg only works if the gateway has the Docker socket bound in (`mount_docker_
 ## Providers
 
 No providers.
+
+## Modules
+
+No modules.
 
 ## Resources
 

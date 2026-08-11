@@ -47,8 +47,6 @@ module "whoami_alibaba_ecs" {
 - Docker pulls need outbound internet: either `enable_public_ip = true` or a NAT gateway on the vswitch (e.g. `compute/alibaba/ack`'s `enable_nat_gateway`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -58,6 +56,13 @@ module "whoami_alibaba_ecs" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/alibaba/ecs | n/a |
 
 ## Resources
 

@@ -81,8 +81,6 @@ http:
 - There is deliberately no `traefik/cloudrun` sibling: Cloud Run can't host a raw `:9443` uplink listener, so the cloudRun-discovering child runs in-cluster on GKE instead.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -98,6 +96,13 @@ http:
 | <a name="provider_google"></a> [google](#provider\_google) | ~> 6.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/gcp/vm | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+
 ## Resources
 
 | Name | Type |
@@ -105,6 +110,7 @@ http:
 | [google_project_iam_member.viewer](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/project_iam_member) | resource |
 | [google_service_account.traefik](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/service_account) | resource |
 | [random_id.sa_suffix](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/id) | resource |
+| [google_client_config.current](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/client_config) | data source |
 
 ## Inputs
 

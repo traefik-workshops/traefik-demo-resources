@@ -34,8 +34,6 @@ module "whoami_ec2" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -45,6 +43,13 @@ module "whoami_ec2" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_echo_instances"></a> [echo\_instances](#module\_echo\_instances) | ../../../compute/aws/ec2 | n/a |
 
 ## Resources
 

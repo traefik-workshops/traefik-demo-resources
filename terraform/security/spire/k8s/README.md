@@ -48,8 +48,6 @@ The consumer then:
 - Chart versions are pinned (`spire` `0.29.0`, `spire-crds` `0.5.0`); bump deliberately.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -64,6 +62,10 @@ The consumer then:
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.27 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

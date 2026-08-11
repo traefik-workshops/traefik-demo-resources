@@ -33,8 +33,6 @@ At the default setting no `StorageClass` is needed at all, which also removes th
 `atomic = true` rollback a cluster with no default provisioner would otherwise cause.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -47,6 +45,10 @@ At the default setting no `StorageClass` is needed at all, which also removes th
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

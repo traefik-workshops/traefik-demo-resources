@@ -47,8 +47,6 @@ module "whoami_aci" {
 - Container groups are `Private` (vnet-injected) — the Traefik child dials them in-vnet (`ipMode=private`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -58,6 +56,13 @@ module "whoami_aci" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/azure/aci | n/a |
+| <a name="module_vnet"></a> [vnet](#module\_vnet) | ../../../compute/azure/vnet | n/a |
 
 ## Resources
 

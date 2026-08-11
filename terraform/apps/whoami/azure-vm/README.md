@@ -47,8 +47,6 @@ module "whoami_azure_vm" {
 - VMs get private IPs by default (`enable_public_ip = false`) — the Traefik child dials them in-vnet (`ipMode=private`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -58,6 +56,14 @@ module "whoami_azure_vm" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../../compute/azure/vm | n/a |
+| <a name="module_vnet"></a> [vnet](#module\_vnet) | ../../../compute/azure/vnet | n/a |
 
 ## Resources
 

@@ -69,8 +69,6 @@ module "oci_ci_traefik" {
 - `enable_dashboard_discovery = false` when the dashboard is advertised via a file-rule uplink (same cleanup as the ACI spoke).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -84,6 +82,13 @@ module "oci_ci_traefik" {
 | ---- | ------- |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_ci"></a> [ci](#module\_ci) | ../../compute/oracle/ci | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
 
 ## Resources
 

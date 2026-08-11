@@ -34,8 +34,6 @@ that publish those tokens to the cluster. Pick which:
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -55,6 +53,10 @@ that publish those tokens to the cluster. Pick which:
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.27 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.2 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -63,6 +65,7 @@ that publish those tokens to the cluster. Pick which:
 | [kubernetes_job_v1.fetch_tokens](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/job_v1) | resource |
 | [kubernetes_secret_v1.user_tokens](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
 | [null_resource.validate_keycloak_deployment](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [external_external.capture_tokens](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 

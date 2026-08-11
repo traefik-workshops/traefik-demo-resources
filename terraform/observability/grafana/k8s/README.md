@@ -23,8 +23,6 @@ module "grafana" {
 - Traefik installed in-cluster if `ingress = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -40,6 +38,13 @@ module "grafana" {
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_aigateway_dashboard"></a> [aigateway\_dashboard](#module\_aigateway\_dashboard) | ./dashboards/aigateway | n/a |
+| <a name="module_unified_ingress_dashboard"></a> [unified\_ingress\_dashboard](#module\_unified\_ingress\_dashboard) | ./dashboards/unified-ingress | n/a |
+
 ## Resources
 
 | Name | Type |
@@ -51,7 +56,7 @@ module "grafana" {
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_dashboards"></a> [dashboards](#input\_dashboards) | Bundled Traefik Hub dashboards to install as ConfigMaps and pre-provision in Grafana. Toggle each topic on/off independently — the AI Gateway, MCP Gateway, and API Management dashboards each pull from their own metrics source. | <pre>object({<br/>    aigateway  = bool<br/>    mcpgateway = bool<br/>    apim       = bool<br/>  })</pre> | n/a | yes |
+| <a name="input_dashboards"></a> [dashboards](#input\_dashboards) | Bundled Traefik Hub dashboards to install as ConfigMaps and pre-provision in Grafana. Toggle each topic on/off independently — the AI Gateway, MCP Gateway, API Management, and Unified Ingress dashboards each pull from their own metrics source. `unified_ingress` defaults on so existing call sites light it up without changes. | <pre>object({<br/>    aigateway       = bool<br/>    mcpgateway      = bool<br/>    apim            = bool<br/>    unified_ingress = optional(bool, true)<br/>  })</pre> | n/a | yes |
 | <a name="input_loki"></a> [loki](#input\_loki) | Loki datasource provisioned into Grafana when `enabled = true`. URL composition matches the `prometheus` variable. Becomes the default datasource only if both Prometheus and Tempo are disabled. | <pre>object({<br/>    enabled = bool<br/>    url = object({<br/>      override  = string<br/>      service   = string<br/>      port      = number<br/>      namespace = string<br/>    })<br/>  })</pre> | n/a | yes |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Grafana deployment | `string` | n/a | yes |
 | <a name="input_prometheus"></a> [prometheus](#input\_prometheus) | Prometheus datasource provisioned into Grafana when `enabled = true`. URL is `url.override` if set, otherwise built as `http://<service>.<namespace>.svc:<port>` (namespace optional). Prometheus is the implicit default datasource when present. | <pre>object({<br/>    enabled = bool<br/>    url = object({<br/>      override  = string<br/>      service   = string<br/>      port      = number<br/>      namespace = string<br/>    })<br/>  })</pre> | n/a | yes |

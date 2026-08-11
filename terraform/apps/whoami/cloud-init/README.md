@@ -33,8 +33,6 @@ module "whoami_cloud_init" {
 - Stub module. Kept intentionally minimal because demo wrappers reference it; expand only if a demo needs more.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -44,6 +42,10 @@ module "whoami_cloud_init" {
 ## Providers
 
 No providers.
+
+## Modules
+
+No modules.
 
 ## Resources
 

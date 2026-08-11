@@ -40,8 +40,6 @@ module "vm" {
 - See the [repo-wide AGENTS.md](../../../../AGENTS.md) for conventions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -53,6 +51,10 @@ module "vm" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+No modules.
 
 ## Resources
 

@@ -36,8 +36,6 @@ module "nkp" {
 - The bastion VM default password (`topsecretpassword`) is also a demo value — override it for non-throwaway clusters.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -55,6 +53,10 @@ module "nkp" {
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 | <a name="provider_nutanix"></a> [nutanix](#provider\_nutanix) | >= 2.4.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -64,6 +66,7 @@ module "nkp" {
 | [nutanix_floating_ip_v2.bastion_fip](https://registry.terraform.io/providers/nutanix/nutanix/latest/docs/resources/floating_ip_v2) | resource |
 | [nutanix_floating_ip_v2.lb_fip](https://registry.terraform.io/providers/nutanix/nutanix/latest/docs/resources/floating_ip_v2) | resource |
 | [nutanix_virtual_machine.bastion_vm](https://registry.terraform.io/providers/nutanix/nutanix/latest/docs/resources/virtual_machine) | resource |
+| [external_external.kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 

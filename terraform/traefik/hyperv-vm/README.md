@@ -46,8 +46,6 @@ module "vm_traefik" {
 - See the [repo-wide AGENTS.md](../../../../AGENTS.md) for conventions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -57,6 +55,13 @@ module "vm_traefik" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../compute/hyperv/vm | n/a |
 
 ## Resources
 

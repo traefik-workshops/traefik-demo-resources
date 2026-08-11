@@ -40,8 +40,6 @@ module "traefik_alibaba_ecs" {
 - Docker pulls need outbound internet: `enable_public_ip = true` or a NAT gateway on the vswitch.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -55,6 +53,13 @@ module "traefik_alibaba_ecs" {
 | ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/alibaba/ecs | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+
 ## Resources
 
 | Name | Type |
@@ -63,6 +68,7 @@ module "traefik_alibaba_ecs" {
 | [alicloud_ram_policy.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_policy) | resource |
 | [alicloud_ram_role.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_role) | resource |
 | [alicloud_ram_role_policy_attachment.traefik](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/ram_role_policy_attachment) | resource |
+| [alicloud_regions.current](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/data-sources/regions) | data source |
 
 ## Inputs
 

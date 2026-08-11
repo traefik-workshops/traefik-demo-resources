@@ -29,8 +29,6 @@ module "traefik" {
 - A Traefik Hub token.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -48,6 +46,13 @@ module "traefik" {
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | >= 2.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | >= 3.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_redis"></a> [redis](#module\_redis) | ../../tools/redis/k8s | n/a |
+
 ## Resources
 
 | Name | Type |
@@ -57,6 +62,8 @@ module "traefik" {
 | [kubernetes_config_map_v1.traefik_dynamic_config](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map_v1) | resource |
 | [kubernetes_secret_v1.traefik_hub_license](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
 | [null_resource.traefik_crds](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [kubernetes_secret_v1.dns_domain](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/data-sources/secret_v1) | data source |
+| [kubernetes_service_v1.traefik](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/data-sources/service_v1) | data source |
 
 ## Inputs
 

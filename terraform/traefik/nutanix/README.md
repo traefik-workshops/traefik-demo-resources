@@ -23,8 +23,6 @@ module "traefik_nutanix" {
 - A Traefik Hub token.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -34,6 +32,14 @@ module "traefik_nutanix" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_traefik_vm"></a> [traefik\_vm](#module\_traefik\_vm) | ../../compute/nutanix/vm | n/a |
 
 ## Resources
 

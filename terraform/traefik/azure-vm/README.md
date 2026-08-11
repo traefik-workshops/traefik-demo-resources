@@ -64,8 +64,6 @@ module "azure_vm_traefik" {
 - `enable_dashboard_discovery = false` when the dashboard is advertised via a file-rule uplink (same cleanup as the EC2/ECS spokes).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -81,12 +79,20 @@ module "azure_vm_traefik" {
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../compute/azure/vm | n/a |
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
 | [azurerm_role_assignment.reader](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/role_assignment) | resource |
 | [null_resource.identity_bounce](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [azurerm_client_config.current](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 
 ## Inputs
 

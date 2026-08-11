@@ -32,8 +32,6 @@ There is also a Helm chart that ships Presidio with the full values surface:
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -46,6 +44,10 @@ There is also a Helm chart that ships Presidio with the full values surface:
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

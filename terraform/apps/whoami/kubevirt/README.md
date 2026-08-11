@@ -103,8 +103,6 @@ The annotations go on the **VirtualMachine**, not on `spec.template.metadata`. K
 - **First boot pulls from the internet** (the crane release from GitHub, the whoami image from its registry). Both fetches retry and both fail loud, but an air-gapped cluster needs a pre-baked containerDisk instead.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -117,6 +115,10 @@ The annotations go on the **VirtualMachine**, not on `spec.template.metadata`. K
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | >= 1.14 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

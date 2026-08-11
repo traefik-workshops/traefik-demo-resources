@@ -20,8 +20,6 @@ module "traefik_cloud_init" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -31,6 +29,10 @@ module "traefik_cloud_init" {
 ## Providers
 
 No providers.
+
+## Modules
+
+No modules.
 
 ## Resources
 
@@ -44,6 +46,7 @@ No resources.
 | <a name="input_arch"></a> [arch](#input\_arch) | The architecture (amd64, arm64) | `string` | `"amd64"` | no |
 | <a name="input_cli_arguments"></a> [cli\_arguments](#input\_cli\_arguments) | CLI arguments for Traefik Hub | `list(string)` | `[]` | no |
 | <a name="input_dashboard_config"></a> [dashboard\_config](#input\_dashboard\_config) | Dashboard configuration | `string` | `""` | no |
+| <a name="input_data_disk"></a> [data\_disk](#input\_data\_disk) | Optional extra block device to partition, format and mount BEFORE the container engine installs. Set it when the guest's root is too small for dockerd plus a Hub image — a containerDisk root is fixed at the image's virtual size and cannot be grown. `device` is the raw device (e.g. /dev/vdc, the third virtio disk); `mount_path` is where it lands (e.g. /var/lib/docker). Rendered as cloud-init disk\_setup/fs\_setup/mounts, which are INIT-stage modules and therefore complete before runcmd. Null renders nothing at all. | <pre>object({<br/>    device     = string<br/>    mount_path = string<br/>  })</pre> | `null` | no |
 | <a name="input_dns_traefiker"></a> [dns\_traefiker](#input\_dns\_traefiker) | DNS Traefiker configuration for automatic domain registration | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    version                   = optional(string, "v1.0.4")<br/>    chart                     = optional(string, "")<br/>    unique_domain             = optional(bool, false)<br/>    domain                    = optional(string, "")<br/>    enable_airlines_subdomain = optional(bool, false)<br/>    ip_override               = optional(string, "")<br/>    proxied                   = optional(bool, false)<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
 | <a name="input_enable_preview_mode"></a> [enable\_preview\_mode](#input\_enable\_preview\_mode) | Enable Traefik Hub Preview features (pulls binary from Docker image instead of GitHub releases) | `bool` | `false` | no |
 | <a name="input_env_vars"></a> [env\_vars](#input\_env\_vars) | Environment variables for Traefik Hub | <pre>list(object({<br/>    name  = string<br/>    value = string<br/>  }))</pre> | `[]` | no |

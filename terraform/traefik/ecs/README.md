@@ -18,8 +18,6 @@ module "traefik" {
 - A Traefik Hub token.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -29,6 +27,13 @@ module "traefik" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_ecs"></a> [ecs](#module\_ecs) | ../../compute/aws/ecs | n/a |
 
 ## Resources
 

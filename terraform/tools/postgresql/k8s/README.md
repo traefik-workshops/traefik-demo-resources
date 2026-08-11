@@ -22,8 +22,6 @@ module "postgresql" {
 - Default `password` is a demo value — override it for any non-throwaway deployment.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -36,6 +34,10 @@ module "postgresql" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

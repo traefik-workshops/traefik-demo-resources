@@ -39,12 +39,10 @@ provider "kubernetes" {
 - `cluster_spec` defaults to `ack.pro.small`: the Pro control plane is billed hourly, but the Basic `ack.standard` spec is no longer offered in newer regions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_alicloud"></a> [alicloud](#requirement\_alicloud) | ~> 1.220 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | ~> 3.0 |
@@ -52,23 +50,28 @@ provider "kubernetes" {
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
 | [alicloud_cs_kubernetes_node_pool.traefik_demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/cs_kubernetes_node_pool) | resource |
 | [alicloud_cs_kubernetes_node_pool.worker](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/cs_kubernetes_node_pool) | resource |
 | [alicloud_cs_managed_kubernetes.traefik_demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/cs_managed_kubernetes) | resource |
 | [null_resource.ack_cluster](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [alicloud_cs_cluster_credential.kubeconfig](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/data-sources/cs_cluster_credential) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_cluster_name"></a> [cluster\_name](#input\_cluster\_name) | ACK cluster name. | `string` | n/a | yes |
 | <a name="input_vswitch_ids"></a> [vswitch\_ids](#input\_vswitch\_ids) | Existing vswitch IDs the control plane and node pools join (e.g. compute/alibaba/vpc's vswitch\_ids). The region comes from the configured alicloud provider. | `list(string)` | n/a | yes |
 | <a name="input_ack_version"></a> [ack\_version](#input\_ack\_version) | ACK Kubernetes version. Empty = the latest version ACK offers at create time. | `string` | `""` | no |
@@ -87,7 +90,7 @@ provider "kubernetes" {
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_client_certificate"></a> [client\_certificate](#output\_client\_certificate) | ACK cluster client certificate (ACK kubeconfigs are cert-based — there is no token) |
 | <a name="output_client_key"></a> [client\_key](#output\_client\_key) | ACK cluster client key |
 | <a name="output_cluster_ca_certificate"></a> [cluster\_ca\_certificate](#output\_cluster\_ca\_certificate) | ACK cluster CA certificate |

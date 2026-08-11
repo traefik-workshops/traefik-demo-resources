@@ -21,8 +21,6 @@ module "runpod_auth" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -38,11 +36,16 @@ module "runpod_auth" {
 | <a name="provider_external"></a> [external](#provider\_external) | ~> 2.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.2 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
 | [null_resource.registry_auth_cleanup](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [external_external.registry_auth](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 

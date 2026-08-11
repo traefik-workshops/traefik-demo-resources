@@ -36,8 +36,6 @@ module "k3s" {
 - See the [repo-wide AGENTS.md](../../../../AGENTS.md) for conventions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -53,11 +51,18 @@ module "k3s" {
 | <a name="provider_external"></a> [external](#provider\_external) | >= 2.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../vm | n/a |
+
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
 | [null_resource.update_kubeconfig](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [external_external.kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 

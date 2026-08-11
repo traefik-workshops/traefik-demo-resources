@@ -1,6 +1,10 @@
 # Terraform working files — modules here are consumed remotely, never applied in-repo,
 # but contributors run `terraform init`/`validate` locally.
 .terraform*
+# ...but .terraform-docs.yml is checked-in tooling config, not a working file.
+# Without this negation the `.terraform*` glob above silently swallows it, and the
+# README sweep renders pinned provider versions instead of declared constraints.
+!.terraform-docs.yml
 *.tfstate
 *.tfstate.*
 *.tfplan

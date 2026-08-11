@@ -92,8 +92,6 @@ The hub then dials `module.lxc_traefik.uplink_address` as a multicluster child, 
 Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ingress).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -105,6 +103,13 @@ Consumed by [`demos/proxmox-unified-ingress`](../../../demos/proxmox-unified-ing
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_lxc"></a> [lxc](#module\_lxc) | ../../compute/proxmox/lxc | n/a |
 
 ## Resources
 

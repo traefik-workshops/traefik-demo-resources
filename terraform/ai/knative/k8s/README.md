@@ -17,8 +17,6 @@ module "knative" {
 - A working Kubernetes cluster with `helm` and `kubectl` providers configured.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -35,6 +33,10 @@ module "knative" {
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | ~> 1.0 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

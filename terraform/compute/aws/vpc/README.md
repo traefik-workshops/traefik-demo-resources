@@ -47,12 +47,12 @@ module "vpc" {
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_name"></a> [name](#input\_name) | VPC name. | `string` | n/a | yes |
 | <a name="input_cidr"></a> [cidr](#input\_cidr) | VPC CIDR. | `string` | `"10.0.0.0/16"` | no |
 | <a name="input_enable_ipv6"></a> [enable\_ipv6](#input\_enable\_ipv6) | Give the VPC an Amazon-provided /56, carve a /64 out of it for every public subnet, and auto-assign an IPv6 address to each instance launched there (plus an egress-only gateway and a ::/0 route). Off by default so existing IPv4-only callers are untouched. Needed to exercise anything that targets an instance's IPv6 address, e.g. the Hub EC2 provider's `ipMode: ipv6`. | `bool` | `false` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Enable NAT Gateway. | `bool` | `true` | no |
 | <a name="input_extra_ingress_ports"></a> [extra\_ingress\_ports](#input\_extra\_ingress\_ports) | Additional TCP ports to open on the demo security group (from 0.0.0.0/0), beyond the default 80/443/8080/22. Used for the Traefik Hub multicluster uplink entrypoint (:9443) on VM/Fargate spokes the parent cluster dials. | `list(number)` | `[]` | no |
 | <a name="input_extra_ingress_udp_ports"></a> [extra\_ingress\_udp\_ports](#input\_extra\_ingress\_udp\_ports) | Additional UDP ports to open on the demo security group (from 0.0.0.0/0). Separate from `extra_ingress_ports` because a security-group rule carries exactly one protocol, and because anything that derives a backend port from security-group rules (e.g. the Hub EC2 provider's port discovery) reads that protocol to decide which rules feed a UDP service. | `list(number)` | `[]` | no |
-| <a name="input_name"></a> [name](#input\_name) | VPC name. | `string` | n/a | yes |
 | <a name="input_private_subnets"></a> [private\_subnets](#input\_private\_subnets) | CIDR blocks for private subnets (one per AZ). Receive a NAT gateway egress when `enable_nat_gateway = true`. Default carves three /24s out of the VPC CIDR. | `list(string)` | <pre>[<br/>  "10.0.1.0/24",<br/>  "10.0.2.0/24",<br/>  "10.0.3.0/24"<br/>]</pre> | no |
 | <a name="input_public_subnets"></a> [public\_subnets](#input\_public\_subnets) | CIDR blocks for public subnets (one per AZ). Host the internet-facing load balancers and the NAT gateway. Default carves three /24s out of the VPC CIDR. | `list(string)` | <pre>[<br/>  "10.0.4.0/24",<br/>  "10.0.5.0/24",<br/>  "10.0.6.0/24"<br/>]</pre> | no |
 

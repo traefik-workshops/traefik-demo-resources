@@ -51,8 +51,6 @@ module "hyperv_whoami" {
 - See the [repo-wide AGENTS.md](../../../../AGENTS.md) for conventions.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -64,6 +62,13 @@ module "hyperv_whoami" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../../compute/hyperv/vm | n/a |
 
 ## Resources
 

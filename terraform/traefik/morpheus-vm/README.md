@@ -61,8 +61,6 @@ module "traefik_morpheus" {
 - MIGRATED from the community-deprecated `gomorpheus/morpheus` provider (EOL Aug 2026) to the official `HPE/hpe` provider (`~> 1.5`). One functional loss: `hpe_morpheus_instance` has **no `labels` attribute** (v1.5.0), so `morpheus_labels` must stay empty (validated) — set Morpheus labels in the appliance instead. `plan_provision_type` is now the provision type **code** (`"kvm"`), not the name (`"KVM"`). State from gomorpheus deployments does not migrate — plan on recreating.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -74,6 +72,13 @@ module "traefik_morpheus" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/morpheus/vm | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
 
 ## Resources
 

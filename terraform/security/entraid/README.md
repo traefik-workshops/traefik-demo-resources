@@ -20,8 +20,6 @@ module "entraid" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -39,6 +37,10 @@ module "entraid" {
 | <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | ~> 4.0 |
 | <a name="provider_random"></a> [random](#provider\_random) | ~> 3.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -55,6 +57,9 @@ module "entraid" {
 | [azuread_user.traefik_demo](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/user) | resource |
 | [random_uuid.traefik_demo_app_role_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) | resource |
 | [random_uuid.traefik_demo_permission_scope_id](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) | resource |
+| [azuread_domains.traefik_demo](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/domains) | data source |
+| [azuread_service_principal.msgraph](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/service_principal) | data source |
+| [azurerm_client_config.traefik_demo](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/client_config) | data source |
 
 ## Inputs
 

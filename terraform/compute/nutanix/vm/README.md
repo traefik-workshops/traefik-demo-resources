@@ -21,8 +21,6 @@ module "vm" {
 - A source image already uploaded to Prism Central.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -35,6 +33,10 @@ module "vm" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_nutanix"></a> [nutanix](#provider\_nutanix) | >= 2.4.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

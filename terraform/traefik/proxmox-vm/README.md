@@ -74,8 +74,6 @@ module "traefik_proxmox" {
 - The cloud-init snippet is hash-named and the VM `replace_triggered_by`s it — config changes recreate the VM (cloud-init runs on first boot only).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -85,6 +83,13 @@ module "traefik_proxmox" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../compute/proxmox/vm | n/a |
 
 ## Resources
 

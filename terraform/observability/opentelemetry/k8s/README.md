@@ -20,8 +20,6 @@ module "otel" {
 - Whichever backends you enable must already be reachable from the cluster.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -34,6 +32,10 @@ module "otel" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 
@@ -58,6 +60,7 @@ module "otel" {
 | <a name="input_enable_service_graph"></a> [enable\_service\_graph](#input\_enable\_service\_graph) | Generate service-graph metrics (traces\_service\_graph\_*) from the traces flowing through the collector via the servicegraph connector, feeding Grafana's Tempo service map. Requires enable\_prometheus (the generated series need a metrics exporter). | `bool` | `true` | no |
 | <a name="input_enable_span_metrics"></a> [enable\_span\_metrics](#input\_enable\_span\_metrics) | Generate RED metrics (traces\_span\_metrics\_calls\_total / \_duration\_*) per service+span from the traces flowing through the collector via the spanmetrics connector — golden-signals dashboards without extra instrumentation. Requires enable\_prometheus. | `bool` | `true` | no |
 | <a name="input_enable_tempo"></a> [enable\_tempo](#input\_enable\_tempo) | Enable Grafana Tempo observability module | `bool` | `false` | no |
+| <a name="input_filter_health_spans"></a> [filter\_health\_spans](#input\_filter\_health\_spans) | Drop /health probe spans from the traces pipeline. The active health checks (loadbalancer.healthcheck.path=/health) make each gateway GET /health on every backend every 10s; those client spans have no matching server span, so the servicegraph connector draws a permanent `<gateway> -> unknown` edge on every spoke gateway (live validation aws/azure/gcp, 2026-07). Dropping them removes the `unknown` node from the service map. The health checks still run and still eject dead backends — only their spans are filtered. Set false to keep probe spans (e.g. debugging health-check behaviour in Tempo). | `bool` | `true` | no |
 | <a name="input_honeycomb_api_key"></a> [honeycomb\_api\_key](#input\_honeycomb\_api\_key) | Honeycomb API key | `string` | `""` | no |
 | <a name="input_honeycomb_dataset"></a> [honeycomb\_dataset](#input\_honeycomb\_dataset) | Honeycomb dataset | `string` | `""` | no |
 | <a name="input_honeycomb_endpoint"></a> [honeycomb\_endpoint](#input\_honeycomb\_endpoint) | Honeycomb endpoint | `string` | `""` | no |

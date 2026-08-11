@@ -17,8 +17,6 @@ module "aigw_deps" {
 - A working Kubernetes cluster with the `helm` provider configured.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -28,6 +26,14 @@ module "aigw_deps" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_ai_ollama"></a> [ai\_ollama](#module\_ai\_ollama) | ../../ollama/k8s | n/a |
+| <a name="module_ai_presidio"></a> [ai\_presidio](#module\_ai\_presidio) | ../../presidio/k8s | n/a |
+| <a name="module_ai_weaviate"></a> [ai\_weaviate](#module\_ai\_weaviate) | ../../weaviate/k8s | n/a |
 
 ## Resources
 

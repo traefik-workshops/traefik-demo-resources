@@ -56,8 +56,6 @@ For non-token auth modes, downstream `helm` / `kubernetes` providers must be wir
 - Multiple contexts where you want a non-default one — set `current-context` in the kubeconfig before passing, or use `kubectl config view --minify` to drop the others.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -67,6 +65,10 @@ For non-token auth modes, downstream `helm` / `kubernetes` providers must be wir
 ## Providers
 
 No providers.
+
+## Modules
+
+No modules.
 
 ## Resources
 

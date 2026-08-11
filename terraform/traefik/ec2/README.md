@@ -19,8 +19,6 @@ module "traefik" {
 - A Traefik Hub token.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -35,6 +33,14 @@ module "traefik" {
 | ---- | ------- |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | ~> 5.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_ec2_primary"></a> [ec2\_primary](#module\_ec2\_primary) | ../../compute/aws/ec2 | n/a |
+| <a name="module_ec2_secondary"></a> [ec2\_secondary](#module\_ec2\_secondary) | ../../compute/aws/ec2 | n/a |
 
 ## Resources
 

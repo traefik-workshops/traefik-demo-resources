@@ -1,0 +1,35 @@
+####
+# terraform-docs configuration for this library.
+#
+# Rendered per module, FROM THE REPOSITORY ROOT, with:
+#   terraform-docs markdown table --output-file README.md --output-mode inject <module>
+#
+# The cwd matters: terraform-docs only auto-discovers .terraform-docs.yml in the
+# current working directory, it does not walk up to the repo root. Running the
+# command from inside a module directory silently skips this file and re-enables
+# the lockfile behavior below. From anywhere else, pass it explicitly:
+#   terraform-docs --config <repo>/.terraform-docs.yml markdown table ... <module>
+#
+# `lockfile: false` is load-bearing. By default terraform-docs resolves the
+# Providers table from the module's local .terraform.lock.hcl, which turns
+# declared constraints ("~> 4.0") into whatever concrete version happens to be
+# cached on the machine that ran the sweep ("4.81.0"). That is a semantic change
+# smuggled into a docs commit, and it differs per developer. Reading the
+# `required_providers` constraints out of versions.tf instead keeps the docs a
+# description of the code rather than of somebody's .terraform directory.
+####
+
+####
+# `sort.by: required` matches what this library's READMEs already do: required
+# inputs first, then optional, each group alphabetical. It is NOT the
+# terraform-docs default (`by: name`, one flat alphabetical list), so leaving it
+# out would reflow 77 of the 79 READMEs that have both required and optional
+# inputs. Pinning it here fixes the 2 stragglers instead.
+####
+
+sort:
+  enabled: true
+  by: required
+
+settings:
+  lockfile: false

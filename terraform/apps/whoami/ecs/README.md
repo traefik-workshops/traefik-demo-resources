@@ -37,8 +37,6 @@ module "whoami_ecs" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -48,6 +46,12 @@ module "whoami_ecs" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_echo_services"></a> [echo\_services](#module\_echo\_services) | ../../../compute/aws/ecs | n/a |
 
 ## Resources
 

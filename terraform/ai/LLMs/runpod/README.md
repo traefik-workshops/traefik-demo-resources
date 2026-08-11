@@ -22,8 +22,6 @@ module "llms" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -33,6 +31,12 @@ module "llms" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_llms"></a> [llms](#module\_llms) | ../../../compute/runpod/pod | n/a |
 
 ## Resources
 

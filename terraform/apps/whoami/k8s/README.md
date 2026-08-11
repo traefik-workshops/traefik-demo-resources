@@ -39,8 +39,6 @@ module "whoami" {
 - Traefik installed in-cluster if `ingress_route.enabled = true` on any app.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -55,6 +53,10 @@ module "whoami" {
 | ---- | ------- |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | >= 1.14 |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

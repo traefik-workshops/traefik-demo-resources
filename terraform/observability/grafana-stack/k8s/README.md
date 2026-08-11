@@ -19,8 +19,6 @@ module "grafana_stack" {
 - Traefik installed in-cluster if `ingress = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -30,6 +28,15 @@ module "grafana_stack" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_grafana"></a> [grafana](#module\_grafana) | ../../grafana/k8s | n/a |
+| <a name="module_observability_grafana_loki"></a> [observability\_grafana\_loki](#module\_observability\_grafana\_loki) | ../../grafana-loki/k8s | n/a |
+| <a name="module_observability_grafana_tempo"></a> [observability\_grafana\_tempo](#module\_observability\_grafana\_tempo) | ../../grafana-tempo/k8s | n/a |
+| <a name="module_observability_prometheus"></a> [observability\_prometheus](#module\_observability\_prometheus) | ../../prometheus/k8s | n/a |
 
 ## Resources
 

@@ -18,8 +18,6 @@ module "storage_container" {
 - A reachable Nutanix Prism Central endpoint and credentials.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -32,6 +30,10 @@ module "storage_container" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_nutanix"></a> [nutanix](#provider\_nutanix) | >= 2.4.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

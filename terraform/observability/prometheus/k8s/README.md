@@ -19,8 +19,6 @@ module "prometheus" {
 - Traefik installed in-cluster if `ingress = true`.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -33,6 +31,10 @@ module "prometheus" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_helm"></a> [helm](#provider\_helm) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

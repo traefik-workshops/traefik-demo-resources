@@ -21,8 +21,6 @@ client_secret from the BMC portal), configured in the demo root — this module 
 declares the requirement.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -35,6 +33,10 @@ declares the requirement.
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_pnap"></a> [pnap](#provider\_pnap) | ~> 0.33 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

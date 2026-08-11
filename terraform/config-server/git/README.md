@@ -44,8 +44,6 @@ curl -i http://127.0.0.1:18080/config/vm/dynamic.yaml # MUST be 200 with that bo
 ```
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -60,6 +58,10 @@ curl -i http://127.0.0.1:18080/config/vm/dynamic.yaml # MUST be 200 with that bo
 | ---- | ------- |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.0 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

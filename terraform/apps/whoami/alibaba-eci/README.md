@@ -47,8 +47,6 @@ module "whoami_alibaba_eci" {
 - Image pulls need outbound internet — a NAT gateway on the VPC (e.g. `compute/alibaba/ack`'s `enable_nat_gateway`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -58,6 +56,12 @@ module "whoami_alibaba_eci" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../../compute/alibaba/eci | n/a |
 
 ## Resources
 

@@ -30,8 +30,6 @@ module "whoami_nutanix" {
 - A pre-built whoami image (see `apps/whoami/nutanix/image_builder`).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -41,6 +39,13 @@ module "whoami_nutanix" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_whoami_vm"></a> [whoami\_vm](#module\_whoami\_vm) | ../../../compute/nutanix/vm | n/a |
 
 ## Resources
 

@@ -24,47 +24,56 @@ module "vpc" {
 - The `:9443` uplink port is only reachable from inside the VPC (`cidr`) — the multicluster parent must share the VPC (or peer into it).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3 |
 | <a name="requirement_alicloud"></a> [alicloud](#requirement\_alicloud) | ~> 1.220 |
 
 ## Providers
 
 | Name | Version |
-|------|---------|
+| ---- | ------- |
 | <a name="provider_alicloud"></a> [alicloud](#provider\_alicloud) | ~> 1.220 |
+
+## Modules
+
+No modules.
 
 ## Resources
 
 | Name | Type |
-|------|------|
+| ---- | ---- |
+| [alicloud_eip_address.nat](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/eip_address) | resource |
+| [alicloud_eip_association.nat](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/eip_association) | resource |
+| [alicloud_nat_gateway.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/nat_gateway) | resource |
 | [alicloud_security_group.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/security_group) | resource |
 | [alicloud_security_group_rule.ingress](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/security_group_rule) | resource |
+| [alicloud_snat_entry.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/snat_entry) | resource |
 | [alicloud_vpc.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/vpc) | resource |
 | [alicloud_vswitch.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/vswitch) | resource |
+| [alicloud_zones.demo](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/data-sources/zones) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
+| ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_name"></a> [name](#input\_name) | VPC name. | `string` | n/a | yes |
 | <a name="input_cidr"></a> [cidr](#input\_cidr) | VPC CIDR. | `string` | `"10.0.0.0/16"` | no |
+| <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Attach a shared NAT gateway (with a PayByTraffic EIP + one SNAT rule per vswitch) so vswitch workloads have OUTBOUND internet — required for ECS/ECI spokes to pull images from ghcr.io (an Alibaba VPC has no default egress). Egress only: no public inbound on the spokes. Off only when the vswitch already has another egress path. | `bool` | `true` | no |
 | <a name="input_extra_ingress_ports"></a> [extra\_ingress\_ports](#input\_extra\_ingress\_ports) | Additional TCP ports to open on the demo security group from INSIDE the VPC only, beyond the default 80/443/8080/22 (those are open to any source). Default covers the Traefik Hub multicluster uplink entrypoint (:9443) on ECS/ECI spokes the parent cluster dials. | `list(number)` | <pre>[<br/>  9443<br/>]</pre> | no |
 | <a name="input_vswitch_cidrs"></a> [vswitch\_cidrs](#input\_vswitch\_cidrs) | CIDR block per vswitch (one vswitch each, spread across the region's zones). Defaults carve two /24s out of the VPC CIDR. | `list(string)` | <pre>[<br/>  "10.0.1.0/24",<br/>  "10.0.2.0/24"<br/>]</pre> | no |
 
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_security_group_id"></a> [security\_group\_id](#output\_security\_group\_id) | Demo security group ID — attach it to the ECS instances / ECI container groups joining the vswitches (Alibaba security groups bind to workloads, not subnets) |
 | <a name="output_security_group_ids"></a> [security\_group\_ids](#output\_security\_group\_ids) | Demo security group ID as a one-element list (mirrors compute/aws/vpc) |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | VPC ID |
 | <a name="output_vpc_name"></a> [vpc\_name](#output\_vpc\_name) | VPC name |
+| <a name="output_vswitch_cidrs"></a> [vswitch\_cidrs](#output\_vswitch\_cidrs) | CIDR block per vswitch, index-aligned with vswitch\_ids. Plan-known (straight from the variable), so callers can pin instance addresses with cidrhost() and reference them before anything is applied. |
 | <a name="output_vswitch_id"></a> [vswitch\_id](#output\_vswitch\_id) | ID of the first vswitch (the convenience pick for single-vswitch workloads) |
 | <a name="output_vswitch_ids"></a> [vswitch\_ids](#output\_vswitch\_ids) | IDs of all vswitches (zone-spread — ACK control planes / node pools can consume the list directly) |
 <!-- END_TF_DOCS -->

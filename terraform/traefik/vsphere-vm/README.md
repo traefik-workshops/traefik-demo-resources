@@ -57,8 +57,6 @@ module "traefik_vsphere" {
 - Outputs mirror the VM siblings (`instances` / `private_ips` / `public_ips`) so demo code reads identically — on vSphere both IP maps carry the same guest address.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -68,6 +66,13 @@ module "traefik_vsphere" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/vsphere/vm | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
 
 ## Resources
 

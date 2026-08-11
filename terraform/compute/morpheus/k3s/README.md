@@ -56,8 +56,6 @@ provider "kubernetes" {
 - MIGRATED from the community-deprecated `gomorpheus/morpheus` provider (EOL Aug 2026) to the official `HPE/hpe` provider (`~> 1.5`). One functional loss: `hpe_morpheus_instance` has **no `labels` attribute** (v1.5.0), so `morpheus_labels` must stay empty (a validation enforces it) — set Morpheus labels in the appliance instead. `plan_provision_type` is now the provision type **code** (`"kvm"`), not the name (`"KVM"`). State from gomorpheus deployments does not migrate — plan on recreating.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -75,6 +73,10 @@ provider "kubernetes" {
 | <a name="provider_hpe"></a> [hpe](#provider\_hpe) | ~> 1.5 |
 | <a name="provider_null"></a> [null](#provider\_null) | ~> 3.0 |
 
+## Modules
+
+No modules.
+
 ## Resources
 
 | Name | Type |
@@ -83,6 +85,14 @@ provider "kubernetes" {
 | [hpe_morpheus_task_shell_script.bootstrap](https://registry.terraform.io/providers/HPE/hpe/latest/docs/resources/morpheus_task_shell_script) | resource |
 | [hpe_morpheus_workflow_provisioning.bootstrap](https://registry.terraform.io/providers/HPE/hpe/latest/docs/resources/morpheus_workflow_provisioning) | resource |
 | [null_resource.update_kubeconfig](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
+| [external_external.kubeconfig](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
+| [hpe_morpheus_cloud.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_cloud) | data source |
+| [hpe_morpheus_group.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_group) | data source |
+| [hpe_morpheus_instance_type.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_instance_type) | data source |
+| [hpe_morpheus_instance_type_layout.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_instance_type_layout) | data source |
+| [hpe_morpheus_network.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_network) | data source |
+| [hpe_morpheus_resource_pool.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_resource_pool) | data source |
+| [hpe_morpheus_service_plan.this](https://registry.terraform.io/providers/HPE/hpe/latest/docs/data-sources/morpheus_service_plan) | data source |
 
 ## Inputs
 

@@ -22,8 +22,6 @@ module "oracle_23ai" {
 - The default `oracle_pwd` is a demo value — override it for any non-throwaway deployment.
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -36,6 +34,10 @@ module "oracle_23ai" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_kubernetes"></a> [kubernetes](#provider\_kubernetes) | ~> 2.27 |
+
+## Modules
+
+No modules.
 
 ## Resources
 

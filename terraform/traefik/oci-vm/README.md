@@ -67,8 +67,6 @@ module "oci_traefik" {
 - Boot image defaults to the latest Canonical Ubuntu 24.04 platform image (the cloud-init installs docker via apt).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -81,6 +79,14 @@ module "oci_traefik" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_oci"></a> [oci](#provider\_oci) | ~> 7.0 |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/oracle/vm | n/a |
+| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
+| <a name="module_instance_principal"></a> [instance\_principal](#module\_instance\_principal) | ../../security/oci-instance-principal | n/a |
 
 ## Resources
 

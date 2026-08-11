@@ -23,8 +23,6 @@ module "nims" {
 ## Notes
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -34,6 +32,13 @@ module "nims" {
 ## Providers
 
 No providers.
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_auth"></a> [auth](#module\_auth) | ../../../compute/runpod/auth | n/a |
+| <a name="module_nims"></a> [nims](#module\_nims) | ../../../compute/runpod/pod | n/a |
 
 ## Resources
 

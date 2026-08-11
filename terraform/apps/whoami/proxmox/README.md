@@ -77,8 +77,6 @@ module "whoami_proxmox" {
 - Terraform is 1.4+ for this module (`terraform_data` provisioners drive the LXC install).
 
 <!-- BEGIN_TF_DOCS -->
-
-
 ## Requirements
 
 | Name | Version |
@@ -90,6 +88,14 @@ module "whoami_proxmox" {
 | Name | Version |
 | ---- | ------- |
 | <a name="provider_terraform"></a> [terraform](#provider\_terraform) | n/a |
+
+## Modules
+
+| Name | Source | Version |
+| ---- | ------ | ------- |
+| <a name="module_cloud_init"></a> [cloud\_init](#module\_cloud\_init) | ../cloud-init | n/a |
+| <a name="module_lxc"></a> [lxc](#module\_lxc) | ../../../compute/proxmox/lxc | n/a |
+| <a name="module_vm"></a> [vm](#module\_vm) | ../../../compute/proxmox/vm | n/a |
 
 ## Resources
 
