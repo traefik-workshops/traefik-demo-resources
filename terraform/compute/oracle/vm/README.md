@@ -15,7 +15,7 @@ creation. The module receives their results as opaque inputs.
 
 ```hcl
 module "vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/vm?ref=v6.1.6"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/vm?ref=v6.2.0"
 
   name           = "traefik"
   replicas       = 1

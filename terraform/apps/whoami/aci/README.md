@@ -8,7 +8,7 @@ Each group's Azure tags (dotted `traefik.*` keys, exactly like ECS docker labels
 
 ```hcl
 module "whoami_aci" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/aci?ref=v6.1.6"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/aci?ref=v6.2.0"
 
   resource_group_name = azurerm_resource_group.demo.name
   subnet_id           = module.vnet.aci_subnet_id # MUST be delegated to Microsoft.ContainerInstance

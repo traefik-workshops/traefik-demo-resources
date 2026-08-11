@@ -6,7 +6,7 @@ Provisions a Traefik `whoami` VM on Nutanix AHV via `compute/nutanix/vm`, with c
 
 ```hcl
 module "whoami_nutanix" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/nutanix?ref=v6.1.6"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/nutanix?ref=v6.2.0"
 
   vm_name     = "whoami-01"
   cluster_id  = var.nutanix_cluster_uuid

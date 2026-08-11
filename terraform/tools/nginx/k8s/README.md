@@ -6,7 +6,7 @@ Deploys NGINX on Kubernetes via Helm.
 
 ```hcl
 module "nginx" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/nginx/k8s?ref=v6.1.6"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/nginx/k8s?ref=v6.2.0"
 
   name      = "nginx"
   namespace = "nginx"

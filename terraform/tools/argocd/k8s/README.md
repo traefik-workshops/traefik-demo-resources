@@ -6,7 +6,7 @@ Deploys ArgoCD on Kubernetes via Helm with an explicit admin password and option
 
 ```hcl
 module "argocd" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/argocd/k8s?ref=v6.1.6"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/argocd/k8s?ref=v6.2.0"
 
   name           = "argocd"
   namespace      = "argocd"
