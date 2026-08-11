@@ -114,10 +114,10 @@ write_files:
       # host, which no gateway that fronts anything real should have.
       ExecStartPre=-/usr/bin/docker rm -f traefik-hub
       ExecStartPre=/usr/bin/docker pull ${preview_image}
-      ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data%{ if mount_docker_socket } -v /var/run/docker.sock:/var/run/docker.sock%{ endif } ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
+      ExecStart=/usr/bin/docker run --rm --name traefik-hub --network host --env-file /etc/traefik-hub/env -v /etc/traefik-hub/dynamic:/etc/traefik-hub/dynamic -v /data:/data%{ if mount_docker_socket } -v /var/run/docker.sock:/var/run/docker.sock%{ endif } ${preview_image} --hub.token=$${HUB_TOKEN} ${join(" ", [for a in cli_arguments : replace(a, "\\", "\\\\")])}
       ExecStop=-/usr/bin/docker stop traefik-hub
 %{ else ~}
-      ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", cli_arguments)}
+      ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", [for a in cli_arguments : replace(a, "\\", "\\\\")])}
 %{ endif ~}
       Restart=always
       RestartSec=10

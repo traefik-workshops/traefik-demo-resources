@@ -137,7 +137,7 @@ locals {
     [Service]
     Type=simple
     EnvironmentFile=-/etc/traefik-hub/env
-    ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", local.cli_arguments)}
+    ExecStart=/usr/local/bin/traefik-hub --hub.token=$${HUB_TOKEN} ${join(" ", [for a in local.cli_arguments : replace(a, "\\", "\\\\")])}
     Restart=always
     RestartSec=10
     LimitNOFILE=500000
