@@ -51,8 +51,12 @@ module "echo_services" {
   # does on every VM sibling. THIS is the leg with no recovery path: the whoami fork's
   # OTel SDK dials its endpoint at startup and an export that fails there stays failed
   # for the life of the task — the backend then emits no spans and the service map
-  # loses the whole leg while every route still serves 200. Gating it is safe
-  # precisely because nothing is built on top of a backend (contrast traefik/ecs,
-  # whose NLB address the hub consumes as its uplink).
+  # loses the whole leg while every route still serves 200.
+  #
+  # This used to say the backend was the ONLY leg safe to gate, contrasting traefik/ecs
+  # whose NLB the hub consumes. That contrast was wrong and traefik/ecs now gates too:
+  # a runtime sidecar adds no terraform edge, and the NLB exists whether or not any
+  # container starts. The backend is still the leg with the WORST failure — the SDK
+  # dials once at startup and never retries — but "worst" was mistaken for "only".
   otlp_gate_address = var.otlp_gate_address
 }

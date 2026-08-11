@@ -35,26 +35,42 @@ module "ecs" {
   name                = "traefik"
   extra_ingress_ports = var.extra_ingress_ports
 
-  # DELIBERATELY NOT GATED on the collector, unlike apps/whoami/ecs next door. The
-  # compute module supports it (otlp_gate_address); this caller must not use it.
+  # GATED, as of 2026-08-11. This comment previously forbade the gate on two grounds;
+  # a live measurement refuted one and the other conflated two different mechanisms.
+  # The history is kept because the distinction it gets wrong is subtle and expensive.
   #
-  # In the unified-ingress demos the HUB is built on top of this child — the parent
-  # consumes this task's NLB DNS name as its uplink address, and the hub is what
-  # brings the collector up in the first place. Blocking this container on the
-  # collector would make it wait for an endpoint that cannot exist until it starts.
+  # WHAT WAS MEASURED. aws-unified-ingress, 2026-08-11: ECS task up 14:50:29, the
+  # collector's DNS record published 15:13, and at 15:29:09 the gateway was STILL
+  # logging `lookup collector.<domain> on 10.0.0.2:53: no such host` — 39 minutes dark
+  # while all 15 acts passed. A forced restart closed the service map inside a minute.
   #
-  # That is the same shape as the terraform-side deadlock aws-unified-ingress shipped
-  # with at v1.3.3, where observability/dns-gate sat upstream of this module: the gate
-  # waited for a record whose publication it was itself blocking, and only a STALE
-  # record left over from a previous run ever let an apply through. Proven on the
-  # graph — `module.traefik.helm_release.traefik -> module.ecs_traefik.module.ecs.
-  # aws_lb.nlb` and `module.ecs_traefik (expand) -> module.otel_dns_gate (close)` —
-  # and the gate exits 1 on timeout, so on a genuinely cold domain the apply FAILS.
+  # WHY "the exporters recover on their own" IS NOT A DEFENCE. They do retry, and on
+  # azure-unified-ingress the ACI twin genuinely did recover. The difference is not the
+  # exporter, it is DNS: 10.0.0.2 is the VPC resolver, the first lookup lands before the
+  # record exists, and NXDOMAIN is NEGATIVELY CACHED for the zone's SOA MINIMUM — 1800s
+  # on traefik.ai. Every retry inside that window asks the cache, not the authority, so
+  # the retry loop cannot save a leg that asked too early. Whether a run recovers is
+  # therefore a race, and "it recovered on the cloud I happened to test" is exactly the
+  # evidence that makes a race look like a rule.
   #
-  # It also buys nothing here. Hub's own OTLP exporters retry on an interval and
-  # recover once the collector answers; the leg with no recovery path is the whoami
-  # backend, and nothing is built on top of a backend, so that one gates safely.
-  # Trace what consumes a container's outputs before gating it.
+  # WHY IT DOES NOT DEADLOCK. The old text collapsed two unrelated things. The TERRAFORM
+  # deadlock was real: at v1.3.3 observability/dns-gate sat upstream of this module and
+  # waited for a record whose publication it was itself blocking, so only a STALE record
+  # from a previous run ever let an apply through. `otlp_gate_address` is not that. It
+  # renders a NON-ESSENTIAL SIDECAR into the task definition with `dependsOn: COMPLETE`;
+  # it adds no module edge, and the NLB — which is what the hub consumes as its uplink
+  # address — exists the moment terraform creates it, whether or not any container ever
+  # starts. So the hub still gets its address, still comes up, and still brings up the
+  # collector the gate is waiting for. Nothing waits on itself.
+  #
+  # The gate also exits 0 on timeout by design, so the worst case it can produce is a
+  # gateway that starts late and reports late — never a task that never runs.
+  #
+  # ONE CONSTRAINT, and it is the whole reason this is safe: otlp_gate_address must be
+  # PLAN-KNOWN, i.e. built from the domain, never read off an attribute of the hub. A
+  # computed address would put a real edge back into the graph and reintroduce the
+  # deadlock this comment spent five years' worth of debugging learning to avoid.
+  otlp_gate_address = var.otlp_gate_address
 
   clusters = {
     traefik = {

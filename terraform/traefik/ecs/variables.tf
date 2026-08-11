@@ -377,3 +377,28 @@ variable "nutanix_provider" {
   }
   sensitive = true
 }
+
+variable "otlp_gate_address" {
+  description = <<-EOD
+    OTLP collector base URL (e.g. https://collector.example.com). When set, a non-essential
+    sidecar with `dependsOn: COMPLETE` holds this gateway's container until that endpoint
+    ACCEPTS an OTLP write. Empty disables the gate.
+
+    Set it whenever this gateway exports telemetry. An exporter whose FIRST export goes
+    into a void does not reliably recover: the lookup lands before the collector's DNS
+    record exists, NXDOMAIN is negatively cached for the zone's SOA MINIMUM (1800s on
+    traefik.ai), and every retry inside that window asks the cache rather than the
+    authority. Measured on aws-unified-ingress 2026-08-11 — task up 14:50:29, record
+    published 15:13, still resolving `no such host` at 15:29:09, 39 minutes dark while
+    every act passed. Whether a run recovers is a race, and a green service map without
+    this gate is luck rather than proof.
+
+    MUST BE PLAN-KNOWN. Build it from the domain; never read it off an attribute of the
+    hub. This gate adds no terraform edge — it renders into the task definition, and the
+    NLB the hub consumes as its uplink address exists whether or not any container starts
+    — but a COMPUTED address puts a real edge back into the graph and deadlocks the apply
+    with no cycle error, which neither `validate` nor `graph` will catch.
+  EOD
+  type        = string
+  default     = ""
+}

@@ -107,11 +107,25 @@ module "compute" {
   # until the gateway does. Bounded at 30 minutes rather than fatal, which makes it
   # worse, not better — it would look like a slow demo, not a broken one.
   #
-  # It is also not needed. Hub's own OTLP exporters retry on an interval and recover on
-  # their own once the collector answers: measured on azure-unified-ingress 2026-08-11,
-  # traefik-container reported telemetry on both the gated and ungated runs. The leg that
-  # cannot recover, and the one that has actually been missing from the service map, is
-  # the whoami backend — and nothing depends on IT, so it gates safely.
+  # The second half of that argument has since been REFUTED on a sibling cloud, and this
+  # module is left ungated only because nobody has re-measured it here. Read on before
+  # copying this reasoning anywhere.
+  #
+  # The old claim: Hub's own OTLP exporters retry and recover once the collector answers —
+  # measured on azure-unified-ingress 2026-08-11, traefik-container reported telemetry on
+  # both the gated and ungated runs. True, but it generalised a race into a rule. On
+  # aws-unified-ingress the same day the ECS gateway went 39 MINUTES dark and never
+  # recovered (task up 14:50:29, record published 15:13, still `no such host` at
+  # 15:29:09). The exporters are not the variable — DNS is. The first lookup lands before
+  # the record exists and NXDOMAIN is negatively cached for the zone's SOA MINIMUM (1800s
+  # on traefik.ai), so every retry inside that window asks the cache, not the authority.
+  # Azure recovered because its lookup fell the right side of that window.
+  #
+  # traefik/ecs is now gated on the strength of that measurement. The deadlock objection
+  # above does not survive either: a runtime gate adds no terraform edge, and the address
+  # the hub consumes as its uplink exists whether or not the container starts. What has
+  # NOT been done is a live re-measurement on ACI, so this stays ungated pending one
+  # rather than being changed on inference. See terraform/traefik/ecs.
 
   # The Hub image is scratch (no shell/cloud-init) — a secret volume carries the
   # file-provider config, no init sidecar needed (unlike ECS).

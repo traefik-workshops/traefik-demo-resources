@@ -56,8 +56,18 @@ locals {
   # An init container asks the only question that settles it, from inside the task's
   # own network: does this endpoint accept an OTLP write RIGHT NOW.
   #
-  # DO NOT arm this on a container the collector's own existence depends on -- see
-  # the README and traefik/ecs. Trace what consumes a container's outputs first.
+  # This is a RUNTIME gate and nothing more: a non-essential sidecar plus
+  # `dependsOn: COMPLETE`, rendered into the task definition. It adds NO terraform
+  # edge, so it cannot deadlock an apply the way a module-level gate can. Every
+  # caller here is safe to arm, including traefik/ecs, whose NLB the hub consumes as
+  # its uplink address -- that NLB exists the moment terraform creates it, whether or
+  # not any container ever starts.
+  #
+  # The one rule that does bind: the ADDRESS must be plan-known, built from the
+  # domain. A computed address -- one read off an attribute of the thing the gate is
+  # waiting for -- puts a real edge back into the graph and deadlocks with no cycle
+  # error, which neither `validate` nor `graph` catches. That failure is real and is
+  # why terraform/oci-ci gates at runtime instead; it is just not this mechanism.
   otlp_gate_enabled = var.otlp_gate_address != ""
 
   otlp_gate_script = local.otlp_gate_enabled ? templatefile(
