@@ -33,6 +33,18 @@
 
 terraform {
   required_version = ">= 1.5"
+
+  # null is declared, not inherited: tflint's terraform_required_providers rule fails a
+  # module that uses a provider without constraining it, and an unconstrained provider is
+  # a real hazard here rather than a formality -- this module's entire behaviour is one
+  # null_resource's local-exec, so a major-version drift underneath it changes what the
+  # gate does with no signal at all.
+  required_providers {
+    null = {
+      source  = "hashicorp/null"
+      version = "~> 3.0"
+    }
+  }
 }
 
 resource "null_resource" "gate" {
