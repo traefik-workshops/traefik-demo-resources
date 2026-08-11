@@ -6,7 +6,7 @@ Deploys the OpenTelemetry Collector via Helm, configured with per-backend pipeli
 
 ```hcl
 module "otel" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/opentelemetry/k8s?ref=v6.1.5"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/opentelemetry/k8s?ref=v6.1.6"
 
   name             = "opentelemetry"
   namespace        = "traefik-observability"

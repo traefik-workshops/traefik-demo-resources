@@ -8,7 +8,7 @@ Each instance's freeform tags (dotted `traefik.*` keys, exactly like ACI tags / 
 
 ```hcl
 module "whoami_oci_ci" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/oci-ci?ref=v6.1.5"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/oci-ci?ref=v6.1.6"
 
   compartment_id = var.compartment_id
   subnet_id      = module.oke.nodes_subnet_id

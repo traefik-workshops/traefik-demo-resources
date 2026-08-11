@@ -2,13 +2,13 @@
 
 A generic AI Gateway Helm chart for Traefik Hub
 
-- **Chart version:** `6.1.5` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `6.1.6` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `1.0.0`
 
 ## Install
 
 ```bash
-helm install my-ai-gateway oci://ghcr.io/traefik-workshops/ai-gateway --version 6.1.5
+helm install my-ai-gateway oci://ghcr.io/traefik-workshops/ai-gateway --version 6.1.6
 ```
 
 From source (for development against this repo):
@@ -36,8 +36,8 @@ See [`../AGENTS.md`](../AGENTS.md) for chart conventions and [the root `AGENTS.m
 
 | Name | Version | Repository | Condition |
 |------|---------|------------|-----------|
-| embeddings | `6.1.5` | `file://../embeddings` | `sharedMiddlewares.semanticCache.enabled` |
-| presidio | `6.1.5` | `file://../presidio` | `sharedMiddlewares.contentGuardPresidio.enabled` |
+| embeddings | `6.1.6` | `file://../embeddings` | `sharedMiddlewares.semanticCache.enabled` |
+| presidio | `6.1.6` | `file://../presidio` | `sharedMiddlewares.contentGuardPresidio.enabled` |
 | weaviate | `17.8.1` | `https://weaviate.github.io/weaviate-helm` | `sharedMiddlewares.semanticCache.enabled` |
 
 ## Values
