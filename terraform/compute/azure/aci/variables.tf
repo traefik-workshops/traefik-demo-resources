@@ -107,7 +107,7 @@ variable "common_tags" {
 }
 
 variable "otlp_gate_address" {
-  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an init container blocks the workload from starting until that endpoint ACCEPTS an OTLP write — the container-native form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that."
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an init container blocks the workload from starting until that endpoint ACCEPTS an OTLP write — the container-native form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, goes dark for 30-45 minutes before it recovers on its own — long enough to make the service map a coin flip, and terraform-side ordering cannot fix it."
   type        = string
   default     = ""
 }

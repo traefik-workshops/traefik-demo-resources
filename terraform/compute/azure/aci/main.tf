@@ -21,13 +21,22 @@ locals {
   #
   #   whoami-vm         gated    -> reports
   #   traefik-vm        gated    -> reports
-  #   traefik-container UNGATED  -> reports anyway (Hub's own exporter retries)
-  #   whoami-container  UNGATED  -> MISSING
+  #   traefik-container UNGATED  -> reports
+  #   whoami-container  UNGATED  -> reports ~30-45 MINUTES LATE, or not at all
   #
-  # The whoami fork's OTel SDK is the one exporter with no recovery path: pointed at
-  # a dead endpoint at startup it stays dark indefinitely, which the cloud-init
-  # snippet's own header records ("exporters that start against a dead endpoint were
-  # observed to stay dark long after it healed", aws-unified-ingress 2026-07).
+  # The last line is the important one, and it is a RACE, not a permanent failure --
+  # a correction to what an earlier revision of this comment claimed. Measured on
+  # azure-unified-ingress 2026-08-11: the group booted at 13:13:40 and its first
+  # export failed immediately; it was still failing every single export at 13:34:25;
+  # by roughly 14:00 it had recovered on its own and the service map came back
+  # complete. The run BEFORE it, capturing the map ~35 minutes after the same boot,
+  # came back MISSING whoami-container and failed.
+  #
+  # So the demo has been a coin flip decided by how long the harness happened to take
+  # to reach the assertion, which is worse than a clean failure: it is a demo that
+  # reports nothing for the first half hour somebody might be presenting it, and an
+  # assertion that passes or fails on timing rather than on wiring. The gate turns
+  # that coin flip into a certainty -- telemetry from the first request.
   #
   # Ordering terraform-side does NOT fix this and cannot. observability/dns-gate
   # blocks on the NAME resolving, and a name resolves perfectly well when it still

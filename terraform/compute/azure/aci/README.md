@@ -49,9 +49,16 @@ runs on first boot; containers just needed a different delivery, because the wor
 here are scratch and there is no cloud-init to hook.
 
 Why it is not optional in practice: an exporter that makes its first export against an
-endpoint that is not up yet stays dark, and the whoami fork's SDK has no recovery path at
-all. That is a leg that serves every request perfectly and reports nothing — routing tests
-pass over it, and it shows up only as a name missing from the service map.
+endpoint that is not up yet goes dark for **30–45 minutes** before it recovers on its own.
+Measured on azure-unified-ingress (2026-08-11): the ACI whoami booted at 13:13:40, failed
+every export through at least 13:34:25, and had healed by roughly 14:00.
+
+That is worse than a clean failure. The demo serves every request perfectly and reports
+nothing for the first half hour somebody might be presenting it, and the service-map
+assertion then passes or fails on how long the harness happened to take to reach it — the
+run before that one, sampling ~35 minutes after the same boot, came back missing
+`whoami-container` and failed. The gate replaces that coin flip with telemetry from the
+first request.
 
 **Do not gate a container the collector's own existence depends on.** In the unified-ingress
 demos the hub consumes the ACI *gateway's* private IP as its uplink address, and the hub is
@@ -120,7 +127,7 @@ No modules.
 | <a name="input_ip_address_type"></a> [ip\_address\_type](#input\_ip\_address\_type) | Container group IP address type. `Private` gives a vnet-injected IP (the default for these demo spokes); `Public` gives a public IP + FQDN. | `string` | `"Private"` | no |
 | <a name="input_location"></a> [location](#input\_location) | Azure location | `string` | `"eastus"` | no |
 | <a name="input_os_type"></a> [os\_type](#input\_os\_type) | Container group OS type | `string` | `"Linux"` | no |
-| <a name="input_otlp_gate_address"></a> [otlp\_gate\_address](#input\_otlp\_gate\_address) | OTLP collector base URL (e.g. https://collector.example.com). When set, an init container blocks the workload from starting until that endpoint ACCEPTS an OTLP write — the container-native form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. | `string` | `""` | no |
+| <a name="input_otlp_gate_address"></a> [otlp\_gate\_address](#input\_otlp\_gate\_address) | OTLP collector base URL (e.g. https://collector.example.com). When set, an init container blocks the workload from starting until that endpoint ACCEPTS an OTLP write — the container-native form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, goes dark for 30-45 minutes before it recovers on its own — long enough to make the service map a coin flip, and terraform-side ordering cannot fix it. | `string` | `""` | no |
 | <a name="input_otlp_gate_image"></a> [otlp\_gate\_image](#input\_otlp\_gate\_image) | Image the OTLP gate init container runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them. Defaults to an MCR image ON PURPOSE: ACI's anonymous pulls from Docker Hub are rate-limited, and a gate that cannot pull is a group that never starts. Measured 2026-08-11 on azure-unified-ingress, creating a group from curlimages/curl: 'RegistryErrorResponse: An error response is received from the docker registry index.docker.io'. MCR is Azure-native and imposes no such limit. | `string` | `"mcr.microsoft.com/azurelinux/base/core:3.0"` | no |
 | <a name="input_restart_policy"></a> [restart\_policy](#input\_restart\_policy) | Container group restart policy | `string` | `"Always"` | no |
 | <a name="input_volumes"></a> [volumes](#input\_volumes) | Secret volumes mounted into the container. Rendered by the caller (the Traefik child mounts its file-provider config as a secret volume; whoami mounts none). `secret` maps a file name to its base64-encoded content. | <pre>list(object({<br/>    name       = string<br/>    mount_path = string<br/>    secret     = map(string)<br/>  }))</pre> | `[]` | no |

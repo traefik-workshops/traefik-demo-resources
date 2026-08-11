@@ -66,6 +66,28 @@ resource "azurerm_network_interface_security_group_association" "vm" {
 resource "azurerm_linux_virtual_machine" "vm" {
   for_each = local.instances_map
 
+  # Ordered against the NSG association ON PURPOSE, and the reason is TEARDOWN.
+  #
+  # Deleting an association is not a delete at the Azure API — it is a NIC
+  # CreateOrUpdate that clears the NSG. Both this VM and the association hang off the
+  # same NIC and nothing else related them, so terraform destroyed them concurrently
+  # and the NIC update landed against a VM the platform had already accepted a delete
+  # for. azure-unified-ingress, 2026-08-11:
+  #
+  #   Error: updating Network Interface (... "whoami-1-nic"): polling after
+  #   CreateOrUpdate: Status: "OperationNotAllowed"
+  #   Message: "Operation 'startTenantUpdate' is not allowed on VM 'whoami-1' since
+  #   the VM is marked for deletion."
+  #
+  # That failure aborts the destroy with the AKS cluster, both VNets, the NSGs and the
+  # NICs still standing and BILLING, and the teardown auditor rightly fails the run.
+  #
+  # Making the VM depend on the association destroys the VM FIRST, to completion, and
+  # only then clears the NSG off an unattached NIC. The create direction improves too:
+  # the NIC is bound to the NSG before the VM boots behind it, rather than shortly
+  # after.
+  depends_on = [azurerm_network_interface_security_group_association.vm]
+
   name                = each.key
   resource_group_name = var.resource_group_name
   location            = var.location
