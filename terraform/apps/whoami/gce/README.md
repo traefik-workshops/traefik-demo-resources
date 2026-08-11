@@ -16,7 +16,7 @@ The label value is single-valued (no comma lists), so **one VM backs one service
 
 ```hcl
 module "whoami_gce" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/gce?ref=v6.1.4"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/gce?ref=v6.1.5"
 
   zone    = "us-central1-a"
   network = module.gke.network # or "default"

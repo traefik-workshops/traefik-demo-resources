@@ -8,7 +8,7 @@ Owns ONLY the container group resource. Everything role-specific is rendered by 
 
 ```hcl
 module "compute" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/aci?ref=v6.1.4"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/aci?ref=v6.1.5"
 
   resource_group_name = azurerm_resource_group.demo.name
   location            = "eastus"

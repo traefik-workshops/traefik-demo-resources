@@ -6,7 +6,7 @@ Provisions an Akamai/Linode Kubernetes Engine (LKE) cluster with optional GPU po
 
 ```hcl
 module "lke" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/akamai/lke?ref=v6.1.4"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/akamai/lke?ref=v6.1.5"
 
   cluster_name     = "demo"
   cluster_location = "us-sea"

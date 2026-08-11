@@ -1,12 +1,12 @@
 dependencies:
 - name: keycloak
   repository: file://../keycloak
-  version: 6.1.4
+  version: 6.1.5
 - name: hoppscotch
   repository: file://../hoppscotch
-  version: 6.1.4
+  version: 6.1.5
 - name: ai-gateway
   repository: file://../ai-gateway
-  version: 6.1.4
-digest: sha256:2f8da0ae9732bf0a65cace89a0380c2386c150e006c965ecce5f454bb96e72f6
-generated: "2026-08-10T21:08:24.165721-04:00"
+  version: 6.1.5
+digest: sha256:15a7fc02afc854e3200838172ac5cd8cbed6c24b0c1b38a74f952f88f12c3a71
+generated: "2026-08-10T22:11:01.470602-04:00"
