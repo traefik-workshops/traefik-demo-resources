@@ -96,6 +96,16 @@ module "compute" {
   # A private container group must declare every port it serves.
   exposed_ports = local.exposed_ports
 
+  # Wait for the collector before Traefik starts, exactly as traefik/azure-vm and
+  # every other VM sibling do through cloud-init. Hub's own exporter does eventually
+  # recover from a dead startup endpoint, so this leg was never the one MISSING from
+  # the service map — it was the one arriving ~30 minutes late, which is its own
+  # kind of broken for a demo somebody is about to present. var.otlp_address, not
+  # module.config.otlp_endpoint: the shared module substitutes an in-cluster default
+  # that means nothing here, and gating on it would block on a name ACI cannot
+  # resolve at all.
+  otlp_gate_address = var.otlp_address
+
   # The Hub image is scratch (no shell/cloud-init) — a secret volume carries the
   # file-provider config, no init sidecar needed (unlike ECS).
   volumes = var.file_provider_config != "" ? [{

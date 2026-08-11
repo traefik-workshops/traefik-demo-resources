@@ -105,3 +105,15 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "otlp_gate_address" {
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an init container blocks the workload from starting until that endpoint ACCEPTS an OTLP write — the container-native form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that."
+  type        = string
+  default     = ""
+}
+
+variable "otlp_gate_image" {
+  description = "Image the OTLP gate init container runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them."
+  type        = string
+  default     = "curlimages/curl:8.14.1"
+}

@@ -26,6 +26,17 @@ locals {
   groups_map = { for grp in local.groups : grp.key => grp }
 
   subnet_id = var.create_vnet ? module.vnet[0].aci_subnet_id : var.subnet_id
+
+  # Gate the container on its own exporter's destination. THIS is the leg that has
+  # been missing from the unified-ingress service map: whoami-vm reports (the
+  # cloud-init snippet waits for the collector on first boot) while whoami-container
+  # does not, because a scratch image on ACI had no equivalent and the fork's OTel
+  # SDK never recovers from a startup export against a dead endpoint.
+  #
+  # Read off the exporter env the caller already sets, so the gated endpoint and the
+  # exported-to endpoint are the same string by construction and cannot drift. A
+  # caller that ships no OTLP config gets no gate and no init container.
+  otlp_gate_address = try(var.environment["OTEL_EXPORTER_OTLP_ENDPOINT"], "")
 }
 
 # Escape hatch mirroring the azure-vm sibling — off by default; these
@@ -59,6 +70,9 @@ module "compute" {
   # every other compute passes it (k8s args, VM ExecStart). ACI `commands`
   # replaces the image ENTRYPOINT wholesale, so the binary path leads.
   commands = ["/whoami", "--verbose"]
+
+  # Do not let the exporter make its first export until the collector answers one.
+  otlp_gate_address = local.otlp_gate_address
 
   # Dotted-key traefik.* tags — the aci provider's workload config,
   # exactly like ECS docker labels.
