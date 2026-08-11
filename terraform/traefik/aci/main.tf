@@ -110,6 +110,25 @@ module "compute" {
     (var.name) = {
       ports = local.exposed_ports
       tags  = local.discovery_tags
+
+      # custom_envs reached module.config (below) and then went NOWHERE: nothing
+      # consumed its env_vars_list, so the container group rendered with no environment
+      # and every caller's custom_envs was silently dropped. Identical to the AWS ECS bug
+      # fixed in v6.1.7, and missed here in the same way.
+      #
+      # Live evidence from the AWS twin, 2026-08-11: traefik-container was the ONLY
+      # service in Tempo whose spans lacked resource.cloud.provider, while every other
+      # service carried it. azure-unified-ingress sets OTEL_RESOURCE_ATTRIBUTES through
+      # custom_envs on its ACI child, so it had the same hole -- and azure's ACI leg is
+      # exactly the one that went missing from the service map. Invisible to routing
+      # tests, which is why 15/15 passed straight over it.
+      #
+      # var.custom_envs rather than module.config.env_vars_list, matching the ECS
+      # sibling: this is a CONTAINER module on a scratch image, so the Hub token is
+      # inlined into the command rather than passed as env, and env_vars_list can carry
+      # Kubernetes valueFrom shapes that will not coerce to map(string). The VM modules
+      # (ec2, alibaba-ecs) use env_vars_list because they DO need HUB_TOKEN in the env.
+      environment_variables = { for e in var.custom_envs : e.name => e.value }
     }
   }
 }

@@ -256,6 +256,23 @@ module "ci" {
         command      = ["/traefik-hub"]
         arguments    = local.arguments
 
+        # custom_envs reached module.config (below) and then went NOWHERE: nothing
+        # consumed its env_vars_list, so the container rendered with no environment and
+        # every caller's custom_envs was silently dropped. Identical to the AWS ECS bug
+        # fixed in v6.1.7, and missed here in the same way.
+        #
+        # Live evidence from the AWS twin, 2026-08-11: traefik-container was the ONLY
+        # service in Tempo whose spans lacked resource.cloud.provider, while every other
+        # service carried it. Invisible to routing tests, which is why 15/15 passed
+        # straight over it.
+        #
+        # var.custom_envs rather than module.config.env_vars_list, matching the ECS
+        # sibling: this is a CONTAINER module on a scratch image, so the Hub token is
+        # inlined into the command rather than passed as env, and env_vars_list can carry
+        # Kubernetes valueFrom shapes that will not coerce to map(string). The VM modules
+        # (ec2, alibaba-ecs) use env_vars_list because they DO need HUB_TOKEN in the env.
+        environment_variables = { for e in var.custom_envs : e.name => e.value }
+
         # The Hub image is scratch (no shell/cloud-init) — CONFIGFILE volumes
         # carry the file-provider config and the OCI credentials, no init sidecar
         # needed (the ACI sibling's secret-volume pattern).
