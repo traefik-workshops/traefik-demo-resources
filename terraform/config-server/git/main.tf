@@ -41,9 +41,17 @@ resource "kubernetes_deployment_v1" "git" {
       }
       spec {
         container {
-          name              = "git"
-          image             = var.image
-          image_pull_policy = "IfNotPresent"
+          name  = "git"
+          image = var.image
+          # Always, because var.image defaults to a MUTABLE tag (:latest) of an image this repo
+          # builds itself. IfNotPresent made a rebuild invisible: any node holding a cached layer
+          # kept serving the stale image forever, and that is exactly how a build predating the
+          # raw-publish contract (post-receive checkout -> /config/<path>) stayed live long after
+          # the source gained it — the write path worked, so the repo looked healthy while every
+          # spoke's configEndpoint got a 404. Same convention as helm/dns-traefiker, the repo's
+          # other self-built image. Pin var.image to :vX.Y.Z or a @sha256 digest to make an apply
+          # reproducible; the extra pull is one small layer per pod start.
+          image_pull_policy = "Always"
           port {
             container_port = 80
           }

@@ -10,7 +10,7 @@ variable "namespace" {
 }
 
 variable "image" {
-  description = "The git-config-server image (built from terraform/config-server/git/image)."
+  description = "The git-config-server image (built from terraform/config-server/git/image). The default is a MUTABLE tag, so the Deployment pulls it Always — a rebuild has to actually reach the nodes, and a cached stale layer once served the git repo without the raw /config/ read path at all. Pin :vX.Y.Z (published alongside each library release) or a @sha256 digest for a reproducible apply."
   type        = string
   default     = "ghcr.io/traefik-workshops/git-config-server:latest"
 }

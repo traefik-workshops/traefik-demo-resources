@@ -21,6 +21,28 @@ module "config_server" {
 }
 ```
 
+## Rebuilding the image
+
+No CI builds this image — publish it by hand from [`./image`](./image), and **build it from this source**. The org image was once produced by re-tagging an older personal-namespace image rather than rebuilding, so it silently predated the read half above: pushes landed, `/config/<path>` 404'd, and every spoke's `configEndpoint` got nothing. Tag `:latest` **and** an immutable `:v<library-release>` so consumers can pin.
+
+```sh
+cd image
+docker buildx build --platform linux/amd64 --provenance=false \
+  -t ghcr.io/traefik-workshops/git-config-server:latest \
+  -t ghcr.io/traefik-workshops/git-config-server:vX.Y.Z --push .
+docker buildx imagetools inspect ghcr.io/traefik-workshops/git-config-server:latest # confirm registry-side
+```
+
+`linux/amd64` only — every hub cluster that runs this is x86 (GKE default nodes, OKE `VM.Standard.E4.Flex`, vSphere). A build that merely completes proves nothing; verify the read half against the pushed image before trusting it:
+
+```sh
+docker run -d --name gcs -p 18080:80 ghcr.io/traefik-workshops/git-config-server:latest
+git clone http://127.0.0.1:18080/config.git /tmp/cfg && mkdir -p /tmp/cfg/vm
+echo 'http: {}' > /tmp/cfg/vm/dynamic.yaml
+git -C /tmp/cfg add -A && git -C /tmp/cfg commit -qm sync && git -C /tmp/cfg push -q origin HEAD:main
+curl -i http://127.0.0.1:18080/config/vm/dynamic.yaml # MUST be 200 with that body, not 404
+```
+
 <!-- BEGIN_TF_DOCS -->
 
 
@@ -55,7 +77,7 @@ module "config_server" {
 | <a name="input_ingress_host"></a> [ingress\_host](#input\_ingress\_host) | Host the repo is served at — git.<domain>. Spokes clone https://<this>/config.git; terraform pushes to the same. | `string` | n/a | yes |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace to deploy into (the demo's traefik namespace, so it shares the hub's ingress). | `string` | n/a | yes |
 | <a name="input_files"></a> [files](#input\_files) | The config repo's desired content: repo path -> file content (e.g. { "vm/dynamic.yaml" = yamlencode(...) }). Non-empty makes terraform PUSH the tree on every content change — one commit replacing the repo's previous tree — and the post-receive hook publishes it raw at https://<ingress\_host>/config/<path>, which is what a Hub provider's configEndpoint polls. The push rides a kubectl port-forward straight to the Service, so it needs neither the git.<domain> DNS record nor the ingress cert to be ready — a fresh standup can push before dns-traefiker/ACME converge. This is the GitOps write path: changing routing intent re-runs only this push, never a gateway VM. | `map(string)` | `{}` | no |
-| <a name="input_image"></a> [image](#input\_image) | The git-config-server image (built from terraform/config-server/git/image). | `string` | `"ghcr.io/traefik-workshops/git-config-server:latest"` | no |
+| <a name="input_image"></a> [image](#input\_image) | The git-config-server image (built from terraform/config-server/git/image). The default is a MUTABLE tag, so the Deployment pulls it Always — a rebuild has to actually reach the nodes, and a cached stale layer once served the git repo without the raw /config/ read path at all. Pin :vX.Y.Z (published alongside each library release) or a @sha256 digest for a reproducible apply. | `string` | `"ghcr.io/traefik-workshops/git-config-server:latest"` | no |
 | <a name="input_ingress_entrypoint"></a> [ingress\_entrypoint](#input\_ingress\_entrypoint) | Traefik entrypoint the IngressRoute binds — the hub's public HTTPS entrypoint (websecure), so spokes reach it exactly like collector.<domain>. | `string` | `"websecure"` | no |
 | <a name="input_kubeconfig_context"></a> [kubeconfig\_context](#input\_kubeconfig\_context) | kubectl context for the IngressRoute local-exec apply and the config push port-forward — the ambient context the compute module merges (k3s-<vm\_name> / gke-<cluster> / oke-<cluster>). Empty = ambient default context (fine for a single demo; parallel standups MUST pin it). | `string` | `""` | no |
 | <a name="input_name"></a> [name](#input\_name) | Name for the git-config-server Deployment/Service/IngressRoute. | `string` | `"git-config-server"` | no |
