@@ -131,14 +131,38 @@ resource "null_resource" "resource_principal_dynamic_group" {
     EOT
   }
 
+  # Retried, and a failed LIST is never read as "already gone" — see the policy
+  # destroyer below for why both halves of that matter.
   provisioner "local-exec" {
     when    = destroy
     command = <<-EOT
       set -eu
-      id=$(oci iam dynamic-group list --region ${self.triggers.home_region} --compartment-id ${self.triggers.tenancy} --all --query "data[?name=='${self.triggers.name}'].id | [0]" --raw-output 2>/dev/null || true)
-      if [ -n "$id" ] && [ "$id" != "null" ]; then
-        oci iam dynamic-group delete --region ${self.triggers.home_region} --dynamic-group-id "$id" --force
-      fi
+      REGION='${self.triggers.home_region}'
+      TENANCY='${self.triggers.tenancy}'
+      NAME='${self.triggers.name}'
+
+      last=''
+      i=1
+      while [ $i -le 5 ]; do
+        if ! listed=$(oci iam dynamic-group list --region "$REGION" --compartment-id "$TENANCY" --all --query "data[?name=='$NAME'].id | [0]" --raw-output 2>&1); then
+          last="list failed: $listed"
+        elif [ -z "$listed" ] || [ "$listed" = "null" ]; then
+          exit 0
+        elif deleted=$(oci iam dynamic-group delete --region "$REGION" --dynamic-group-id "$listed" --force 2>&1); then
+          exit 0
+        else
+          last="delete failed: $deleted"
+        fi
+        echo "oci-ci: dynamic group '$NAME' not gone yet (attempt $i/5): $last" >&2
+        sleep $((i * 4))
+        i=$((i + 1))
+      done
+
+      echo "oci-ci: FAILED to delete tenancy dynamic group '$NAME' after 5 attempts." >&2
+      echo "oci-ci: last error: $last" >&2
+      echo "oci-ci: this is TENANCY-level IAM and survives the compartment teardown. Find it with:" >&2
+      echo "oci-ci:   oci iam dynamic-group list --region $REGION --compartment-id $TENANCY --all --query \"data[?name=='$NAME']\"" >&2
+      exit 1
     EOT
   }
 }
@@ -168,14 +192,54 @@ resource "null_resource" "resource_principal_policy" {
     EOT
   }
 
+  # Two failure modes, both of which used to end the same way — a destroy that
+  # reported success while tenancy IAM survived it.
+  #
+  # 1. The etag moves. This policy lives in the TENANCY ROOT, and the identity-domain
+  #    resources destroying alongside it write tenancy-scoped IAM too, so the policy
+  #    can change between the list and the delete and OCI answers 412 NoEtagMatch.
+  #    Seen live once on 2026-08-11 during certification; it cleared on the first
+  #    retry and did not recur across three later destroys. Re-listing each attempt
+  #    is what makes the retry meaningful — a stale OCID would just 412 again.
+  #
+  # 2. A failed LIST is not proof of absence. The old `|| true` collapsed "the API
+  #    would not answer" into "" and the `if [ -n "$id" ]` guard then skipped the
+  #    delete and exited 0. One throttle or a dropped connection was enough to leave
+  #    a tenancy policy behind AND call the teardown clean, which is precisely the
+  #    silent pass the auditors cannot see (they sweep the compartment, not the root).
+  #
+  # Bounded at 5 attempts with a 4s linear backoff, then it fails LOUDLY: a policy
+  # that genuinely cannot be deleted must fail the destroy.
   provisioner "local-exec" {
     when    = destroy
     command = <<-EOT
       set -eu
-      id=$(oci iam policy list --region ${self.triggers.home_region} --compartment-id ${self.triggers.tenancy} --all --query "data[?name=='${self.triggers.name}'].id | [0]" --raw-output 2>/dev/null || true)
-      if [ -n "$id" ] && [ "$id" != "null" ]; then
-        oci iam policy delete --region ${self.triggers.home_region} --policy-id "$id" --force
-      fi
+      REGION='${self.triggers.home_region}'
+      TENANCY='${self.triggers.tenancy}'
+      NAME='${self.triggers.name}'
+
+      last=''
+      i=1
+      while [ $i -le 5 ]; do
+        if ! listed=$(oci iam policy list --region "$REGION" --compartment-id "$TENANCY" --all --query "data[?name=='$NAME'].id | [0]" --raw-output 2>&1); then
+          last="list failed: $listed"
+        elif [ -z "$listed" ] || [ "$listed" = "null" ]; then
+          exit 0
+        elif deleted=$(oci iam policy delete --region "$REGION" --policy-id "$listed" --force 2>&1); then
+          exit 0
+        else
+          last="delete failed: $deleted"
+        fi
+        echo "oci-ci: policy '$NAME' not gone yet (attempt $i/5): $last" >&2
+        sleep $((i * 4))
+        i=$((i + 1))
+      done
+
+      echo "oci-ci: FAILED to delete tenancy policy '$NAME' after 5 attempts." >&2
+      echo "oci-ci: last error: $last" >&2
+      echo "oci-ci: this is TENANCY-level IAM and survives the compartment teardown. Find it with:" >&2
+      echo "oci-ci:   oci iam policy list --region $REGION --compartment-id $TENANCY --all --query \"data[?name=='$NAME']\"" >&2
+      exit 1
     EOT
   }
 }
