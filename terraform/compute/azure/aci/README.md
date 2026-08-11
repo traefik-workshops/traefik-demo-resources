@@ -53,6 +53,14 @@ endpoint that is not up yet stays dark, and the whoami fork's SDK has no recover
 all. That is a leg that serves every request perfectly and reports nothing — routing tests
 pass over it, and it shows up only as a name missing from the service map.
 
+**Do not gate a container the collector's own existence depends on.** In the unified-ingress
+demos the hub consumes the ACI *gateway's* private IP as its uplink address, and the hub is
+what brings the collector up — so gating that container makes it wait for an endpoint that
+cannot exist until it starts. Bounded at 30 minutes instead of fatal, which reads as a slow
+demo rather than a broken one and is harder to find. `traefik/aci` therefore leaves the gate
+off and says so; `apps/whoami/aci` turns it on, because nothing is built on top of a backend.
+Trace what consumes a container's outputs before gating it.
+
 **Terraform-side ordering does not substitute for this.** `observability/dns-gate` waits for
 the collector's DNS name to resolve, and a name resolves perfectly well while it still points
 at the *previous* run's load balancer: on azure-unified-ingress (2026-08-11) that gate

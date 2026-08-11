@@ -96,15 +96,22 @@ module "compute" {
   # A private container group must declare every port it serves.
   exposed_ports = local.exposed_ports
 
-  # Wait for the collector before Traefik starts, exactly as traefik/azure-vm and
-  # every other VM sibling do through cloud-init. Hub's own exporter does eventually
-  # recover from a dead startup endpoint, so this leg was never the one MISSING from
-  # the service map — it was the one arriving ~30 minutes late, which is its own
-  # kind of broken for a demo somebody is about to present. var.otlp_address, not
-  # module.config.otlp_endpoint: the shared module substitutes an in-cluster default
-  # that means nothing here, and gating on it would block on a name ACI cannot
-  # resolve at all.
-  otlp_gate_address = var.otlp_address
+  # DELIBERATELY NOT GATED on the collector, unlike apps/whoami/aci next door. The
+  # compute module supports it; this caller must not use it.
+  #
+  # In the unified-ingress demos the HUB is built on top of this child — the parent
+  # consumes this group's private IP as its uplink address — and the hub is what brings
+  # the collector up in the first place. Blocking this container on the collector
+  # therefore reproduces, at runtime, exactly the deadlock that gating this module in
+  # terraform produces at plan time: the gateway waits for an endpoint that cannot exist
+  # until the gateway does. Bounded at 30 minutes rather than fatal, which makes it
+  # worse, not better — it would look like a slow demo, not a broken one.
+  #
+  # It is also not needed. Hub's own OTLP exporters retry on an interval and recover on
+  # their own once the collector answers: measured on azure-unified-ingress 2026-08-11,
+  # traefik-container reported telemetry on both the gated and ungated runs. The leg that
+  # cannot recover, and the one that has actually been missing from the service map, is
+  # the whoami backend — and nothing depends on IT, so it gates safely.
 
   # The Hub image is scratch (no shell/cloud-init) — a secret volume carries the
   # file-provider config, no init sidecar needed (unlike ECS).
