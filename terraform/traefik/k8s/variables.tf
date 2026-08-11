@@ -67,6 +67,12 @@ variable "redis_password" {
   sensitive   = true
 }
 
+variable "redis_persistence" {
+  description = "Back the API Management Redis with a PersistentVolumeClaim (8Gi RWO) instead of emptyDir. Default FALSE — the claim is a real cloud disk that outlives `terraform destroy`, and this Redis holds only plan rate-limit/quota counters, never ACME certificates. See the note in ../../tools/redis/k8s/main.tf."
+  type        = bool
+  default     = false
+}
+
 variable "skip_crds" {
   description = "Skip CRD installation (for NKP/Kommander clusters with pre-installed CRDs)"
   type        = bool

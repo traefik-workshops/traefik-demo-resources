@@ -285,7 +285,11 @@ data "kubernetes_secret_v1" "dns_domain" {
   depends_on = [helm_release.dns_traefiker]
 }
 
-# Redis for API Management
+# Redis for API Management — the distributed store behind plan rate limits and quotas
+# ("RateLimit and Quota can be used only if the redis server is configured", Hub's own
+# plan middleware). NOT the certificate store: distributed ACME is configured with
+# `storage.kubernetes = true` in ../shared/helm_values.tf, and Hub accepts no Redis
+# ACME storage at all — so persistence off costs counters, never a re-issued cert.
 module "redis" {
   source = "../../tools/redis/k8s"
   count  = var.enable_api_management ? 1 : 0
@@ -294,4 +298,5 @@ module "redis" {
   namespace     = var.namespace
   password      = var.redis_password
   replica_count = var.replica_count
+  persistence   = var.redis_persistence
 }
