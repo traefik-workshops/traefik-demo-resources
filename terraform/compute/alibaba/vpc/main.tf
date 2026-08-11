@@ -80,8 +80,16 @@ resource "alicloud_nat_gateway" "demo" {
 resource "alicloud_eip_address" "nat" {
   count = var.enable_nat_gateway ? 1 : 0
 
-  address_name         = "${var.name}-nat-eip"
-  bandwidth            = "10"
+  address_name = "${var.name}-nat-eip"
+
+  # 200 Mbps, not the 10 Mbps default. `bandwidth` is a RATE CAP and with PayByTraffic it
+  # costs nothing to raise -- billing is per GB transferred either way. At 10 Mbps (1.25
+  # MB/s), shared by every vswitch, image pulls crawled: measured live 2026-08-11, keycloak
+  # 265 MB took 9m22s and prometheus 123 MB took 2m19s, so four Helm releases blew their
+  # 600s atomic deadline and rolled back -- the apply failed while egress was technically
+  # "working". It only surfaced once ACK stopped bringing its OWN NAT and EIP (the SNAT
+  # dual-ownership fix): before that the cluster had a second pipe hiding this one.
+  bandwidth            = "200"
   internet_charge_type = "PayByTraffic"
 }
 
