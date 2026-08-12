@@ -400,6 +400,64 @@ variable "use_distributed_acme" {
   default     = true
 }
 
+# Handing the previous cluster's ACME store back is what turns a rebuild into a RENEWAL
+# rather than a fresh order.
+#
+# `use_distributed_acme` puts Hub's ACME store in Kubernetes Secrets, and those Secrets die
+# with the cluster. Every apply therefore starts from an EMPTY store and places a brand new
+# order for the same names. Let's Encrypt counts that two ways and both bite:
+#
+#   * 5 certificates per 168h for one EXACT identifier set. aws-unified-ingress hit it on
+#     2026-08-11 and was un-runnable for fifteen hours — and it lands as every act curling
+#     000 against CN=TRAEFIK DEFAULT CERT, not as anything that reads like a quota.
+#   * 50 certificates per REGISTERED DOMAIN per week — traefik.ai, shared by the whole
+#     fleet and by anything else issued under it. A repeat order for a set that was already
+#     issued counts as a RENEWAL and is exempt from this one; a name nobody has ordered
+#     before is not. Minting a fresh subdomain per run dodges the first ceiling by spending
+#     the second.
+#
+# Seeding the store in front of the Helm release takes ACME out of the standup entirely:
+# Traefik finds a certificate that is still valid and only renews inside the last 30 days
+# of its 90-day life (getCertificateRenewDurations, traefik/pkg/provider/acme). Nothing is
+# ordered, nothing is counted, and the cold DNS-01 issuance every validation currently pays
+# stops eating the warmup budget.
+#
+# Deliberately a CACHE, never a dependency. Empty — the default — is exactly today's
+# behaviour, a cold issuance. A stale or mismatched entry is not a trap either: Traefik
+# falls through to ordering, and Hub deletes what it no longer wants on its next save
+# (SaveCertificates prunes anything outside the wanted set). A demo handed to an operator
+# who has no checkpoint still stands up, just slower — which is the point, because a
+# standup that silently needs state a previous operator made is worse than a slow one.
+#
+# The shape is "the Secrets as kubectl emits them" rather than a friendlier cert/key pair
+# because the store is Hub's, not ours: names, labels and data keys are all computed in
+# hub/pkg/hub/acme/kubernetes_store.go, and a checkpoint that round-trips verbatim cannot
+# drift from them. Matching the name matters only for tidiness — the store lists by LABEL,
+# so a restored Secret is read even under a foreign name, and Hub renames it on its first
+# save. Take a checkpoint off a healthy cluster with:
+#
+#   kubectl -n traefik get secret -l app.kubernetes.io/managed-by=traefik-hub \
+#     -o json | jq '[.items[]
+#       | select(.metadata.labels["app.kubernetes.io/component"]
+#                | test("^acme-(account|certificate)$"))
+#       | {name: .metadata.name, type: .type, labels: .metadata.labels, data: .data}]'
+#
+# `data` stays base64 all the way through, which is why it lands in `binary_data` below.
+#
+# NOT marked `sensitive`: Terraform rejects a sensitive value in `for_each`, and the
+# material is redacted regardless — the kubernetes provider marks `binary_data` sensitive
+# itself. It reaches the state file either way, next to the Hub token above.
+variable "acme_store_restore" {
+  description = "ACME store checkpoint taken off an earlier cluster, restored before Traefik starts so a rebuild serves the certificate it already holds instead of ordering a new one. Each element is one Hub-managed Secret verbatim — name, type, labels, and base64 data — as emitted by `kubectl get secret -l app.kubernetes.io/managed-by=traefik-hub -o json`. Empty (the default) is a normal cold ACME issuance."
+  type = list(object({
+    name   = string
+    type   = optional(string, "Opaque")
+    labels = map(string)
+    data   = map(string)
+  }))
+  default = []
+}
+
 # Dashboard
 variable "dashboard_entrypoints" {
   description = "Dashboard entry points"

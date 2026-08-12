@@ -206,6 +206,40 @@ resource "kubernetes_secret_v1" "traefik_hub_license" {
   }
 }
 
+# Restored ACME store — see var.acme_store_restore for why this exists at all.
+#
+# These have to be in place BEFORE the gateway starts, not after: Hub's KubernetesStore
+# reads through an informer whose initial list happens at startup, and Traefik decides
+# whether to order during that same pass. A Secret that lands afterwards is read, but only
+# once the order it was meant to prevent has already gone out.
+#
+# Ownership is left alone on purpose. Hub stamps each certificate Secret with an
+# ownerReference to the ACME account Secret, carrying that account's UID — a UID that
+# belonged to a cluster which no longer exists. Replaying it would point the garbage
+# collector at an owner it cannot find and the certificate would be deleted out from under
+# the gateway. Restoring without ownerReferences is safe: Hub re-establishes them the first
+# time it saves.
+resource "kubernetes_secret_v1" "acme_store_restore" {
+  for_each = { for s in var.acme_store_restore : s.name => s }
+
+  metadata {
+    name      = each.value.name
+    namespace = var.namespace
+    labels    = each.value.labels
+  }
+
+  type = each.value.type
+  # base64 in, base64 out — `data` would double-encode what kubectl already encoded.
+  binary_data = each.value.data
+
+  # Hub owns these once it is running: it renews the certificate in place and prunes
+  # entries it no longer wants. Terraform re-asserting the checkpoint on a later apply
+  # would roll a renewed certificate back to the one this run started with.
+  lifecycle {
+    ignore_changes = [binary_data, metadata[0].labels, metadata[0].annotations]
+  }
+}
+
 # File provider ConfigMap
 resource "kubernetes_config_map_v1" "traefik_dynamic_config" {
   count = var.file_provider_config != "" ? 1 : 0
@@ -243,6 +277,7 @@ resource "helm_release" "traefik" {
 
   depends_on = [
     kubernetes_secret_v1.traefik_hub_license,
+    kubernetes_secret_v1.acme_store_restore,
     kubernetes_config_map_v1.traefik_dynamic_config,
     null_resource.traefik_crds,
     helm_release.dns_traefiker

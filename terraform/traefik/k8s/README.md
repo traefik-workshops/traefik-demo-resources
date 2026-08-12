@@ -60,6 +60,7 @@ module "traefik" {
 | [helm_release.dns_traefiker](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [helm_release.traefik](https://registry.terraform.io/providers/hashicorp/helm/latest/docs/resources/release) | resource |
 | [kubernetes_config_map_v1.traefik_dynamic_config](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map_v1) | resource |
+| [kubernetes_secret_v1.acme_store_restore](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
 | [kubernetes_secret_v1.traefik_hub_license](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/secret_v1) | resource |
 | [null_resource.traefik_crds](https://registry.terraform.io/providers/hashicorp/null/latest/docs/resources/resource) | resource |
 | [kubernetes_secret_v1.dns_domain](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/data-sources/secret_v1) | data source |
@@ -70,6 +71,7 @@ module "traefik" {
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | Namespace for the Traefik Hub deployment | `string` | n/a | yes |
+| <a name="input_acme_store_restore"></a> [acme\_store\_restore](#input\_acme\_store\_restore) | ACME store checkpoint taken off an earlier cluster, restored before Traefik starts so a rebuild serves the certificate it already holds instead of ordering a new one. Each element is one Hub-managed Secret verbatim — name, type, labels, and base64 data — as emitted by `kubectl get secret -l app.kubernetes.io/managed-by=traefik-hub -o json`. Empty (the default) is a normal cold ACME issuance. | <pre>list(object({<br/>    name   = string<br/>    type   = optional(string, "Opaque")<br/>    labels = map(string)<br/>    data   = map(string)<br/>  }))</pre> | `[]` | no |
 | <a name="input_additional_volume_mounts"></a> [additional\_volume\_mounts](#input\_additional\_volume\_mounts) | Additional volume mounts for the Traefik container | `any` | `[]` | no |
 | <a name="input_additional_volumes"></a> [additional\_volumes](#input\_additional\_volumes) | Additional volumes to mount in the Traefik pod | `any` | `[]` | no |
 | <a name="input_cloudflare_dns"></a> [cloudflare\_dns](#input\_cloudflare\_dns) | Cloudflare DNS configuration for certificate resolver | <pre>object({<br/>    enabled           = optional(bool, false)<br/>    domain            = optional(string, "")<br/>    api_token         = optional(string, "")<br/>    extra_san_domains = optional(list(string), [])<br/>  })</pre> | <pre>{<br/>  "api_token": "",<br/>  "domain": "",<br/>  "enabled": false,<br/>  "extra_san_domains": []<br/>}</pre> | no |
