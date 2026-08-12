@@ -52,7 +52,7 @@ variable "security_group_ids" {
 }
 
 variable "otlp_gate_address" {
-  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, a sidecar blocks each whoami task from starting until that endpoint accepts an OTLP write. Set it whenever the tasks export telemetry: the whoami fork's exporter has no recovery path, so a task that starts against a collector that is not up yet — or against a stale DNS record still pointing at a destroyed load balancer — serves traffic perfectly and reports nothing. Empty disables the gate."
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, a sidecar blocks each whoami task from starting until that endpoint accepts an OTLP write. Set it whenever the tasks export telemetry: the whoami fork's exporter has no recovery path, so a task that starts against a collector that is not up yet — or against a stale DNS record still pointing at a destroyed load balancer — serves traffic perfectly and reports nothing. The gate FAILS CLOSED: after 2700s it exits non-zero and the `SUCCESS` dependency stops the task — which ECS then relaunches — instead of releasing a backend that would report nothing. Empty disables the gate."
   type        = string
   default     = ""
 }

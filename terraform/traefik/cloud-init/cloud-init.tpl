@@ -404,6 +404,17 @@ runcmd:
   - |
     # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
     ${indent(4, collector_gate)}
+    # Exhaustion is deliberately NOT fatal on a VM leg. cloud-init owns the rest of
+    # this boot -- `systemctl enable --now traefik-hub` is still below - so a gate
+    # that gives up must degrade this gateway to "starts, reports late", never to a
+    # half-provisioned VM with no Traefik on it. That is why the snippet parks its
+    # result in a variable rather than exiting: nothing reads $otlp_gate_status here
+    # except the line below, which only makes the choice audible in the console log.
+    #
+    # The container legs invert exactly this - compute/aws/ecs turns the same
+    # exhaustion into a failed task - because there "started anyway" means an
+    # exporter dark for the life of the task, with no second boot to put it right.
+    [ "$otlp_gate_status" -eq 0 ] || echo "otlp-gate: starting Traefik without a verified collector -- early telemetry from this host will be lost." >&2
 %{ endif ~}
 %{ for cmd in extra_runcmd ~}
   - |

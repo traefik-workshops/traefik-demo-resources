@@ -26,7 +26,7 @@ module "ecs" {
 ## The OTLP collector gate
 
 `otlp_gate_address` adds an `otlp-collector-gate` sidecar that every task's main container
-waits on (`dependsOn: COMPLETE`) until the collector accepts an OTLP write. It is the Fargate
+waits on (`dependsOn: SUCCESS`) until the collector accepts an OTLP write. It is the Fargate
 form of `cloud-init-snippets/otlp-collector-gate.sh.tpl`, which every VM leg in this library
 already runs at first boot; the container legs are scratch images with no cloud-init, so they
 were the only ones that started exporting into the void. An exporter pointed at an endpoint
@@ -34,12 +34,34 @@ that is not up yet stays dark, and the whoami fork's SDK has no recovery path at
 a leg that serves every request perfectly and reports nothing — routing tests pass over it,
 and it shows up only as a name missing from the service map.
 
-**Do not gate a container the collector's own existence depends on.** In the unified-ingress
-demos the hub consumes the ECS *gateway's* NLB address as its uplink, and the hub is what
-brings the collector up — so gating that container makes it wait for an endpoint that cannot
-exist until it starts. `traefik/ecs` therefore leaves the gate off and says so;
-`apps/whoami/ecs` turns it on, because nothing is built on top of a backend. Trace what
-consumes a container's outputs before gating it.
+**It fails closed, and the budget is why that is safe.** `otlp_gate_rounds` (default 270 ×
+10s = 45 min) has to outlast the 1800s SOA MINIMUM on `traefik.ai`, because that is how long a
+resolver may keep serving the NXDOMAIN it cached before the collector's record was published.
+The VM legs pass 180 rounds — exactly 1800s, no margin — and get away with it only because
+they ignore the outcome and boot regardless. Here the gate exits non-zero on exhaustion and
+`SUCCESS` turns that into a stopped task, so the budget has to be a real one.
+
+Exhaustion is therefore a restart, not a release, and that is not a crash loop: every failure
+path walks the whole budget before exiting, so one attempt costs 45 minutes, and ECS's own
+throttle stretches the gap between launches up to a documented 27-minute maximum while
+emitting `(service X) is unable to consistently start tasks successfully`. Retries continue
+indefinitely, so the run self-heals the moment the collector answers. The alternative —
+`COMPLETE` plus a gate that always exits 0 — releases the gateway on exhaustion, which is the
+one failure the gate exists to prevent, arrived at silently. Note the restart is not what
+re-resolves DNS: the gate re-resolves every 10 seconds anyway, and the negative cache lives in
+the VPC resolver, which outlives the task. What the restart buys is a fresh budget and a
+gateway that never starts exporting into a void.
+
+**Do not gate a container the collector's own existence depends on.** Trace what consumes a
+container's outputs before gating it. This warning used to name `traefik/ecs` as the container
+that must stay ungated, because the hub consumes its NLB address as an uplink. That was wrong,
+and `traefik/ecs` has gated since v6.2.6: the gate is a runtime sidecar rendered into the task
+definition, it adds no terraform edge, and the NLB exists the moment terraform creates it
+whether or not any container ever starts — so the hub still gets its address and still brings
+the collector up. The rule that does bind is that `otlp_gate_address` must be **plan-known**
+(built from the domain, never read off an attribute of the thing the gate waits for); a
+computed address puts a real edge back into the graph and deadlocks the apply with no cycle
+error, which neither `validate` nor `graph` catches.
 
 **Terraform-side ordering does not substitute for this.** `observability/dns-gate` waits for
 the collector's DNS name to resolve, and a name resolves perfectly well while it still points
@@ -95,8 +117,9 @@ deadlocks the apply outright and fails it at the timeout.
 | <a name="input_create_vpc"></a> [create\_vpc](#input\_create\_vpc) | Create VPC if vpc\_id is not provided | `bool` | `true` | no |
 | <a name="input_enable_nat_gateway"></a> [enable\_nat\_gateway](#input\_enable\_nat\_gateway) | Create a NAT gateway in the VPC (only when create\_vpc = true). Defaults false — Fargate tasks run in PUBLIC subnets with assign\_public\_ip (IGW egress), so the NAT (which only serves the unused private subnets) is pure cost. | `bool` | `false` | no |
 | <a name="input_extra_ingress_ports"></a> [extra\_ingress\_ports](#input\_extra\_ingress\_ports) | Additional TCP ports to open on the created VPC's security group (only when create\_vpc = true). E.g. [9443] for a Hub multicluster uplink entrypoint fronted by an NLB. | `list(number)` | `[]` | no |
-| <a name="input_otlp_gate_address"></a> [otlp\_gate\_address](#input\_otlp\_gate\_address) | OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. Do NOT set it on a container the collector's own existence depends on (see README). | `string` | `""` | no |
+| <a name="input_otlp_gate_address"></a> [otlp\_gate\_address](#input\_otlp\_gate\_address) | OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. This gate FAILS CLOSED: the dependency is `SUCCESS`, so a gate that exhausts `otlp_gate_rounds` stops the task instead of releasing a workload that would report nothing. Do NOT set it on a container the collector's own existence depends on (see README). | `string` | `""` | no |
 | <a name="input_otlp_gate_image"></a> [otlp\_gate\_image](#input\_otlp\_gate\_image) | Image the OTLP gate sidecar runs. Needs only a shell and curl — the workload images (Hub, whoami) are scratch, which is why the probe cannot live inside them. Defaults to an ECR Public image, NOT Docker Hub: anonymous Docker Hub pulls are rate-limited per source IP, every Fargate task in these demos egresses through one shared NAT gateway, and a gate that cannot pull is a task that never starts — a worse failure than the missing telemetry it prevents. The ACI twin hit exactly that with curlimages/curl (RegistryErrorResponse from index.docker.io, first try, 2026-08-11). | `string` | `"public.ecr.aws/amazonlinux/amazonlinux:2023"` | no |
+| <a name="input_otlp_gate_rounds"></a> [otlp\_gate\_rounds](#input\_otlp\_gate\_rounds) | How many 10-second rounds the OTLP gate waits before giving up. Default 270 = 2700s = 45 minutes. Only meaningful when `otlp_gate_address` is set. The number to beat is 1800s: the SOA MINIMUM on traefik.ai, and therefore the longest a resolver may keep serving the NXDOMAIN it cached before dns-traefiker published the collector's record. The VM callers of the shared snippet pass 180 rounds — exactly 1800s, a budget with no margin by construction, expiring in the same breath as the cache it exists to outlast — and can only afford that because they ignore the result and boot anyway. This module cannot, because here exhaustion fails the task. 270 covers one full negative-cache window plus 900s: it absorbs the worst publication delay measured on aws-unified-ingress (record published 1350s after the task started, 2026-08-11) and leaves 1440s over the worst gate consumption actually observed (126/180 = 1260s on the aws-v6 run). It deliberately does NOT try to cover a second consecutive cache window — exhaustion restarts the task, each restart gets a fresh full budget, and ECS retries indefinitely, so the budget only has to cover the common worst case. A larger number would mostly delay the first signal that something is genuinely broken rather than merely slow. | `number` | `270` | no |
 | <a name="input_security_group_ids"></a> [security\_group\_ids](#input\_security\_group\_ids) | List of security group IDs | `list(string)` | `[]` | no |
 | <a name="input_subnet_ids"></a> [subnet\_ids](#input\_subnet\_ids) | List of subnet IDs | `list(string)` | `[]` | no |
 | <a name="input_task_role_arn"></a> [task\_role\_arn](#input\_task\_role\_arn) | IAM role ARN the task's containers assume (the task role — distinct from the execution role), e.g. so an in-task Traefik ECS provider can call the AWS ECS API. Empty = no task role. | `string` | `""` | no |

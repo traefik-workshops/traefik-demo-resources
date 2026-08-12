@@ -131,9 +131,15 @@ variable "task_role_arn" {
 }
 
 variable "otlp_gate_address" {
-  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. Do NOT set it on a container the collector's own existence depends on (see README)."
+  description = "OTLP collector base URL (e.g. https://collector.example.com). When set, an `otlp-collector-gate` sidecar blocks every task's main container from starting until that endpoint ACCEPTS an OTLP write — the Fargate form of cloud-init-snippets/otlp-collector-gate.sh.tpl, which every VM leg already runs. Empty disables the gate. Set it whenever the workload exports telemetry: a container that starts against a collector that is not up yet, or against a stale DNS record still pointing at a destroyed load balancer, stays dark — and terraform-side ordering cannot fix that. This gate FAILS CLOSED: the dependency is `SUCCESS`, so a gate that exhausts `otlp_gate_rounds` stops the task instead of releasing a workload that would report nothing. Do NOT set it on a container the collector's own existence depends on (see README)."
   type        = string
   default     = ""
+}
+
+variable "otlp_gate_rounds" {
+  description = "How many 10-second rounds the OTLP gate waits before giving up. Default 270 = 2700s = 45 minutes. Only meaningful when `otlp_gate_address` is set. The number to beat is 1800s: the SOA MINIMUM on traefik.ai, and therefore the longest a resolver may keep serving the NXDOMAIN it cached before dns-traefiker published the collector's record. The VM callers of the shared snippet pass 180 rounds — exactly 1800s, a budget with no margin by construction, expiring in the same breath as the cache it exists to outlast — and can only afford that because they ignore the result and boot anyway. This module cannot, because here exhaustion fails the task. 270 covers one full negative-cache window plus 900s: it absorbs the worst publication delay measured on aws-unified-ingress (record published 1350s after the task started, 2026-08-11) and leaves 1440s over the worst gate consumption actually observed (126/180 = 1260s on the aws-v6 run). It deliberately does NOT try to cover a second consecutive cache window — exhaustion restarts the task, each restart gets a fresh full budget, and ECS retries indefinitely, so the budget only has to cover the common worst case. A larger number would mostly delay the first signal that something is genuinely broken rather than merely slow."
+  type        = number
+  default     = 270
 }
 
 variable "otlp_gate_image" {

@@ -47,11 +47,14 @@ module "echo_services" {
   security_group_ids = var.security_group_ids
   common_labels      = var.common_labels
 
-  # Wait for the collector before whoami starts, exactly as apps/whoami/cloud-init
-  # does on every VM sibling. THIS is the leg with no recovery path: the whoami fork's
-  # OTel SDK dials its endpoint at startup and an export that fails there stays failed
-  # for the life of the task — the backend then emits no spans and the service map
-  # loses the whole leg while every route still serves 200.
+  # Wait for the collector before whoami starts, as apps/whoami/cloud-init does on every
+  # VM sibling — with one deliberate difference: the VM form starts the backend anyway
+  # when its budget runs out, because cloud-init owns the rest of that boot, while this
+  # one exits non-zero and lets `dependsOn: SUCCESS` stop the task. THIS is the leg with
+  # no recovery path: the whoami fork's OTel SDK dials its endpoint at startup and an
+  # export that fails there stays failed for the life of the task — the backend then
+  # emits no spans and the service map loses the whole leg while every route still
+  # serves 200. "Start it anyway" is not a degradation here, it is the failure.
   #
   # This used to say the backend was the ONLY leg safe to gate, contrasting traefik/ecs
   # whose NLB the hub consumes. That contrast was wrong and traefik/ecs now gates too:

@@ -88,7 +88,7 @@ locals {
     # Shared cloud-init snippets, rendered here and injected pre-rendered
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
     docker_install = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
-    collector_gate = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint }) : ""
+    collector_gate = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint, rounds = 180 }) : ""
     # Not offered by this module: only a guest whose ROOT is too small for the
     # container engine needs one. The key must still be passed — templatefile
     # hard-errors on a key the template uses but the caller omits, which is how

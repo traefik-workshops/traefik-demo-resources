@@ -8,10 +8,37 @@ text is never re-interpolated by the outer template.
 
 - `docker-install.sh.tpl` — the dnf/yum/apt install matrix (an apt-only
   install silently broke Amazon Linux spokes, 2026-07). No variables.
-- `otlp-collector-gate.sh.tpl` — the bounded 30-min wait for the OTel
-  collector to accept OTLP writes before starting telemetry-emitting services
-  (exporters that start against a dead endpoint stay dark). Variables:
-  `otlp_address`.
+- `otlp-collector-gate.sh.tpl` — the bounded wait for the OTel collector to
+  accept OTLP writes before starting telemetry-emitting services (exporters
+  that start against a dead endpoint stay dark). Variables: `otlp_address`,
+  `rounds` (× 10s). `compute/aws/ecs` renders it too, as a Fargate sidecar
+  rather than into cloud-init.
+
+## The gate's contract
+
+It defines `otlp_collector_gate()`, calls it once, and leaves the verdict in
+`$otlp_gate_status` (0 = the collector accepted a write, 1 = budget exhausted,
+loudly on stderr). It NEVER runs `exit`, and its last statement is an
+assignment, so the snippet always ends with status 0. That is deliberate: on
+the VM legs this text is pasted inline into a cloud-init `runcmd` entry, where
+an `exit` would abandon the rest of the boot — the gateway's own `systemctl
+enable --now traefik-hub` runs after it.
+
+Callers decide what exhaustion means, and the two families differ on purpose:
+
+- The cloud-init templates read `$otlp_gate_status` only to log it and carry
+  on. A collector that never arrives must degrade a VM to "boots, reports
+  late", never to a half-provisioned host with no gateway on it.
+- `compute/aws/ecs` appends `exit $otlp_gate_status` and pairs it with
+  `dependsOn: SUCCESS`, so an exhausted gate stops the task. There, "started
+  anyway" means an exporter dark for the life of the task with no second boot
+  to put it right — failing open is the failure, not the fallback.
+
+Pick `rounds` against 1800s: the SOA MINIMUM on `traefik.ai`, and therefore
+the longest a resolver may keep serving a cached NXDOMAIN for a record that
+has since been published. The VM legs pass 180 — exactly 1800s, no margin —
+which is only survivable because they fail open. Any caller that makes
+exhaustion fatal must budget past it (ECS uses 270 = 2700s).
 
 Editing a snippet re-renders every VM's user_data (the proxmox snippet
 filename embeds its md5 → gateway VM replacement on next apply). Treat edits

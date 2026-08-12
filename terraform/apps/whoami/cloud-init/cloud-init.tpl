@@ -70,6 +70,12 @@ runcmd:
   - |
     # Shared snippet: terraform/cloud-init-snippets/otlp-collector-gate.sh.tpl.
     ${indent(4, collector_gate)}
+    # Deliberately non-fatal here, unlike the ECS twin of this backend. cloud-init
+    # owns the rest of this boot (whoami.service is enabled below), so an exhausted
+    # gate must leave a VM that serves traffic and reports late, not a VM with no
+    # backend on it. The snippet never exits for that reason - it leaves its result
+    # in $otlp_gate_status, and only this line reads it.
+    [ "$otlp_gate_status" -eq 0 ] || echo "otlp-gate: starting whoami without a verified collector -- early spans from this host will be lost." >&2
 %{ endif ~}
 
   # Start Service

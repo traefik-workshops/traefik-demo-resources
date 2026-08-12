@@ -381,8 +381,14 @@ variable "nutanix_provider" {
 variable "otlp_gate_address" {
   description = <<-EOD
     OTLP collector base URL (e.g. https://collector.example.com). When set, a non-essential
-    sidecar with `dependsOn: COMPLETE` holds this gateway's container until that endpoint
+    sidecar with `dependsOn: SUCCESS` holds this gateway's container until that endpoint
     ACCEPTS an OTLP write. Empty disables the gate.
+
+    The gate FAILS CLOSED. It waits 2700s — deliberately longer than the 1800s negative-cache
+    window described below — and then exits non-zero, which under SUCCESS stops the task
+    rather than releasing a gateway that would export into a void. ECS relaunches it, so the
+    run converges when the collector answers; see compute/aws/ecs for why one attempt per
+    45-72 minutes is self-healing rather than a crash loop.
 
     Set it whenever this gateway exports telemetry. An exporter whose FIRST export goes
     into a void does not reliably recover: the lookup lands before the collector's DNS

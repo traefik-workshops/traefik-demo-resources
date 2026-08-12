@@ -57,7 +57,7 @@ locals {
   # own network: does this endpoint accept an OTLP write RIGHT NOW.
   #
   # This is a RUNTIME gate and nothing more: a non-essential sidecar plus
-  # `dependsOn: COMPLETE`, rendered into the task definition. It adds NO terraform
+  # `dependsOn: SUCCESS`, rendered into the task definition. It adds NO terraform
   # edge, so it cannot deadlock an apply the way a module-level gate can. Every
   # caller here is safe to arm, including traefik/ecs, whose NLB the hub consumes as
   # its uplink address -- that NLB exists the moment terraform creates it, whether or
@@ -72,29 +72,78 @@ locals {
 
   otlp_gate_script = local.otlp_gate_enabled ? templatefile(
     "${path.module}/../../../cloud-init-snippets/otlp-collector-gate.sh.tpl",
-    { otlp_address = var.otlp_gate_address }
+    { otlp_address = var.otlp_gate_address, rounds = var.otlp_gate_rounds }
   ) : ""
 
+  # The snippet never calls `exit` -- on the VM legs it is pasted straight into a
+  # cloud-init runcmd script, where an exit would abandon the rest of the boot -- so
+  # it parks its verdict in $otlp_gate_status and lets each caller decide what
+  # exhaustion means. THIS caller makes it fatal: `sh -c` exits with whatever its
+  # last statement returns, so an exhausted gate exits non-zero and the SUCCESS
+  # dependency below can never be satisfied.
+  otlp_gate_command = local.otlp_gate_enabled ? ["/bin/sh", "-c", join("\n", [
+    local.otlp_gate_script,
+    "exit $otlp_gate_status",
+  ])] : []
+
   # ECS runs a container marked non-essential to completion alongside the task, and
-  # `dependsOn: COMPLETE` is what holds the main container until it exits -- the same
+  # the dependency below is what holds the main container until it exits -- the same
   # ordering ACI gets from a native init_container. The gate image only has to carry
   # a shell and curl; the workload images here are scratch, which is why the probe
   # cannot live in the container it protects.
   otlp_gate_sidecars = local.otlp_gate_enabled ? [{
-    name  = "otlp-collector-gate"
-    image = var.otlp_gate_image
-    # Always exits 0 -- bounded, then it gives up deliberately. A non-zero exit would
-    # make ECS treat the task as failed and restart it forever, which is the wrong
-    # failure: "runs, reports late" beats "never runs".
-    command      = ["/bin/sh", "-c", local.otlp_gate_script]
+    name         = "otlp-collector-gate"
+    image        = var.otlp_gate_image
+    command      = local.otlp_gate_command
     essential    = false
     environment  = {}
     mount_points = []
   }] : []
 
+  # SUCCESS, NOT COMPLETE -- and this reverses what this file used to say, so here is
+  # the argument in full.
+  #
+  # COMPLETE only requires the gate to EXIT; SUCCESS requires it to exit ZERO (AWS:
+  # "the same as COMPLETE, but it also requires that the container exits with a zero
+  # status"). Under COMPLETE plus a gate that always exited 0, an exhausted gate
+  # released the gateway anyway. That is failing OPEN: the exact outcome the gate was
+  # built to prevent, arrived at silently, and indistinguishable in the task list from
+  # a gate that worked.
+  #
+  # The old comment here argued the other way -- "a non-zero exit would make ECS treat
+  # the task as failed and restart it forever, which is the wrong failure: 'runs,
+  # reports late' beats 'never runs'." Two things were wrong with it.
+  #
+  # 1. "Reports late" was never on offer for THESE images. The whoami fork's SDK dials
+  #    once at startup and never recovers; a released-but-dark task reports NEVER. The
+  #    choice was never late-vs-never, it was never-and-invisible vs stopped-and-loud.
+  #
+  # 2. "Restart it forever" assumes a crash loop, and this cannot be one. Every failure
+  #    path in the snippet walks the entire budget before returning -- a missing curl
+  #    exits 127 just as slowly as a dead endpoint times out -- so one attempt costs
+  #    otlp_gate_rounds x 10s (45 minutes at the default). On top of that the ECS
+  #    service scheduler throttles tasks that stop without ever reaching RUNNING,
+  #    stretching the gap between launches to a documented maximum of 27 minutes and
+  #    emitting `(service X) is unable to consistently start tasks successfully`. The
+  #    steady state is therefore roughly one task launch per 45-72 minutes, visible in
+  #    the service events -- not a hot loop, and a rounding error against the NAT and
+  #    load balancer this demo is already paying for.
+  #
+  # What the restart does and does NOT buy. It does not flush any DNS cache: the loop
+  # already re-resolves every 10 seconds, and the NXDOMAIN that starts this whole
+  # problem is cached in the VPC resolver, which is shared and outlives the task. What
+  # a restart buys is a fresh full budget and, above all, a gateway that never starts
+  # exporting into a void. Retries continue indefinitely, so the moment the collector
+  # does answer, the next attempt releases the gateway and the service converges with
+  # nobody touching it.
+  #
+  # The apply is not affected either way: aws_ecs_service does not wait for steady
+  # state here, so exhaustion surfaces as a service stuck below its desired count with
+  # that event attached -- loud, attributable, and cheap to read -- rather than as a
+  # green terraform run over a demo that quietly reports nothing.
   otlp_gate_depends_on = local.otlp_gate_enabled ? [{
     name      = "otlp-collector-gate"
-    condition = "COMPLETE"
+    condition = "SUCCESS"
   }] : []
 
   # Convert to map for for_each with global index for even distribution
@@ -105,6 +154,14 @@ locals {
       # Appended, never replacing: traefik/ecs already ships a config-init sidecar the
       # main container depends on, and dropping that would leave Traefik with no
       # dynamic configuration at all.
+      #
+      # The gate lands LAST in the dependency list, which used to matter: agents
+      # before 1.44.4 (and again before 1.61.2) returned on the first unresolved
+      # dependency instead of checking the rest, so a failing SUCCESS dependency
+      # listed after an unresolved one left the task PENDING forever instead of
+      # stopping it (aws/amazon-ecs-agent#2579). Fargate's managed agent is long past
+      # both fixes, and the dependency ahead of the gate here is a config-init that
+      # exits within seconds regardless -- but that is why the order is not arbitrary.
       sidecars   = concat(svc.sidecars, local.otlp_gate_sidecars)
       depends_on = concat(svc.depends_on, local.otlp_gate_depends_on)
     })

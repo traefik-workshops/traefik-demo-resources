@@ -57,14 +57,21 @@ module "ecs" {
   # deadlock was real: at v1.3.3 observability/dns-gate sat upstream of this module and
   # waited for a record whose publication it was itself blocking, so only a STALE record
   # from a previous run ever let an apply through. `otlp_gate_address` is not that. It
-  # renders a NON-ESSENTIAL SIDECAR into the task definition with `dependsOn: COMPLETE`;
+  # renders a NON-ESSENTIAL SIDECAR into the task definition with `dependsOn: SUCCESS`;
   # it adds no module edge, and the NLB — which is what the hub consumes as its uplink
   # address — exists the moment terraform creates it, whether or not any container ever
   # starts. So the hub still gets its address, still comes up, and still brings up the
   # collector the gate is waiting for. Nothing waits on itself.
   #
-  # The gate also exits 0 on timeout by design, so the worst case it can produce is a
-  # gateway that starts late and reports late — never a task that never runs.
+  # THE GATE FAILS CLOSED, and that is a change from what this comment used to promise.
+  # It used to say the gate exits 0 on timeout by design, so the worst case was a
+  # gateway that started late and reported late. That was the wrong worst case twice
+  # over: this exporter does not report late, it reports never; and a 1800s budget
+  # against an 1800s negative-cache TTL meant "timeout" was a routine outcome rather
+  # than evidence of a fault. compute/aws/ecs now waits 2700s and then FAILS the task,
+  # so an exhausted gate stops this gateway instead of releasing a dark one. ECS
+  # relaunches it — roughly once an hour once its throttle engages, with the failure on
+  # the service's event stream — and the run converges the moment the collector answers.
   #
   # ONE CONSTRAINT, and it is the whole reason this is safe: otlp_gate_address must be
   # PLAN-KNOWN, i.e. built from the domain, never read off an attribute of the hub. A
