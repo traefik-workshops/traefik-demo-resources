@@ -6,7 +6,7 @@ Provisions an Oracle Kubernetes Engine (OKE) cluster with optional extra node po
 
 ```hcl
 module "oke" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/oke?ref=v6.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/oracle/oke?ref=v6.2.8"
 
   cluster_name     = "demo"
   cluster_location = "us-chicago-1"

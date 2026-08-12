@@ -6,7 +6,7 @@ Provisions a Nutanix Kubernetes Platform (NKP) cluster end-to-end: bastion VM, c
 
 ```hcl
 module "nkp" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp?ref=v6.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp?ref=v6.2.8"
 
   cluster_name                       = "demo"
   nutanix_cluster_id                 = var.cluster_uuid

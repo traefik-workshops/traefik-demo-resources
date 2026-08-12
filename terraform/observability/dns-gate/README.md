@@ -66,7 +66,7 @@ dependency that does not exist.
 
 ```hcl
 module "otel_dns_gate" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/dns-gate?ref=v6.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/dns-gate?ref=v6.2.8"
 
   hostname    = trimprefix(local.otel_collector_public, "https://")
   upstream_id = module.eks.cluster_endpoint
@@ -77,7 +77,7 @@ module "otel_dns_gate" {
 }
 
 module "spoke_whoami" {
-  source     = "...//terraform/apps/whoami/ec2?ref=v6.2.0"
+  source     = "...//terraform/apps/whoami/ec2?ref=v6.2.8"
   depends_on = [module.otel_dns_gate]
   # ...
 }

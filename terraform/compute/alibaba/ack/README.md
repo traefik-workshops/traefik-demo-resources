@@ -8,13 +8,13 @@ ACK kubeconfigs are **client-certificate based** — the credential outputs mirr
 
 ```hcl
 module "vpc" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/vpc?ref=v6.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/vpc?ref=v6.2.8"
 
   name = "traefik-demo"
 }
 
 module "ack" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/ack?ref=v6.2.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/ack?ref=v6.2.8"
 
   cluster_name = "traefik-demo"
   vswitch_ids  = module.vpc.vswitch_ids
