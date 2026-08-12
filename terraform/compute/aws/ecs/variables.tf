@@ -147,3 +147,9 @@ variable "otlp_gate_image" {
   type        = string
   default     = "public.ecr.aws/amazonlinux/amazonlinux:2023"
 }
+
+variable "otlp_gate_verify_tls" {
+  description = "Whether the OTLP gate VERIFIES the collector's certificate. Default true, and it must stay true wherever the gate is authoritative: `-k` is satisfied by any server that answers, including one still presenting Traefik's own self-signed cert during the ACME window, and including the PREVIOUS run's load balancer at a stale DNS record. The workload's OTel SDK verifies, so an unverified probe releases it into x509 failures it cannot recover from -- measured on the ACI twin 2026-08-11, where an insecure gate passed on its first attempt and the workload it released logged 62 consecutive `tls: failed to verify certificate` errors over the next five minutes. Set false ONLY if you point otlp_gate_image at an image with no CA bundle, where verification can never succeed and the gate would burn its whole budget; the default image (public.ecr.aws/amazonlinux/amazonlinux:2023) ships curl plus a 218KB bundle and verifies a public endpoint with no install step (checked 2026-08-12)."
+  type        = bool
+  default     = true
+}

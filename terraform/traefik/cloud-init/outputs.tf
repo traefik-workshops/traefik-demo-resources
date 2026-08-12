@@ -4,7 +4,7 @@ output "rendered" {
     # Shared cloud-init snippets, rendered here and injected pre-rendered
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
     docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
-    collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = var.otlp_address, rounds = 180 }) : ""
+    collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = var.otlp_address, rounds = 180, verify_tls = false }) : ""
     traefik_hub_version  = var.traefik_hub_version
     arch                 = var.arch
     cli_arguments        = var.cli_arguments

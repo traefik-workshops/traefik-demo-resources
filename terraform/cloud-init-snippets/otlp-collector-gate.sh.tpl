@@ -8,7 +8,11 @@ otlp_collector_gate() {
   otlp_gate_i=1
 
   while [ "$otlp_gate_i" -le "$otlp_gate_rounds" ]; do
+%{ if verify_tls ~}
+    if curl -sf --max-time 5 -X POST -H 'Content-Type: application/json' \
+%{ else ~}
     if curl -skf --max-time 5 -X POST -H 'Content-Type: application/json' \
+%{ endif ~}
          -d '{"resourceMetrics":[]}' "$otlp_gate_addr/v1/metrics" > /dev/null; then
       echo "otlp-gate: $otlp_gate_addr accepted an OTLP write on round $otlp_gate_i -- releasing."
       return 0

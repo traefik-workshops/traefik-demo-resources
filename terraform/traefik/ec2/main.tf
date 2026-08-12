@@ -48,7 +48,7 @@ locals {
       # budget waiting for a collector that was never going to exist, and Traefik only
       # started afterwards (long past wait_for_ready's timeout). Callers that do point at
       # a collector set otlp_address, so they keep the gate.
-      collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint, rounds = 180 }) : ""
+      collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint, rounds = 180, verify_tls = false }) : ""
       traefik_hub_version  = module.config.image_tag
       arch                 = var.ami_architecture
       cli_arguments        = local.cli_arguments

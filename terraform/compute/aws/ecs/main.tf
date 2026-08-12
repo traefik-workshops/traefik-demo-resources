@@ -72,7 +72,7 @@ locals {
 
   otlp_gate_script = local.otlp_gate_enabled ? templatefile(
     "${path.module}/../../../cloud-init-snippets/otlp-collector-gate.sh.tpl",
-    { otlp_address = var.otlp_gate_address, rounds = var.otlp_gate_rounds }
+    { otlp_address = var.otlp_gate_address, rounds = var.otlp_gate_rounds, verify_tls = var.otlp_gate_verify_tls }
   ) : ""
 
   # The snippet never calls `exit` -- on the VM legs it is pasted straight into a
