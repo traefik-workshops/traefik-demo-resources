@@ -6,7 +6,7 @@ Deploys Open WebUI on a Kubernetes cluster via Helm, with optional Traefik ingre
 
 ```hcl
 module "open_webui" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/open-webui/k8s?ref=v6.2.8"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/ai/open-webui/k8s?ref=v6.3.0"
 
   name      = "open-webui"
   namespace = "open-webui"

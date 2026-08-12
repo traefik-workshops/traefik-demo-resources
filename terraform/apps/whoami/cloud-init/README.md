@@ -8,7 +8,7 @@ Renders a cloud-init template that installs Docker and `docker run`s the `whoami
 
 ```hcl
 module "whoami_cloud_init" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/cloud-init?ref=v6.2.8"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/cloud-init?ref=v6.3.0"
 
   arch = "amd64"
   port = 80

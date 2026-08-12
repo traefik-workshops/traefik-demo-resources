@@ -6,7 +6,7 @@ Renders k6 `TestRun` manifests for the AI-Gateway load test (per-user JWT, multi
 
 ```hcl
 module "loadgen_aigateway" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s/loadgen/aigateway?ref=v6.2.8"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/k6-operator/k8s/loadgen/aigateway?ref=v6.3.0"
 
   apis                   = [{ url = "https://aigw.demo.traefik.ai", models = ["llama3.1:8b"] }]
   users                  = [{ username = "admin", password = "..." }]

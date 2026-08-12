@@ -6,7 +6,7 @@ Deploys cert-manager on Kubernetes via Helm.
 
 ```hcl
 module "cert_manager" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/cert-manager/k8s?ref=v6.2.8"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/cert-manager/k8s?ref=v6.3.0"
 
   name      = "cert-manager"
   namespace = "cert-manager"

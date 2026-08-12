@@ -6,7 +6,7 @@ Creates Nutanix Prism Central categories and their values from a map.
 
 ```hcl
 module "categories" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/categories?ref=v6.2.8"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/categories?ref=v6.3.0"
 
   categories = {
     "TraefikServiceName" = {
