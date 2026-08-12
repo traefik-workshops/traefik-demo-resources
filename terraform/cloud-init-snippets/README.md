@@ -43,3 +43,30 @@ exhaustion fatal must budget past it (ECS uses 270 = 2700s).
 Editing a snippet re-renders every VM's user_data (the proxmox snippet
 filename embeds its md5 → gateway VM replacement on next apply). Treat edits
 like gateway-template edits: check for live on-prem state first.
+
+## KEEP THESE FILES LEAN — comments here are shipped as user data
+
+Every byte of a snippet is pasted inline into cloud-init user data, and **EC2
+caps user data at 16384 bytes** (Alibaba ECS caps it at the same 16KB; Azure is
+64KB, GCP 256KB, OCI 32KB). Prose belongs in THIS file, not in the `.tpl`.
+
+This is not hypothetical. v6.2.8 documented the gate's contract and budget
+rationale *inside* `otlp-collector-gate.sh.tpl`, growing it 743 → 3901 bytes —
+**3158 bytes of pure comment**. aws-unified-ingress had 2164 bytes of headroom,
+so the next apply died deterministically at plan-known size:
+
+```
+Error: creating EC2 Instance: RunInstances ... InvalidParameterValue:
+       User data is limited to 16384 bytes
+```
+
+Measured on the same state, same domain, only the snippet swapped: v6.2.6 →
+14220 B (fits), v6.2.8 → 17580 B (over by 1196), lean → 14646 B (fits). The
+behaviour was identical in all three; only the documentation differed. v6.2.9
+moved the prose here and kept every behavioural element.
+
+Two things follow. Explaining a snippet is *more* valuable than explaining most
+code — it runs once, unattended, on a host nobody will shell into — so write
+that explanation, just write it here. And if you add to a snippet, check the
+rendered size against 16384 before tagging: `terraform plan` surfaces it, but
+only for a demo that was already near the line.
