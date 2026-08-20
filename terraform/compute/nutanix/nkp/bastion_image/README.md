@@ -6,7 +6,7 @@ Extracts the NKP bastion image from the NKP bundle and uploads it to Nutanix as 
 
 ```hcl
 module "nkp_bastion_image" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp/bastion_image?ref=v6.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp/bastion_image?ref=v6.3.1"
 
   nkp_version     = "2.17.1"
   nkp_bundle_path = "/path/to/nkp-bundle.tar.gz"

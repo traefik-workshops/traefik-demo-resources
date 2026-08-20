@@ -15,7 +15,7 @@ Auth is **cert-based** (AKS/k3d-style): consume `host` / `cluster_ca_certificate
 
 ```hcl
 module "k3s" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/vsphere/k3s?ref=v6.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/vsphere/k3s?ref=v6.3.1"
 
   datacenter = "dc-01"
   datastore  = "datastore-01"

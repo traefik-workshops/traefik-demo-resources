@@ -6,7 +6,7 @@ Provisions a local k3d (k3s-in-Docker) cluster using the `SneakyBugs/k3d` provid
 
 ```hcl
 module "k3d" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/suse/k3d?ref=v6.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/suse/k3d?ref=v6.3.1"
 
   cluster_name = "demo"
 }

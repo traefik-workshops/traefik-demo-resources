@@ -6,7 +6,7 @@ Deploys Redis on Kubernetes via Helm with a configurable password and replica co
 
 ```hcl
 module "redis" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/redis/k8s?ref=v6.3.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/redis/k8s?ref=v6.3.1"
 
   name      = "redis"
   namespace = "data"
