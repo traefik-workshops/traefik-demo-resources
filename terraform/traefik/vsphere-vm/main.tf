@@ -70,8 +70,13 @@ locals {
   user_data = templatefile("${path.module}/../cloud-init/cloud-init.tpl", {
     # Shared cloud-init snippets, rendered here and injected pre-rendered
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
-    docker_install       = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
-    collector_gate       = module.config.otlp_endpoint != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint, rounds = 180, verify_tls = false }) : ""
+    docker_install = file("${path.module}/../../cloud-init-snippets/docker-install.sh.tpl")
+    # Gate on the CALLER's var.otlp_address, not module.config.otlp_endpoint: the
+    # latter falls back to "http://opentelemetry-collector:4318" and is NEVER empty,
+    # so this condition was always true -- every deployment that did not configure
+    # OTLP still blocked in cloud-init for the gate's full 30-minute budget (180
+    # rounds x 10s) waiting for a collector that was never going to exist.
+    collector_gate       = var.otlp_address != "" ? templatefile("${path.module}/../../cloud-init-snippets/otlp-collector-gate.sh.tpl", { otlp_address = module.config.otlp_endpoint, rounds = 180, verify_tls = false }) : ""
     traefik_hub_version  = module.config.image_tag
     arch                 = "amd64"
     cli_arguments        = local.cli_arguments
@@ -88,7 +93,9 @@ locals {
     ssh_public_key      = var.ssh_public_key
     extra_runcmd        = var.extra_runcmd
     performance_tuning  = local.performance_tuning
-    otlp_address        = module.config.otlp_endpoint
+    # Feeds the template's own %{ if otlp_address != "" } guard: pass the caller's
+    # raw value so the gate block only renders when OTLP is actually configured.
+    otlp_address        = var.otlp_address
     instance_name       = local.instance_key
     dashboard_config    = "" # Optional
     vip                 = "" # Optional

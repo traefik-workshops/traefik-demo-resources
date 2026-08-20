@@ -68,7 +68,9 @@ locals {
       extra_runcmd        = []
       ssh_public_key      = var.ssh_public_key
       performance_tuning  = local.performance_tuning
-      otlp_address        = module.config.otlp_endpoint
+      # Feeds the template's own %{ if otlp_address != "" } guard: pass the caller's
+      # raw value so the gate block only renders when OTLP is actually configured.
+      otlp_address        = var.otlp_address
       instance_name       = "traefik-${i + 1}" # Explicit unique name as requested
       dashboard_config    = ""                 # Optional
       vip                 = ""                 # Optional
