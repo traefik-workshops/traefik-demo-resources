@@ -21,7 +21,7 @@ The kubevirt provider **merges** them. `ServersLoadBalancer.Merge` dedupes by se
 
 ```hcl
 module "whoami" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/kubevirt?ref=v6.3.1&depth=1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/kubevirt?ref=v6.4.0&depth=1"
 
   namespace      = "apps"
   container_disk = "quay.io/containerdisks/ubuntu:24.04"

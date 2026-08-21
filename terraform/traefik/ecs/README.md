@@ -6,7 +6,7 @@ Provisions Traefik Hub on AWS ECS, wiring in `traefik/shared` (config extraction
 
 ```hcl
 module "traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/ecs?ref=v6.3.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/ecs?ref=v6.4.0"
 
   traefik_hub_token = var.traefik_hub_token
 }

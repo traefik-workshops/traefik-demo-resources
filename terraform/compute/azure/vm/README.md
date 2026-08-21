@@ -24,7 +24,7 @@ document their way around.
 
 ```hcl
 module "vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/vm?ref=v6.3.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/azure/vm?ref=v6.4.0"
 
   resource_group_name = azurerm_resource_group.demo.name
   location            = var.location

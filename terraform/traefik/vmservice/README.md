@@ -17,7 +17,7 @@ Identical to `traefik/vsphere-vm` — this is the same gateway on a differently-
 
 ```hcl
 module "traefik_vmsvc" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vmservice?ref=v6.3.1"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vmservice?ref=v6.4.0"
 
   providers = { kubectl = kubectl.supervisor }
 
