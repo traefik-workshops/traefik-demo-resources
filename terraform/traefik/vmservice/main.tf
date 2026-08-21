@@ -1,14 +1,20 @@
 # =============================================================================
-# vSphere VM Traefik Deployment — the multicluster CHILD on vSphere
+# VM Service Traefik Deployment — the multicluster CHILD on a vSphere VM the
+# SUPERVISOR provisioned
 # =============================================================================
-# Uses extracted config from traefik/shared (via Helm template) and the shared
-# traefik/cloud-init template, exactly like traefik/ec2 and traefik/azure-vm.
-# One VM cloned from a cloud-init-enabled Ubuntu cloud-image template runs the
-# Hub image; its vsphere provider (--hub.providers.vsphere) discovers workload
-# VMs by their `guestinfo.traefik` extraConfig entry (a JSON object of Traefik
-# labels). vSphere has NO ambient identity (no instance profile / managed
-# identity), so the provider authenticates with explicit vCenter credentials —
-# var.vsphere_password is the one secret this module carries.
+# The same gateway as traefik/vsphere-vm (shared traefik/shared config extraction, shared
+# traefik/cloud-init template, the same --hub.providers.vsphere flags), on a vSphere VM that
+# terraform did NOT clone: a `VirtualMachine` object inside a vSphere Namespace, reconciled by
+# the Supervisor's VM Service (vm-operator) from a content-library image, a VirtualMachineClass
+# and the namespace's storage class and network. The cloud-init user-data rides in as a
+# rawCloudConfig bootstrap Secret. The result is an ordinary vCenter VM, so everything the
+# clone sibling says about the provider holds unchanged — explicit vCenter credentials,
+# tag-based discovery, routing intent over configEndpoint.
+#
+# What changes for the CALLER: the guest address is assigned by the namespace network after
+# power-on and is known only after apply (status.network.primaryIP4). A parent that dials
+# this child's :9443 uplink cannot take the address from this module at plan time; feed it
+# through a variable filled between two applies instead, and read it off `private_ips`.
 # =============================================================================
 
 locals {
@@ -67,6 +73,17 @@ locals {
 
   instance_key = "${var.vm_name}-1"
 
+  api_version = "vmoperator.vmware.com/${var.api_version}"
+  labels      = { "app.kubernetes.io/name" = var.vm_name }
+
+  # The kubectl the wait script runs: pinned to the caller's kubeconfig + context, never the
+  # machine-global current-context (a parallel standup repoints that mid-apply).
+  kubectl = join(" ", compact([
+    "kubectl",
+    var.kubeconfig != "" ? "--kubeconfig ${var.kubeconfig}" : "",
+    var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : "",
+  ]))
+
   user_data = templatefile("${path.module}/../cloud-init/cloud-init.tpl", {
     # Shared cloud-init snippets, rendered here and injected pre-rendered
     # (templatefile has no include; see terraform/cloud-init-snippets/README.md).
@@ -105,63 +122,75 @@ locals {
     enable_preview_mode = var.enable_preview_mode
     preview_image       = module.config.image_full
   })
-
-  # Self-register the Traefik VM's own dashboard via its vsphere provider
-  # (-> dashboard@vsphere) — the tag-based siblings' trick, as guestinfo JSON.
-  # Disable when the dashboard is advertised another way (e.g. a file-rule
-  # uplink): without traefik.enable the VM isn't self-discovered at all.
-  self_labels = var.enable_dashboard_discovery ? {
-    "traefik.enable"                                           = "true"
-    "traefik.http.routers.dashboard.rule"                      = module.config.dashboard_match_rule
-    "traefik.http.routers.dashboard.entrypoints"               = module.config.dashboard_entrypoints[0]
-    "traefik.http.services.dashboard.loadbalancer.server.port" = "8080"
-  } : {}
-
-  traefik_labels = merge(local.self_labels, var.extra_labels)
 }
 
-# One gateway VM cloned from the shared compute/vsphere/vm module. This caller
-# still renders the cloud-init (local.user_data) and builds the vsphere
-# provider's workload config (local.traefik_labels -> guestinfo.traefik); the
-# module owns the vsphere_virtual_machine resource and its data lookups.
-module "compute" {
-  source = "../../compute/vsphere/vm"
+# The gateway's cloud-init lives in a Secret: vm-operator's rawCloudConfig bootstrap reads the
+# user-data out of a Secret key. Same shape as apps/whoami/vmservice.
+resource "kubectl_manifest" "bootstrap" {
+  yaml_body = yamlencode({
+    apiVersion = "v1"
+    kind       = "Secret"
+    metadata = {
+      name      = "${local.instance_key}-bootstrap"
+      namespace = var.namespace
+      labels    = local.labels
+    }
+    stringData = { "user-data" = local.user_data }
+  })
+}
 
-  datacenter    = var.datacenter
-  datastore     = var.datastore
-  cluster       = var.cluster
-  resource_pool = var.resource_pool
-  network       = var.network
-  template      = var.template
-  folder        = var.folder
+resource "kubectl_manifest" "vm" {
+  # The Secret must exist before vm-operator reconciles the VM, or the bootstrap is
+  # rejected and the guest powers on with no user-data — no Docker, no Traefik.
+  depends_on = [kubectl_manifest.bootstrap]
 
-  num_cpus  = var.num_cpus
-  memory    = var.memory
-  disk_size = var.disk_size
+  yaml_body = yamlencode({
+    apiVersion = local.api_version
+    kind       = "VirtualMachine"
+    metadata = {
+      name      = local.instance_key
+      namespace = var.namespace
+      labels    = local.labels
+    }
+    spec = merge(
+      {
+        className    = var.class_name
+        imageName    = var.image_name
+        storageClass = var.storage_class
+        powerState   = "PoweredOn"
+        bootstrap = {
+          cloudInit = {
+            rawCloudConfig = { name = "${local.instance_key}-bootstrap", key = "user-data" }
+          }
+        }
+      },
+      # Omitted = the namespace's default network. Named = one interface on that network.
+      var.network_name != "" ? {
+        network = { interfaces = [{ name = "eth0", network = { name = var.network_name } }] }
+      } : {},
+    )
+  })
+}
 
-  # One VM keyed "<vm_name>-1" (matches the previous single-instance name).
-  apps = {
-    (var.vm_name) = { replicas = 1 }
+# Wait for the guest address and read it back. Ordered behind the VirtualMachine; on a
+# destroy plan, or before the object exists, the script returns empty fields instead of
+# failing — see scripts/vm-ip.sh.
+data "external" "guest" {
+  depends_on = [kubectl_manifest.vm]
+
+  program = ["bash", "${path.module}/scripts/vm-ip.sh"]
+  query = {
+    kubectl   = local.kubectl
+    namespace = var.namespace
+    name      = local.instance_key
+    timeout   = tostring(var.ip_wait_timeout)
   }
-
-  user_data = {
-    (local.instance_key) = local.user_data
-  }
-
-  # The vsphere provider's `guestinfo.traefik` entry — omitted when no labels,
-  # exactly as before.
-  extra_config = {
-    (local.instance_key) = length(local.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(local.traefik_labels) } : {}
-  }
-
-  # Static addressing at boot, when the caller wants a plan-time uplink address.
-  network_config = length(var.network_config) > 0 ? { (local.instance_key) = var.network_config } : {}
 }
 
 # =============================================================================
-# Shared Configuration Module - vSphere VM
+# Shared Configuration Module - VM Service VM
 # =============================================================================
-# vSphere VM uses extracted config from helm template (extract_config=true),
+# The VM Service gateway uses extracted config from helm template (extract_config=true),
 # exactly like EC2 and Azure VM. Shared variables are defined in variables.tf
 # alongside the platform-specific ones.
 # =============================================================================

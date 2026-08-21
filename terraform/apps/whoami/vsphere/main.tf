@@ -78,6 +78,10 @@ module "compute" {
   # vCenter tags naming the services each VM backs — how the Hub vsphere provider
   # discovers them (see the tag block below).
   tags = local.instance_tag_ids
+
+  # Static addressing at boot, when the caller wants one (no DHCP on the network, or an
+  # address that must be known at plan time). Keyed by instance key, like user_data.
+  network_config = var.network_config
 }
 
 # --- vCenter tags: which SERVICES each VM backs -----------------------------------

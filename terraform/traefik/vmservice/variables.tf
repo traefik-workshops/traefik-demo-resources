@@ -1,88 +1,66 @@
 # =============================================================================
-# vSphere-specific Variables
+# VM Service-specific Variables
 # =============================================================================
 # Shared Traefik variables are declared below the platform block, mirroring
-# traefik/ec2 and traefik/azure-vm (same names, so demo code reads identically
-# across platforms).
+# traefik/vsphere-vm (same names, so demo code reads identically across the two
+# ways of provisioning a vSphere VM).
 # =============================================================================
 
-variable "datacenter" {
-  description = "Name of the vSphere datacenter the VM is created in"
+variable "namespace" {
+  description = "vSphere Namespace (a Supervisor namespace) the gateway VirtualMachine is created in. The VirtualMachineClass, the storage class and the image must all be associated with it."
   type        = string
 }
 
-variable "datastore" {
-  description = "Name of the datastore backing the VM's disk"
+variable "class_name" {
+  description = "VirtualMachineClass the gateway is sized by (e.g. best-effort-small). `kubectl get virtualmachineclass -n <namespace>` lists the ones bound to the namespace."
   type        = string
 }
 
-variable "cluster" {
-  description = "Name of the compute cluster to place the VM in (its root resource pool). Provide this OR resource_pool."
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = var.cluster != "" || var.resource_pool != ""
-    error_message = "Provide cluster or resource_pool."
-  }
-}
-
-variable "resource_pool" {
-  description = "Name/path of the resource pool to place the VM in. Takes precedence over cluster."
-  type        = string
-  default     = ""
-}
-
-variable "network" {
-  description = "Name of the port group / network the VM's NIC joins. DHCP is assumed unless network_config gives the VM a static address; either way the parent dials the VM's guest IP :9443 in-network."
+variable "image_name" {
+  description = "VirtualMachineImage the gateway boots from — the name `kubectl get vmi -n <namespace>` shows. Must be a cloud-init-enabled Ubuntu CLOUD IMAGE (ubuntu-*-server-cloudimg-amd64.ova) for the rawCloudConfig bootstrap to take."
   type        = string
 }
 
-variable "network_config" {
-  description = "cloud-init network-config v2 document for the gateway VM (ONE document, not keyed — this module clones exactly one VM), passed through to compute/vsphere/vm and applied at BOOT. Set it when the network has no DHCP, or when the parent must know the child's uplink address at PLAN time (a hub that references this module's private_ips cannot be ordered behind a DNS gate the child itself depends on). Empty = DHCP."
-  type        = any
-  default     = {}
-}
-
-variable "template" {
-  description = "Name of the VM template to clone. Must be a cloud-init-enabled Ubuntu CLOUD IMAGE template (e.g. imported from ubuntu-24.04-server-cloudimg-amd64.ova) — a plain installer-built template ignores the guestinfo userdata and Traefik never starts."
+variable "storage_class" {
+  description = "Storage class for the gateway's disk (the namespace's storage policy, e.g. wcp-storage)."
   type        = string
 }
 
-variable "folder" {
-  description = "VM folder to place the VM in. Empty = the datacenter root."
+variable "network_name" {
+  description = "Network the gateway's single interface joins (an NSX segment or VDS port group the namespace is entitled to). Empty = the namespace's default network. The parent dials the VM's guest IP :9443 on it."
   type        = string
   default     = ""
 }
+
+variable "api_version" {
+  description = "vmoperator.vmware.com API version to write the VirtualMachine with. A Supervisor serves several (`kubectl api-resources | grep vmoperator`); v1alpha3 carries the rawCloudConfig bootstrap this module uses and is served by vSphere 8U2+ and 9."
+  type        = string
+  default     = "v1alpha3"
+}
+
+variable "kubeconfig" {
+  description = "Path to the kubeconfig the guest-address wait (local-exec kubectl) should use — the SUPERVISOR kubeconfig, the same one the kubectl provider that creates the VirtualMachine is configured with. Empty = kubectl's ambient config."
+  type        = string
+  default     = ""
+}
+
+variable "kubeconfig_context" {
+  description = "Context inside `kubeconfig` to use. Set it so the wait targets a named context instead of whatever the machine-global current-context happens to be at that instant."
+  type        = string
+  default     = ""
+}
+
+variable "ip_wait_timeout" {
+  description = "Seconds to wait for the gateway's status.network.primaryIP4 before failing the apply. vm-operator powers the VM on and the namespace network assigns the address within a minute or two on a healthy Supervisor."
+  type        = number
+  default     = 600
+}
+
 
 variable "vm_name" {
   description = "Base name for the Traefik VM"
   type        = string
   default     = "traefik"
-}
-
-variable "num_cpus" {
-  description = "vCPU count"
-  type        = number
-  default     = 2
-}
-
-variable "memory" {
-  description = "Memory in MB"
-  type        = number
-  default     = 4096
-}
-
-variable "disk_size" {
-  description = "Disk size in GB. Grown to at least the template's disk (vSphere can't shrink on clone)."
-  type        = number
-  default     = 20
-}
-
-variable "extra_labels" {
-  description = "Extra Traefik labels merged into the VM's own `guestinfo.traefik` extraConfig entry (on top of the dashboard self-registration labels, when enabled)"
-  type        = map(string)
-  default     = {}
 }
 
 variable "extra_files" {
@@ -422,12 +400,6 @@ variable "enable_dashboard" {
 
 variable "dashboard_insecure" {
   description = "Enable insecure dashboard access (no auth)"
-  type        = bool
-  default     = true
-}
-
-variable "enable_dashboard_discovery" {
-  description = "Self-register the Traefik VM via its own `guestinfo.traefik` entry (traefik.enable + dashboard router/service) so its OWN vsphere provider discovers the dashboard as dashboard@vsphere. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all."
   type        = bool
   default     = true
 }

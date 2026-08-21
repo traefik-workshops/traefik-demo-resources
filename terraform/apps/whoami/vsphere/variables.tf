@@ -34,7 +34,13 @@ variable "resource_pool" {
 
 variable "network" {
   type        = string
-  description = "Name of the port group / network the VM NICs join (DHCP is assumed; the Traefik child dials each VM's guest IP)"
+  description = "Name of the port group / network the VM NICs join. DHCP is assumed unless network_config gives the instance a static address; either way the Traefik child dials each VM's guest IP."
+}
+
+variable "network_config" {
+  type        = any
+  default     = {}
+  description = "Per-instance cloud-init network-config v2, keyed by instance key (`<app>-<replica>`), passed straight through to compute/vsphere/vm and applied at BOOT. Use it on a network without DHCP, or when the VM's address must be a plan-time constant (a static server list, a scrape target). Empty = DHCP."
 }
 
 variable "template" {
