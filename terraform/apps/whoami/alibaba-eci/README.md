@@ -8,7 +8,7 @@ Each group's tags (dotted `traefik.*` keys, exactly like ACI/OCI tags) are the w
 
 ```hcl
 module "whoami_alibaba_eci" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/alibaba-eci?ref=v6.6.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/alibaba-eci?ref=v6.7.0"
 
   vswitch_id        = module.vpc.vswitch_id
   security_group_id = module.vpc.security_group_id

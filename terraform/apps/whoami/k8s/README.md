@@ -6,7 +6,7 @@ Deploys one or more Traefik `whoami` instances (default image: the OTel-instrume
 
 ```hcl
 module "whoami" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/k8s?ref=v6.6.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/k8s?ref=v6.7.0"
 
   namespace = "apps"
 

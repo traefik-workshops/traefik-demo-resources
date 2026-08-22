@@ -10,7 +10,7 @@ The shared **Hyper-V VM primitive**. Standalone Hyper-V has no REST API and no T
 
 ```hcl
 module "vm" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/hyperv/vm?ref=v6.6.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/hyperv/vm?ref=v6.7.0"
 
   host_winrm = {
     host     = "203.0.113.10" # the Hyper-V host's WinRM HTTPS listener

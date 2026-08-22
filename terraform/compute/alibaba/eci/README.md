@@ -8,7 +8,7 @@ The module owns the container-group resource and nothing role-specific: the call
 
 ```hcl
 module "eci" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/eci?ref=v6.6.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/alibaba/eci?ref=v6.7.0"
 
   vswitch_id        = module.vpc.vswitch_id
   security_group_id = module.vpc.security_group_id

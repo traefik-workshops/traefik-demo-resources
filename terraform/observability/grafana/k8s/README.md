@@ -6,7 +6,7 @@ Deploys Grafana on Kubernetes via Helm, with wired Prometheus / Tempo / Loki dat
 
 ```hcl
 module "grafana" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana/k8s?ref=v6.6.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/observability/grafana/k8s?ref=v6.7.0"
 
   name       = "grafana"
   namespace  = "observability"
