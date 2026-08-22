@@ -193,11 +193,18 @@ locals {
             storage = {
               kubernetes = true
             }
-            dnsChallenge = merge({
-              provider         = "cloudflare"
-              resolvers        = var.acme_dns_resolvers
-              delayBeforeCheck = 20
-            }, var.acme_disable_ans_checks ? { propagation = { disableANSChecks = true } } : {})
+            dnsChallenge = {
+              provider  = "cloudflare"
+              resolvers = var.acme_dns_resolvers
+              # propagation.* (Traefik >= 3.3), never the deprecated delayBeforeCheck: with a
+              # propagation block present the legacy field is ignored, and a zero delay means
+              # the CA is asked before the record exists.
+              propagation = merge(
+                { delayBeforeChecks = "${var.acme_propagation_delay_seconds}s" },
+                var.acme_disable_propagation_checks ? { disableChecks = true } : {},
+                var.acme_disable_ans_checks ? { disableANSChecks = true } : {},
+              )
+            }
           }
         }
         }) : jsonencode({
@@ -206,11 +213,18 @@ locals {
             email    = "zaid@traefik.io"
             storage  = "/data/acme.json"
             caServer = local.letsencrypt_server
-            dnsChallenge = merge({
-              provider         = "cloudflare"
-              resolvers        = var.acme_dns_resolvers
-              delayBeforeCheck = 20
-            }, var.acme_disable_ans_checks ? { propagation = { disableANSChecks = true } } : {})
+            dnsChallenge = {
+              provider  = "cloudflare"
+              resolvers = var.acme_dns_resolvers
+              # propagation.* (Traefik >= 3.3), never the deprecated delayBeforeCheck: with a
+              # propagation block present the legacy field is ignored, and a zero delay means
+              # the CA is asked before the record exists.
+              propagation = merge(
+                { delayBeforeChecks = "${var.acme_propagation_delay_seconds}s" },
+                var.acme_disable_propagation_checks ? { disableChecks = true } : {},
+                var.acme_disable_ans_checks ? { disableANSChecks = true } : {},
+              )
+            }
           }
         }
       })

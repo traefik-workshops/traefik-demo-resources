@@ -388,6 +388,18 @@ variable "acme_dns_resolvers" {
   default     = ["1.1.1.1:53", "1.0.0.1:53"]
 }
 
+variable "acme_propagation_delay_seconds" {
+  description = "Seconds lego waits after placing the DNS-01 TXT record before any propagation check or validation (dnsChallenge.propagation.delayBeforeChecks). Replaces the deprecated delayBeforeCheck, which Traefik >= 3.3 IGNORES once a propagation block is present -- so a resolver that sets disableANSChecks without this waited zero seconds and Let's Encrypt found no TXT record (the VCF lab, 2026-08-22)."
+  type        = number
+  default     = 20
+}
+
+variable "acme_disable_propagation_checks" {
+  description = "Skip lego's own DNS-01 propagation checks entirely (dnsChallenge.propagation.disableChecks) and rely on the delay above plus the CA's validation. For networks where no reachable resolver can see the TXT record in time; Traefik documents it as not recommended, so keep it off elsewhere."
+  type        = bool
+  default     = false
+}
+
 variable "acme_disable_ans_checks" {
   description = "Skip the DNS-01 pre-check's direct queries to the zone's AUTHORITATIVE nameservers (dnsChallenge.propagation.disableANSChecks) and rely on the recursive resolvers above only. For networks that allow a public recursive resolver but not port 53 to arbitrary hosts."
   type        = bool

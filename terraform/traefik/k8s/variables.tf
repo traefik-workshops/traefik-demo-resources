@@ -540,6 +540,18 @@ variable "acme_dns_resolvers" {
   default     = ["1.1.1.1:53", "1.0.0.1:53"]
 }
 
+variable "acme_propagation_delay_seconds" {
+  description = "Seconds lego waits after placing the DNS-01 TXT record before checks/validation (propagation.delayBeforeChecks; see traefik/shared)."
+  type        = number
+  default     = 20
+}
+
+variable "acme_disable_propagation_checks" {
+  description = "Skip lego's own DNS-01 propagation checks; rely on the delay + the CA (see traefik/shared)."
+  type        = bool
+  default     = false
+}
+
 variable "acme_disable_ans_checks" {
   description = "Skip the DNS-01 pre-check's direct queries to the zone's authoritative nameservers; rely on acme_dns_resolvers only (see traefik/shared)."
   type        = bool
