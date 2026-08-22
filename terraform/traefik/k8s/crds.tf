@@ -18,6 +18,11 @@ resource "null_resource" "traefik_crds" {
     # `helm repo add` is left unpinned on purpose: it only touches the local
     # repo cache, never a cluster.
     environment = var.kubeconfig != "" ? { KUBECONFIG = var.kubeconfig } : {}
+    # bash, explicitly: the default interpreter is /bin/sh, which is dash on Debian/Ubuntu
+    # operator hosts and rejects `set -o pipefail` ("Illegal option -o pipefail"). Every
+    # earlier run happened to be on macOS, where /bin/sh is bash -- the first Linux jump
+    # host (the VCF lab console, 2026-08-22) failed the CRD install on this line.
+    interpreter = ["bash", "-c"]
     command     = <<-EOT
       set -euo pipefail
       kctx="${var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : ""}"
