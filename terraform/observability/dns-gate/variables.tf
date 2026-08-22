@@ -14,3 +14,9 @@ variable "timeout_seconds" {
   default     = 600
   description = "How long to wait for public resolution before failing. Default 600s: dns-traefiker publishes within ~2.5 minutes of the LoadBalancer getting an address, so this is generous without masking a genuinely broken DNS controller. Failing here is far cheaper than the 1800s telemetry blackout it prevents."
 }
+
+variable "resolver" {
+  type        = string
+  default     = "1.1.1.1"
+  description = "Resolver the gate queries, as an address for `dig @<resolver>`. Default 1.1.1.1 (a PUBLIC resolver, so the operator's own negative cache cannot stall the gate). Set to \"\" to use the operator host's system resolver -- required on networks that block public DNS (the VCF lab console, 2026-08-22: port 53 to 1.1.1.1 times out), where the local resolver forwards public names and passes private answers."
+}

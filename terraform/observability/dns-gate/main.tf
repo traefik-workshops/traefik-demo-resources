@@ -61,17 +61,25 @@ resource "null_resource" "gate" {
       set -uo pipefail
       host="${var.hostname}"
       deadline=$(( SECONDS + ${var.timeout_seconds} ))
-      echo "dns-gate: waiting for $host to resolve publicly (timeout ${var.timeout_seconds}s)"
+      echo "dns-gate: waiting for $host to resolve via ${var.resolver != "" ? var.resolver : "the system resolver"} (timeout ${var.timeout_seconds}s)"
 
-      # Ask a PUBLIC resolver explicitly. The operator's own resolver may itself hold a
-      # negative cache entry from an earlier run of this very demo, which would make the
-      # gate wait out a TTL for no reason -- the exact trap it exists to prevent.
+      # Ask a PUBLIC resolver explicitly (var.resolver, default 1.1.1.1). The operator's
+      # own resolver may itself hold a negative cache entry from an earlier run of this
+      # very demo, which would make the gate wait out a TTL for no reason -- the exact trap
+      # it exists to prevent. An EMPTY resolver means the system resolver, for networks
+      # that block public DNS.
+      #
+      # Only an ADDRESS counts as an answer. `dig +short` prints its own failures
+      # (";; communications error to 1.1.1.1#53: timed out") on STDOUT, and a non-empty
+      # test took that text for a resolved name: on a network that blocks 1.1.1.1 the gate
+      # opened in three seconds with no record anywhere (the VCF lab, 2026-08-22).
+      at="${var.resolver != "" ? "@${var.resolver}" : ""}"
       resolves() {
         if command -v dig >/dev/null 2>&1; then
-          [ -n "$(dig +short +time=3 +tries=1 @1.1.1.1 "$1" A 2>/dev/null | head -1)" ]
+          dig +short +time=3 +tries=1 $at "$1" A 2>/dev/null | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
         else
           # No dig (minimal images): fall back to the system resolver.
-          getent hosts "$1" >/dev/null 2>&1 || host "$1" >/dev/null 2>&1
+          getent ahostsv4 "$1" 2>/dev/null | awk '{print $1}' | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'
         fi
       }
 
