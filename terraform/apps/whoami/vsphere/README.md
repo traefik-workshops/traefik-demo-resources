@@ -16,7 +16,7 @@ This module takes a `traefik_labels` map per app (dotted label → value) and `j
 
 ```hcl
 module "whoami_vsphere" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/vsphere?ref=v6.4.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/vsphere?ref=v6.5.0"
 
   datacenter = "dc-01"
   datastore  = "datastore-01"

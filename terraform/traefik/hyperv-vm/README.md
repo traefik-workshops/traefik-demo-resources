@@ -14,7 +14,7 @@ The **multicluster CHILD on Hyper-V/SCVMM** — the Hyper-V sibling of `traefik/
 
 ```hcl
 module "vm_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/hyperv-vm?ref=v6.4.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/hyperv-vm?ref=v6.5.0"
 
   vm_name          = "traefik-vm"
   host_winrm       = { host = "203.0.113.10", username = "Admin", password = var.host_admin_password }

@@ -19,7 +19,7 @@ A label change re-runs **only the writer** — never a VM replacement. Labels ri
 
 ```hcl
 module "hyperv_whoami" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/hyperv?ref=v6.4.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/hyperv?ref=v6.5.0"
 
   host_winrm       = { host = "203.0.113.10", username = "Admin", password = var.host_admin_password }
   vmm              = { host = "10.99.0.6", username = "LAB\\Administrator", password = var.lab_admin_password }

@@ -6,7 +6,7 @@ Provisions a Floating IP for the Kommander/Traefik LoadBalancer service on an NK
 
 ```hcl
 module "kommander" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp/kommander?ref=v6.4.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/nutanix/nkp/kommander?ref=v6.5.0"
 
   external_subnet_uuid = var.external_subnet_uuid
   vpc_uuid             = var.vpc_uuid
