@@ -193,11 +193,11 @@ locals {
             storage = {
               kubernetes = true
             }
-            dnsChallenge = {
+            dnsChallenge = merge({
               provider         = "cloudflare"
-              resolvers        = ["1.1.1.1:53", "1.0.0.1:53"]
+              resolvers        = var.acme_dns_resolvers
               delayBeforeCheck = 20
-            }
+            }, var.acme_disable_ans_checks ? { propagation = { disableANSChecks = true } } : {})
           }
         }
         }) : jsonencode({
@@ -206,11 +206,11 @@ locals {
             email    = "zaid@traefik.io"
             storage  = "/data/acme.json"
             caServer = local.letsencrypt_server
-            dnsChallenge = {
+            dnsChallenge = merge({
               provider         = "cloudflare"
-              resolvers        = ["1.1.1.1:53", "1.0.0.1:53"]
+              resolvers        = var.acme_dns_resolvers
               delayBeforeCheck = 20
-            }
+            }, var.acme_disable_ans_checks ? { propagation = { disableANSChecks = true } } : {})
           }
         }
       })

@@ -381,3 +381,15 @@ variable "extract_config" {
   type        = bool
   default     = false
 }
+
+variable "acme_dns_resolvers" {
+  description = "Recursive resolvers lego uses for the DNS-01 propagation pre-check (dnsChallenge.resolvers), as host:port. Default: Cloudflare's public resolvers. Networks that block them (the VCF lab console, 2026-08-22: 1.1.1.1/1.0.0.1 time out, 8.8.8.8 answers) must pass resolvers they can reach, or the pre-check never succeeds and no certificate is ever requested."
+  type        = list(string)
+  default     = ["1.1.1.1:53", "1.0.0.1:53"]
+}
+
+variable "acme_disable_ans_checks" {
+  description = "Skip the DNS-01 pre-check's direct queries to the zone's AUTHORITATIVE nameservers (dnsChallenge.propagation.disableANSChecks) and rely on the recursive resolvers above only. For networks that allow a public recursive resolver but not port 53 to arbitrary hosts."
+  type        = bool
+  default     = false
+}

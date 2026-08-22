@@ -8,6 +8,10 @@
 module "config" {
   source = "../shared"
 
+  # DNS-01 pre-check resolvers (networks that block Cloudflare's).
+  acme_dns_resolvers      = var.acme_dns_resolvers
+  acme_disable_ans_checks = var.acme_disable_ans_checks
+
   # Don't extract config - K8s uses Helm values directly
   extract_config = false
 

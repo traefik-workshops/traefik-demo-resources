@@ -533,3 +533,15 @@ variable "dns_traefiker" {
     enabled = false
   }
 }
+
+variable "acme_dns_resolvers" {
+  description = "Recursive resolvers for the DNS-01 propagation pre-check (host:port). Default: Cloudflare's public resolvers; pass reachable ones on networks that block them (see traefik/shared)."
+  type        = list(string)
+  default     = ["1.1.1.1:53", "1.0.0.1:53"]
+}
+
+variable "acme_disable_ans_checks" {
+  description = "Skip the DNS-01 pre-check's direct queries to the zone's authoritative nameservers; rely on acme_dns_resolvers only (see traefik/shared)."
+  type        = bool
+  default     = false
+}
