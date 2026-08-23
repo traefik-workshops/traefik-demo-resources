@@ -6,7 +6,7 @@ Provisions a Traefik Hub VM on Nutanix AHV via `compute/nutanix/vm`, wiring in `
 
 ```hcl
 module "traefik_nutanix" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/nutanix?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/nutanix?ref=v7.0.0"
 
   vm_name           = "traefik-01"
   cluster_id        = var.cluster_uuid

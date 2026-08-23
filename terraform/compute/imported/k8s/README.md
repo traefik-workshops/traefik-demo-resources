@@ -14,14 +14,14 @@ Provisions nothing.
 
 ```hcl
 module "cluster" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/imported/k8s?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/imported/k8s?ref=v7.0.0"
 
   kubeconfig   = file("~/.kube/config")
   cluster_name = "acme-prod-eu"
 }
 
 module "traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/k8s?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/k8s?ref=v7.0.0"
 
   host                   = module.cluster.host
   cluster_ca_certificate = module.cluster.cluster_ca_certificate

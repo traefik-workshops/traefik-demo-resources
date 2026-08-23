@@ -12,7 +12,7 @@ Composes `traefik/shared` (extracted Helm config) exactly like `traefik/aci`: th
 
 ```hcl
 module "oci_ci_traefik" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/oci-ci?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/oci-ci?ref=v7.0.0"
 
   traefik_hub_token   = var.traefik_hub_token
   enable_api_gateway  = true

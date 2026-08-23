@@ -6,7 +6,7 @@ Deploys the MCP Inspector UI on Kubernetes as a Deployment + Service, optionally
 
 ```hcl
 module "mcp_inspector" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/mcp-inspector/k8s?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/tools/mcp-inspector/k8s?ref=v7.0.0"
 
   namespace = "mcp"
 }

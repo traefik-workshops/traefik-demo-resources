@@ -10,7 +10,7 @@ Addressing is per-instance: `ip_address = "dhcp"` (the default — whoami backen
 
 ```hcl
 module "lxc" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/lxc?ref=v6.7.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/proxmox/lxc?ref=v7.0.0"
 
   node_name        = "pve"
   datastore_id     = "local-lvm"
