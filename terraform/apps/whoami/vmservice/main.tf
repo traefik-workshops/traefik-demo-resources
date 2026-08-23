@@ -1,25 +1,26 @@
 # whoami on vSphere VM Service VMs — the SECOND way to provision a vSphere VM.
 #
-# Same hypervisor, same vCenter inventory, same Hub vsphere provider discovering by vCenter
-# tag as apps/whoami/vsphere; what differs is WHO creates the machine. Not a terraform
+# Same hypervisor, same vCenter inventory, same Hub vsphere provider reading the label block
+# from the VM Notes as apps/whoami/vsphere; what differs is WHO creates the machine. Not a terraform
 # clone into a resource pool: a `VirtualMachine` object that the vSphere Supervisor's VM
 # Service (vm-operator) reconciles inside a vSphere Namespace — built from a
 # VirtualMachineImage in the namespace's content library, sized by a VirtualMachineClass,
 # stored on the namespace's storage class, attached to the namespace's own NSX segment, and
 # bootstrapped by the cloud-init user-data this module hands it in a Secret. Kubernetes-native
 # provisioning of a plain vSphere VM: the VMware-shaped sibling of a KubeVirt guest, except
-# the result IS a vCenter VM (VMware Tools, a guest address, taggable), so the vCenter-native
-# provider finds it exactly like a clone.
+# the result IS a vCenter VM (VMware Tools, a guest address, a Notes field), so the
+# vCenter-native provider finds it exactly like a clone.
 #
 # TWO THINGS THIS MODULE DOES THAT THE CLONE SIBLING DOES NOT:
 #   * it WAITS for the guest address (status.network.primaryIP4). vm-operator assigns it
 #     from the namespace network after power-on, so nothing about the VM is known at plan
 #     time — a caller that needs the address at plan (a hub dialling a child) cannot get it
 #     from here; see the README.
-#   * it ATTACHES the service tags itself, through govc. terraform's vmware/vsphere provider
-#     can only tag a VM it created (tags ride the vsphere_virtual_machine resource; there is
-#     no standalone attach resource), and this VM was created by the Supervisor. The VM is
-#     located by its BIOS UUID, never by name: names are not unique across vCenter folders.
+#   * it WRITES the label block into the VM Notes itself, through govc. vm-operator's
+#     VirtualMachine has no field that reaches the vCenter config.annotation, and terraform's
+#     vmware/vsphere provider can only set the Notes of a VM it created — this VM was created
+#     by the Supervisor. The VM is located by its BIOS UUID, never by name: names are not
+#     unique across vCenter folders.
 
 module "cloud_init" {
   for_each = var.apps
@@ -42,10 +43,10 @@ locals {
   instances = flatten([
     for app_name, app_config in var.apps : [
       for replica_idx in range(app_config.replicas) : {
-        key      = "${app_name}-${replica_idx + 1}"
-        app_name = app_name
-        name     = try(app_config.name, app_name)
-        services = try(app_config.services, [])
+        key            = "${app_name}-${replica_idx + 1}"
+        app_name       = app_name
+        name           = try(app_config.name, app_name)
+        traefik_labels = try(app_config.traefik_labels, {})
       }
     ]
   ])
@@ -53,6 +54,15 @@ locals {
   instances_map = { for inst in local.instances : inst.key => inst }
 
   api_version = "vmoperator.vmware.com/${var.api_version}"
+
+  # The native vsphere provider reads LINE-FORMAT labels from the VM Notes (one
+  # `traefik.<key>=<value>` per line; blank lines and `# comments` tolerated). Render the
+  # dotted label map into that block — the apps/whoami/vsphere renderer, deliberately
+  # duplicated rather than shared.
+  descriptions = {
+    for k, inst in local.instances_map :
+    k => join("\n", [for lk, lv in inst.traefik_labels : "${lk}=${lv}"])
+  }
 
   labels = {
     for key, inst in local.instances_map :
@@ -138,30 +148,30 @@ data "external" "guest" {
   }
 }
 
-# vCenter tags naming the services each VM backs — how the Hub vsphere provider discovers
-# them. Attached by govc (see the header), keyed off the VM's BIOS UUID so a name clash with
-# a clone-sibling VM in another folder cannot tag the wrong machine. Re-runs when the VM is
-# replaced (new uuid) or the service list changes; idempotent on a VM that already carries a
-# tag.
-resource "null_resource" "tags" {
-  for_each = { for key, inst in local.instances_map : key => inst if length(inst.services) > 0 }
+# The label block in each VM's Notes — how the Hub vsphere provider discovers it. Written by
+# govc (see the header), keyed off the VM's BIOS UUID so a name clash with a clone-sibling VM
+# in another folder cannot annotate the wrong machine. Re-runs when the VM is replaced (new
+# uuid) or the rendered block changes; `vm.change -annotation` REPLACES the Notes, so a re-run
+# converges on the rendered block by construction.
+resource "null_resource" "annotation" {
+  for_each = { for key, inst in local.instances_map : key => inst if length(inst.traefik_labels) > 0 }
 
   triggers = {
     bios_uuid = data.external.guest[each.key].result.bios_uuid
-    category  = var.service_tag_category
-    tags      = join(" ", each.value.services)
+    sha       = sha256(local.descriptions[each.key])
   }
 
   provisioner "local-exec" {
-    command = "bash ${path.module}/scripts/tag.sh"
+    command = "bash ${path.module}/scripts/annotate.sh"
     environment = {
       GOVC_URL      = "https://${var.vsphere_server}"
       GOVC_USERNAME = var.vsphere_username
       GOVC_PASSWORD = var.vsphere_password
       GOVC_INSECURE = var.allow_unverified_ssl ? "1" : "0"
       VM_UUID       = self.triggers.bios_uuid
-      TAG_CATEGORY  = self.triggers.category
-      TAGS          = self.triggers.tags
+      # The block rides the environment, never a shell argument: multi-line and
+      # backtick-safe.
+      ANNOTATION = local.descriptions[each.key]
     }
   }
 }

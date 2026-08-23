@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy as VM Service VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, services } } — `services` is a list of vCenter TAG NAMES (in var.service_tag_category) naming the Traefik services these VMs back; each VM is tagged with every one, which is how the Hub vsphere provider discovers them. Optional `environment` (map) is merged over the module-level `environment` into the container. The app KEY becomes the VirtualMachine name prefix (`<key>-<n>`): make it unique in the vCenter inventory."
+  description = "Map of applications to deploy as VM Service VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (map of dotted Traefik labels, e.g. traefik.enable=true + traefik.http.services.<svc>.loadbalancer.server.port=80) is rendered line by line into each VM's Notes through govc, which is where the Hub vsphere provider reads it; identical blocks on N replicas merge into one N-server service on the gateway. Optional `environment` (map) is merged over the module-level `environment` into the container. The app KEY becomes the VirtualMachine name prefix (`<key>-<n>`): make it unique in the vCenter inventory."
   type        = any
   default     = {}
 }
@@ -62,26 +62,21 @@ variable "common_labels" {
   default     = {}
 }
 
-# --- Discovery: vCenter tags, attached through govc ---------------------------------
-variable "service_tag_category" {
-  type        = string
-  description = "vCenter tag CATEGORY the `services` tag names live in — the child gateway's `serviceNameCategoryKey`. The category and its tags must already exist (the caller owns them, e.g. vsphere_tag_category + vsphere_tag); this module only attaches."
-}
-
+# --- Discovery: the label block in the VM Notes, written through govc ---------------
 variable "vsphere_server" {
   type        = string
-  description = "vCenter hostname (no scheme) govc attaches the tags against. The VM Service VMs live in this vCenter's inventory like any other VM."
+  description = "vCenter hostname (no scheme) govc writes the VM Notes against. The VM Service VMs live in this vCenter's inventory like any other VM."
 }
 
 variable "vsphere_username" {
   type        = string
-  description = "vCenter user govc attaches tags as. Needs the tagging privilege on VMs (vSphere Tagging > Assign or Unassign vSphere Tag)."
+  description = "vCenter user govc writes the Notes as. Needs the `Virtual machine > Configuration > Set annotation` privilege on the namespace's VMs — a VM-edit right, not a tagging or inventory one."
 }
 
 variable "vsphere_password" {
   type        = string
   sensitive   = true
-  description = "Password for vsphere_username. Passed to govc through its environment for the duration of the attach; never written to disk."
+  description = "Password for vsphere_username. Passed to govc through its environment for the duration of the write; never written to disk."
 }
 
 variable "allow_unverified_ssl" {

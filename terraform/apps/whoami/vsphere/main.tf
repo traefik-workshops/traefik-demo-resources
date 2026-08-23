@@ -3,13 +3,13 @@
 # cloud-image template and reuses the whoami/cloud-init template (docker-run
 # systemd unit).
 #
-# LIKE GCE (and unlike EC2/Azure tags), the workload config is NOT tags:
-# vSphere tags must be registered centrally before use, so the Traefik Hub
-# vsphere provider reads ONE extraConfig entry with key `guestinfo.traefik`
-# whose VALUE is a JSON object of Traefik labels. Each app's `traefik_labels`
-# map is jsonencode()d into that entry. The provider's `constraints` match
-# those same labels plus a synthesized `name` pseudo-label (the VM name) —
-# there is no separate label system.
+# The workload config is the VM's NOTES (config.annotation): the Traefik Hub
+# vsphere provider reads a LINE-FORMAT label block from it — one
+# `traefik.<key>=<value>` per line, the same grammar the proxmox and hyperv
+# siblings put in their guest descriptions. Each app's `traefik_labels` map is
+# rendered into that block. The provider MERGES same-named services across VMs,
+# so N replicas carrying one identical block become one N-server service — which
+# is how one fleet is published under several load-balancing strategies.
 
 module "cloud_init" {
   for_each = var.apps
@@ -32,19 +32,27 @@ locals {
         key            = "${app_name}-${replica_idx + 1}"
         app_name       = app_name
         traefik_labels = try(app_config.traefik_labels, {})
-        services       = try(app_config.services, [])
       }
     ]
   ])
 
   instances_map = { for inst in local.instances : inst.key => inst }
+
+  # The native vsphere provider reads LINE-FORMAT labels from the VM Notes
+  # (extractTraefikAnnotation parses one `traefik.<key>=<value>` per line; blank
+  # lines and a leading `# comment` are tolerated). Render the dotted label map
+  # into that block — the same renderer as the proxmox/hyperv/kubevirt siblings,
+  # deliberately duplicated rather than shared.
+  descriptions = {
+    for k, inst in local.instances_map :
+    k => join("\n", [for lk, lv in inst.traefik_labels : "${lk}=${lv}"])
+  }
 }
 
 # N workload VMs cloned from the shared compute/vsphere/vm module. This caller
-# still renders the whoami cloud-init (per app, via module.cloud_init) and
-# builds the vsphere provider's workload config (traefik_labels ->
-# guestinfo.traefik); the module owns the vsphere_virtual_machine resource and
-# its data lookups.
+# still renders the whoami cloud-init (per app, via module.cloud_init) and the
+# provider's label block (traefik_labels -> Notes); the module owns the
+# vsphere_virtual_machine resource and its data lookups.
 module "compute" {
   source = "../../../compute/vsphere/vm"
 
@@ -69,33 +77,13 @@ module "compute" {
     for key, inst in local.instances_map : key => module.cloud_init[inst.app_name].rendered
   }
 
-  # The vsphere provider's `guestinfo.traefik` entry per instance — omitted when
-  # an app carries no labels, exactly as before.
-  extra_config = {
-    for key, inst in local.instances_map : key => length(inst.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(inst.traefik_labels) } : {}
+  # The provider's label block in each VM's Notes — left untouched when an app
+  # carries no labels.
+  annotation = {
+    for key, inst in local.instances_map : key => local.descriptions[key] if length(inst.traefik_labels) > 0
   }
-
-  # vCenter tags naming the services each VM backs — how the Hub vsphere provider
-  # discovers them (see the tag block below).
-  tags = local.instance_tag_ids
 
   # Static addressing at boot, when the caller wants one (no DHCP on the network, or an
   # address that must be known at plan time). Keyed by instance key, like user_data.
   network_config = var.network_config
-}
-
-# --- vCenter tags: which SERVICES each VM backs -----------------------------------
-# The vCenter-native Traefik Hub provider reads service membership from tags: a VM tagged
-# `vmrr` is a server of the `vmrr` service, and a MULTIPLE-cardinality category lets one
-# VM carry several tags and so back several services (the same fleet under three LB
-# strategies — the whole point of the load-balancing acts).
-#
-# Tag IDs are passed IN rather than looked up here. The caller creates the category and
-# tags, and a data-source lookup in the same apply cannot see resources that apply has
-# not created yet ("category name ... not found").
-locals {
-  instance_tag_ids = {
-    for key, inst in local.instances_map :
-    key => [for svc in inst.services : var.service_tag_ids[svc]]
-  }
 }

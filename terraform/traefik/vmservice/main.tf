@@ -9,7 +9,7 @@
 # and the namespace's storage class and network. The cloud-init user-data rides in as a
 # rawCloudConfig bootstrap Secret. The result is an ordinary vCenter VM, so everything the
 # clone sibling says about the provider holds unchanged — explicit vCenter credentials,
-# tag-based discovery, routing intent over configEndpoint.
+# routing intent read from each workload VM's Notes (a line-format traefik label block).
 #
 # What changes for the CALLER: the guest address is assigned by the namespace network after
 # power-on and is known only after apply (status.network.primaryIP4). A parent that dials
@@ -21,11 +21,9 @@ locals {
   # hub.providers.vsphere static config as CLI flags (same delivery as the
   # azureVM/oci args in the sibling modules). Endpoint may be a bare vCenter
   # host — the provider applies the SDK defaults (https scheme, /sdk path).
-  # hub.providers.vsphere static config as CLI flags. The provider discovers service
-  # membership from vCenter TAGS (serviceNameCategoryKey) and takes its routers/services
-  # from a base configuration pulled over configEndpoint (GitOps) or read from filename —
-  # there are no per-VM label flags (constraints / exposedByDefault / defaultRule) any
-  # more, because VMs no longer carry labels.
+  # The provider reads each VM's routing intent from its Notes (a line-format
+  # traefik.<key>=<value> block), so the flags are the label-provider set:
+  # exposedByDefault / constraints / defaultRule, like the proxmox sibling.
   vsphere_provider_args = var.vsphere_provider.enabled ? concat(
     [
       "--hub.providers.vsphere=true",
@@ -33,13 +31,12 @@ locals {
       "--hub.providers.vsphere.username=${var.vsphere_provider.username}",
       "--hub.providers.vsphere.password=${var.vsphere_password}",
       "--hub.providers.vsphere.ipMode=${var.vsphere_provider.ip_mode}",
-      "--hub.providers.vsphere.serviceNameCategoryKey=${var.vsphere_provider.service_name_category_key}",
+      "--hub.providers.vsphere.exposedByDefault=${var.vsphere_provider.exposed_by_default}",
     ],
     var.vsphere_provider.insecure_skip_verify ? ["--hub.providers.vsphere.insecureSkipVerify=true"] : [],
     var.vsphere_provider.datacenter != "" ? ["--hub.providers.vsphere.datacenter=${var.vsphere_provider.datacenter}"] : [],
-    var.vsphere_provider.config_endpoint != "" ? ["--hub.providers.vsphere.configEndpoint=${var.vsphere_provider.config_endpoint}"] : [],
-    var.vsphere_provider.config_insecure_skip_verify ? ["--hub.providers.vsphere.configTLS.insecureSkipVerify=true"] : [],
-    var.vsphere_provider.filename != "" ? ["--hub.providers.vsphere.filename=${var.vsphere_provider.filename}"] : [],
+    var.vsphere_provider.constraints != "" ? ["--hub.providers.vsphere.constraints=${var.vsphere_provider.constraints}"] : [],
+    var.vsphere_provider.default_rule != "" ? ["--hub.providers.vsphere.defaultRule=${var.vsphere_provider.default_rule}"] : [],
     var.vsphere_provider.refresh_seconds != null ? ["--hub.providers.vsphere.refreshSeconds=${var.vsphere_provider.refresh_seconds}"] : [],
   ) : []
 

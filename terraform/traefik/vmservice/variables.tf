@@ -117,38 +117,40 @@ variable "performance_tuning" {
 
 variable "vsphere_provider" {
   description = <<-EOT
-    Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider is
-    vCENTER-NATIVE: it reads service membership from vCenter TAGS and takes its routing
-    intent from a base configuration, rather than from per-VM labels.
+    Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider reads
+    each VM's routing intent from the VM's NOTES (config.annotation) as a LINE-FORMAT label
+    block — one `traefik.<key>=<value>` per line, the proxmox/hyperv grammar — through one
+    SOAP session and one property-collector round trip per refresh. No vAPI, no tags: a
+    standalone ESXi host works as well as vCenter. Same-named services across VMs MERGE
+    into one load balancer.
 
-      service_name_category_key  the vCenter tag CATEGORY whose tags name services. A VM
-                                 tagged `vmrr` in that category is a server of the `vmrr`
-                                 service; with a MULTIPLE-cardinality category a VM can
-                                 carry several tags and back several services (that is how
-                                 one fleet is published under three LB strategies).
-      config_endpoint            URL the gateway polls for the base config (GitOps), OR
-      filename                   a path to it on the gateway host. Exactly one.
-
-    Discovery goes through vCenter's vAPI tagging service, which a standalone ESXi host
-    does not serve — so this provider requires vCenter, by design.
+      exposed_by_default  false: a VM is published only when its Notes carry
+                          traefik.enable=true (gateways, templates and unrelated machines
+                          never become backends by accident).
+      constraints         a Traefik constraints expression over the VM's labels, e.g.
+                          Label(`traefik.tags`, `vm`) — how two gateways sharing one
+                          vCenter each pick their own fleet.
+      default_rule        the router rule template when a VM declares none ("" = the
+                          provider default, Host(`{{ normalize .Name }}`)).
+      ip_mode             private | public (both resolve to the guest address VMware Tools
+                          reports) | ipv6; per-VM override via the traefik.vsphere.ipmode label.
 
     vSphere has no ambient identity, so endpoint + username are required when enabled; the
     password rides the separate sensitive var.vsphere_password. endpoint may be a bare
-    vCenter host (the provider applies https + /sdk); insecure_skip_verify defaults on
+    vCenter/ESXi host (the provider applies https + /sdk); insecure_skip_verify defaults on
     (self-signed vCenter certs are the norm); datacenter empty = all datacenters.
   EOT
   type = object({
-    enabled                     = optional(bool, true)
-    endpoint                    = optional(string, "")
-    username                    = optional(string, "")
-    insecure_skip_verify        = optional(bool, true)
-    datacenter                  = optional(string, "")
-    ip_mode                     = optional(string, "private")
-    service_name_category_key   = optional(string, "TraefikServiceName")
-    config_endpoint             = optional(string, "")
-    config_insecure_skip_verify = optional(bool, false)
-    filename                    = optional(string, "")
-    refresh_seconds             = optional(number, null)
+    enabled              = optional(bool, true)
+    endpoint             = optional(string, "")
+    username             = optional(string, "")
+    insecure_skip_verify = optional(bool, true)
+    datacenter           = optional(string, "")
+    ip_mode              = optional(string, "private")
+    exposed_by_default   = optional(bool, false)
+    constraints          = optional(string, "")
+    default_rule         = optional(string, "")
+    refresh_seconds      = optional(number, null)
   })
   default = {}
 
@@ -156,15 +158,10 @@ variable "vsphere_provider" {
     condition     = !var.vsphere_provider.enabled || (var.vsphere_provider.endpoint != "" && var.vsphere_provider.username != "")
     error_message = "vsphere_provider.endpoint and vsphere_provider.username are required when the provider is enabled (vSphere has no ambient identity)."
   }
-
-  validation {
-    condition     = !var.vsphere_provider.enabled || ((var.vsphere_provider.config_endpoint == "") != (var.vsphere_provider.filename == ""))
-    error_message = "Set exactly one of vsphere_provider.config_endpoint (GitOps URL) or vsphere_provider.filename (path on the gateway) — the provider takes its routers/services from one base configuration."
-  }
 }
 
 variable "vsphere_password" {
-  description = "vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere_provider.enabled = false and has no business carrying a vCenter secret."
+  description = "vSphere password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY role — discovery only reads VM properties (name, power state, guest info, uuid, Notes). Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere_provider.enabled = false and has no business carrying a vCenter secret."
   type        = string
   sensitive   = true
   default     = ""

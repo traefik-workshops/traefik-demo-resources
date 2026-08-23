@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, services } } — `services` is a list of vCenter TAG names (in var.service_tag_category) naming the Traefik services these VMs back; each VM is attached to every one, which is how the Hub vsphere provider discovers them. Optional `environment` (map) is merged over the module-level `environment` into the container. `traefik_labels` is accepted but INERT: the vCenter-native provider reads tags, not per-VM labels."
+  description = "Map of applications to deploy to vSphere VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (map of dotted Traefik labels, e.g. traefik.enable=true + traefik.http.services.<svc>.loadbalancer.server.port=80) is rendered line by line into each VM's Notes, which is where the Hub vsphere provider reads it; identical blocks on N replicas merge into one N-server service on the gateway. Optional `environment` (map) is merged over the module-level `environment` into the container."
   type        = any
   default     = {}
 }
@@ -90,10 +90,4 @@ variable "environment" {
   description = "Environment variables passed to every whoami container (docker -e), e.g. OTEL_* exporter config for the OTel-instrumented whoami fork. Per-app `environment` entries win on collision."
   type        = map(string)
   default     = {}
-}
-
-variable "service_tag_ids" {
-  type        = map(string)
-  default     = {}
-  description = "vCenter tag NAME -> tag ID, covering every name used in the apps' `services` lists. Passed in because the caller owns the category and tags; looking them up here would fail on a first apply, when they do not exist yet. The category itself never reaches this module — IDs are globally unique, so attaching a tag needs no category name."
 }

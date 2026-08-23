@@ -4,13 +4,13 @@ Traefik Hub on a **vSphere VM Service VM** — the child gateway of `traefik/vsp
 
 ## The vsphere provider
 
-Identical to `traefik/vsphere-vm` — this is the same gateway on a differently-provisioned machine. `var.vsphere_provider` renders `--hub.providers.vsphere.*`: discovery by vCenter **tags** in `service_name_category_key`, routing intent from `config_endpoint` (GitOps) or `filename`, explicit vCenter credentials (`var.vsphere_password`), `ipMode` resolving to the guest address VMware Tools reports. A VM Service VM is an ordinary vCenter VM, so the provider running *on* it discovers clone-provisioned and VM-Service-provisioned workloads alike; give each child its own tag category when two children share a vCenter.
+Identical to `traefik/vsphere-vm` — this is the same gateway on a differently-provisioned machine. `var.vsphere_provider` renders `--hub.providers.vsphere.*`: discovery by the **line-format `traefik.key=value` label block in each workload VM's Notes**, `exposed_by_default` false (VMs opt in with `traefik.enable=true`), `constraints` to pick a fleet, explicit vCenter credentials (`var.vsphere_password`), `ipMode` resolving to the guest address VMware Tools reports. A VM Service VM is an ordinary vCenter VM, so the provider running *on* it discovers clone-provisioned and VM-Service-provisioned workloads alike; give each child its own ``constraints`` (e.g. ``Label(`traefik.tags`, `vmsvc`)``) when two children share a vCenter.
 
 ## What is different from the clone sibling
 
 - **No placement inputs** (`datacenter`, `datastore`, `cluster`/`resource_pool`, `network`, `template`, `folder`, `num_cpus`, `memory`, `disk_size`). Instead: `namespace`, `class_name` (the VM class sizes the VM), `image_name`, `storage_class`, optional `network_name`.
 - **The address is known only after apply** — vm-operator assigns it from the namespace network and the module reads `status.network.primaryIP4` back (`private_ips`). A parent that dials this child's `:9443` uplink cannot take the address from this module at plan time: feed it through a variable filled between two applies.
-- **No `guestinfo.traefik` self-registration** (`enable_dashboard_discovery` / `extra_labels` do not exist here): VM Service exposes no extraConfig, and the tag-based provider never read it anyway — advertise the dashboard over a file-rule uplink.
+- **No self-registration** (`enable_dashboard_discovery` / `extra_labels` do not exist here): vm-operator cannot write the vCenter Notes, and a govc write would need a second, write-capable credential this module does not carry — advertise the dashboard over a file-rule uplink (what every demo does anyway).
 - Needs `kubectl` (the Supervisor kubeconfig) and `jq` on the machine running terraform, for the address wait; `helm` for the config extraction, as every sibling.
 
 ## Example usage
@@ -36,11 +36,10 @@ module "traefik_vmsvc" {
   enable_preview_mode = true # the vsphere provider build runs as a container
 
   vsphere_provider = {
-    endpoint                  = "vcenter.lab.example.com"
-    username                  = "traefik-ro@vsphere.local"
-    datacenter                = "dc-01"
-    service_name_category_key = "TraefikServiceNameVMSvc"
-    config_endpoint           = "https://git.example.com/config/vmsvc/dynamic.yaml"
+    endpoint    = "vcenter.lab.example.com"
+    username    = "traefik-ro@vsphere.local"
+    datacenter  = "dc-01"
+    constraints = "Label(`traefik.tags`, `vmsvc`)" # this child's fleet, on a shared vCenter
   }
   vsphere_password = var.vsphere_password
 
@@ -70,6 +69,8 @@ module "traefik_vmsvc" {
 - `api_version` defaults to `v1alpha3`; a Supervisor serves several versions of `vmoperator.vmware.com`.
 
 <!-- BEGIN_TF_DOCS -->
+
+
 ## Requirements
 
 | Name | Version |
@@ -85,19 +86,12 @@ module "traefik_vmsvc" {
 | <a name="provider_external"></a> [external](#provider\_external) | >= 2.0 |
 | <a name="provider_kubectl"></a> [kubectl](#provider\_kubectl) | >= 1.14 |
 
-## Modules
-
-| Name | Source | Version |
-| ---- | ------ | ------- |
-| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
-
 ## Resources
 
 | Name | Type |
 | ---- | ---- |
 | [kubectl_manifest.bootstrap](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
 | [kubectl_manifest.vm](https://registry.terraform.io/providers/gavinbunney/kubectl/latest/docs/resources/manifest) | resource |
-| [external_external.guest](https://registry.terraform.io/providers/hashicorp/external/latest/docs/data-sources/external) | data source |
 
 ## Inputs
 
@@ -152,8 +146,8 @@ module "traefik_vmsvc" {
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
 | <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Base name for the Traefik VM | `string` | `"traefik"` | no |
-| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere\_provider.enabled = false and has no business carrying a vCenter secret. | `string` | `""` | no |
-| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider is<br/>vCENTER-NATIVE: it reads service membership from vCenter TAGS and takes its routing<br/>intent from a base configuration, rather than from per-VM labels.<br/><br/>  service\_name\_category\_key  the vCenter tag CATEGORY whose tags name services. A VM<br/>                             tagged `vmrr` in that category is a server of the `vmrr`<br/>                             service; with a MULTIPLE-cardinality category a VM can<br/>                             carry several tags and back several services (that is how<br/>                             one fleet is published under three LB strategies).<br/>  config\_endpoint            URL the gateway polls for the base config (GitOps), OR<br/>  filename                   a path to it on the gateway host. Exactly one.<br/><br/>Discovery goes through vCenter's vAPI tagging service, which a standalone ESXi host<br/>does not serve — so this provider requires vCenter, by design.<br/><br/>vSphere has no ambient identity, so endpoint + username are required when enabled; the<br/>password rides the separate sensitive var.vsphere\_password. endpoint may be a bare<br/>vCenter host (the provider applies https + /sdk); insecure\_skip\_verify defaults on<br/>(self-signed vCenter certs are the norm); datacenter empty = all datacenters. | <pre>object({<br/>    enabled                     = optional(bool, true)<br/>    endpoint                    = optional(string, "")<br/>    username                    = optional(string, "")<br/>    insecure_skip_verify        = optional(bool, true)<br/>    datacenter                  = optional(string, "")<br/>    ip_mode                     = optional(string, "private")<br/>    service_name_category_key   = optional(string, "TraefikServiceName")<br/>    config_endpoint             = optional(string, "")<br/>    config_insecure_skip_verify = optional(bool, false)<br/>    filename                    = optional(string, "")<br/>    refresh_seconds             = optional(number, null)<br/>  })</pre> | `{}` | no |
+| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vSphere password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY role — discovery only reads VM properties (name, power state, guest info, uuid, Notes). Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere\_provider.enabled = false and has no business carrying a vCenter secret. | `string` | `""` | no |
+| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider reads<br/>each VM's routing intent from the VM's NOTES (config.annotation) as a LINE-FORMAT label<br/>block — one `traefik.<key>=<value>` per line, the proxmox/hyperv grammar — through one<br/>SOAP session and one property-collector round trip per refresh. No vAPI, no tags: a<br/>standalone ESXi host works as well as vCenter. Same-named services across VMs MERGE<br/>into one load balancer.<br/><br/>  exposed\_by\_default  false: a VM is published only when its Notes carry<br/>                      traefik.enable=true (gateways, templates and unrelated machines<br/>                      never become backends by accident).<br/>  constraints         a Traefik constraints expression over the VM's labels, e.g.<br/>                      Label(`traefik.tags`, `vm`) — how two gateways sharing one<br/>                      vCenter each pick their own fleet.<br/>  default\_rule        the router rule template when a VM declares none ("" = the<br/>                      provider default, Host(`{{ normalize .Name }}`)).<br/>  ip\_mode             private \| public (both resolve to the guest address VMware Tools<br/>                      reports) \| ipv6; per-VM override via the traefik.vsphere.ipmode label.<br/><br/>vSphere has no ambient identity, so endpoint + username are required when enabled; the<br/>password rides the separate sensitive var.vsphere\_password. endpoint may be a bare<br/>vCenter/ESXi host (the provider applies https + /sdk); insecure\_skip\_verify defaults on<br/>(self-signed vCenter certs are the norm); datacenter empty = all datacenters. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    endpoint             = optional(string, "")<br/>    username             = optional(string, "")<br/>    insecure_skip_verify = optional(bool, true)<br/>    datacenter           = optional(string, "")<br/>    ip_mode              = optional(string, "private")<br/>    exposed_by_default   = optional(bool, false)<br/>    constraints          = optional(string, "")<br/>    default_rule         = optional(string, "")<br/>    refresh_seconds      = optional(number, null)<br/>  })</pre> | `{}` | no |
 
 ## Outputs
 

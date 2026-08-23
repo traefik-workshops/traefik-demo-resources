@@ -5,8 +5,8 @@
 # traefik/cloud-init template, exactly like traefik/ec2 and traefik/azure-vm.
 # One VM cloned from a cloud-init-enabled Ubuntu cloud-image template runs the
 # Hub image; its vsphere provider (--hub.providers.vsphere) discovers workload
-# VMs by their `guestinfo.traefik` extraConfig entry (a JSON object of Traefik
-# labels). vSphere has NO ambient identity (no instance profile / managed
+# VMs by the line-format `traefik.<key>=<value>` label block in their Notes
+# (config.annotation). vSphere has NO ambient identity (no instance profile / managed
 # identity), so the provider authenticates with explicit vCenter credentials —
 # var.vsphere_password is the one secret this module carries.
 # =============================================================================
@@ -15,11 +15,9 @@ locals {
   # hub.providers.vsphere static config as CLI flags (same delivery as the
   # azureVM/oci args in the sibling modules). Endpoint may be a bare vCenter
   # host — the provider applies the SDK defaults (https scheme, /sdk path).
-  # hub.providers.vsphere static config as CLI flags. The provider discovers service
-  # membership from vCenter TAGS (serviceNameCategoryKey) and takes its routers/services
-  # from a base configuration pulled over configEndpoint (GitOps) or read from filename —
-  # there are no per-VM label flags (constraints / exposedByDefault / defaultRule) any
-  # more, because VMs no longer carry labels.
+  # The provider reads each VM's routing intent from its Notes (a line-format
+  # traefik.<key>=<value> block), so the flags are the label-provider set:
+  # exposedByDefault / constraints / defaultRule, like the proxmox sibling.
   vsphere_provider_args = var.vsphere_provider.enabled ? concat(
     [
       "--hub.providers.vsphere=true",
@@ -27,13 +25,12 @@ locals {
       "--hub.providers.vsphere.username=${var.vsphere_provider.username}",
       "--hub.providers.vsphere.password=${var.vsphere_password}",
       "--hub.providers.vsphere.ipMode=${var.vsphere_provider.ip_mode}",
-      "--hub.providers.vsphere.serviceNameCategoryKey=${var.vsphere_provider.service_name_category_key}",
+      "--hub.providers.vsphere.exposedByDefault=${var.vsphere_provider.exposed_by_default}",
     ],
     var.vsphere_provider.insecure_skip_verify ? ["--hub.providers.vsphere.insecureSkipVerify=true"] : [],
     var.vsphere_provider.datacenter != "" ? ["--hub.providers.vsphere.datacenter=${var.vsphere_provider.datacenter}"] : [],
-    var.vsphere_provider.config_endpoint != "" ? ["--hub.providers.vsphere.configEndpoint=${var.vsphere_provider.config_endpoint}"] : [],
-    var.vsphere_provider.config_insecure_skip_verify ? ["--hub.providers.vsphere.configTLS.insecureSkipVerify=true"] : [],
-    var.vsphere_provider.filename != "" ? ["--hub.providers.vsphere.filename=${var.vsphere_provider.filename}"] : [],
+    var.vsphere_provider.constraints != "" ? ["--hub.providers.vsphere.constraints=${var.vsphere_provider.constraints}"] : [],
+    var.vsphere_provider.default_rule != "" ? ["--hub.providers.vsphere.defaultRule=${var.vsphere_provider.default_rule}"] : [],
     var.vsphere_provider.refresh_seconds != null ? ["--hub.providers.vsphere.refreshSeconds=${var.vsphere_provider.refresh_seconds}"] : [],
   ) : []
 
@@ -107,7 +104,7 @@ locals {
   })
 
   # Self-register the Traefik VM's own dashboard via its vsphere provider
-  # (-> dashboard@vsphere) — the tag-based siblings' trick, as guestinfo JSON.
+  # (-> dashboard@vsphere), as a line-format label block in the VM's own Notes.
   # Disable when the dashboard is advertised another way (e.g. a file-rule
   # uplink): without traefik.enable the VM isn't self-discovered at all.
   self_labels = var.enable_dashboard_discovery ? {
@@ -118,12 +115,15 @@ locals {
   } : {}
 
   traefik_labels = merge(local.self_labels, var.extra_labels)
+
+  # The Notes block: one traefik.<key>=<value> per line (the proxmox-vm shape).
+  description = join("\n", [for k, v in local.traefik_labels : "${k}=${v}"])
 }
 
 # One gateway VM cloned from the shared compute/vsphere/vm module. This caller
-# still renders the cloud-init (local.user_data) and builds the vsphere
-# provider's workload config (local.traefik_labels -> guestinfo.traefik); the
-# module owns the vsphere_virtual_machine resource and its data lookups.
+# still renders the cloud-init (local.user_data) and the provider's label block
+# (local.traefik_labels -> the VM Notes); the module owns the
+# vsphere_virtual_machine resource and its data lookups.
 module "compute" {
   source = "../../compute/vsphere/vm"
 
@@ -148,11 +148,9 @@ module "compute" {
     (local.instance_key) = local.user_data
   }
 
-  # The vsphere provider's `guestinfo.traefik` entry — omitted when no labels,
-  # exactly as before.
-  extra_config = {
-    (local.instance_key) = length(local.traefik_labels) > 0 ? { "guestinfo.traefik" = jsonencode(local.traefik_labels) } : {}
-  }
+  # The provider's label block in the VM's own Notes — left untouched when the
+  # gateway carries no labels.
+  annotation = length(local.traefik_labels) > 0 ? { (local.instance_key) = local.description } : {}
 
   # Static addressing at boot, when the caller wants a plan-time uplink address.
   network_config = length(var.network_config) > 0 ? { (local.instance_key) = var.network_config } : {}

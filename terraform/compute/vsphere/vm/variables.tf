@@ -95,7 +95,7 @@ variable "user_data" {
 }
 
 variable "extra_config" {
-  description = "Extra guestinfo extraConfig entries merged onto each VM, keyed by instance key. The caller builds the vsphere provider's workload config here — e.g. { \"<app>-1\" = { \"guestinfo.traefik\" = jsonencode(labels) } }. Empty per-key map adds nothing."
+  description = "Extra guestinfo extraConfig entries merged onto each VM, keyed by instance key (e.g. { \"<app>-1\" = { \"guestinfo.role\" = \"worker\" } }). Empty per-key map adds nothing."
   type        = map(map(string))
   default     = {}
 }
@@ -103,7 +103,13 @@ variable "extra_config" {
 variable "tags" {
   type        = map(list(string))
   default     = {}
-  description = "vCenter tag IDs to attach, keyed by instance key. The vsphere provider has no standalone attach resource — tags ride the VM resource itself, so they are set at create. Used to declare which Traefik services a VM backs (the Hub vsphere provider discovers by tag)."
+  description = "vCenter tag IDs to attach, keyed by instance key. The vsphere provider has no standalone attach resource — tags ride the VM resource itself, so they are set at create. Organisational only: the Hub vsphere provider does not read tags (see var.annotation)."
+}
+
+variable "annotation" {
+  type        = map(string)
+  default     = {}
+  description = "VM Notes (config.annotation) per instance key. The Hub vsphere provider reads a LINE-FORMAT label block from it — one `traefik.<key>=<value>` per line — so the caller renders the block here. An absent key leaves the Notes untouched. Updatable in place: a label change is a reconfigure, never a replacement."
 }
 
 variable "extra_networks" {

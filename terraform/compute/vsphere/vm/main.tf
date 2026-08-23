@@ -2,9 +2,9 @@
 # compute/vsphere/vm — the shared vSphere VM fleet
 # =============================================================================
 # Clones a cloud-init-enabled Ubuntu cloud-image template into one VM per
-# instance key. Cloud-init (`user_data`) and the vsphere provider's workload
-# config (`extra_config`, e.g. the `guestinfo.traefik` entry) are rendered by
-# the CALLER and handed in as opaque maps keyed by instance key — this module
+# instance key. Cloud-init (`user_data`) and the Hub vsphere provider's label
+# block (`annotation`, the line-format traefik.k=v text for the VM Notes) are
+# rendered by the CALLER and handed in as opaque maps keyed by instance key — this module
 # holds nothing role-specific. Both traefik/vsphere-vm and apps/whoami/vsphere
 # compose it.
 # =============================================================================
@@ -133,13 +133,17 @@ resource "vsphere_virtual_machine" "vm" {
       )))
       "guestinfo.metadata.encoding" = "base64"
     },
-    # The caller's workload config (e.g. the vsphere provider's `guestinfo.traefik`
-    # entry). An empty per-key map merges nothing.
+    # The caller's extra guestinfo entries. An empty per-key map merges nothing.
     try(var.extra_config[each.key], {})
   )
 
-  # vCenter tags (ids) for this VM — e.g. the Traefik services it backs.
+  # vCenter tags (ids) for this VM — organisational; the Hub vsphere provider
+  # does not read them.
   tags = try(var.tags[each.key], [])
+
+  # The VM Notes — where the Hub vsphere provider reads its line-format
+  # `traefik.<key>=<value>` label block. Updatable in place (a reconfigure).
+  annotation = try(var.annotation[each.key], null)
 
   # The `instances` output reads default_ip_address, reported by open-vm-tools
   # (the Ubuntu cloud images ship it) — also what gates the provider's

@@ -24,7 +24,8 @@ If you're tempted to put real application logic here, stop. Real apps live in th
 | [`whoami/oci-ci`](./whoami/oci-ci) | OCI | whoami as OCI Container Instances (private VNIC IPs; declared port via TCP health check) |
 | [`whoami/oci-vm`](./whoami/oci-vm) | OCI | whoami on OCI Compute VMs (traefik config via dotted freeform tags; uses `whoami/cloud-init`) |
 | [`whoami/proxmox`](./whoami/proxmox) | Proxmox | whoami on Proxmox guests — QEMU clones (uses `whoami/cloud-init`) or LXC containers (upstream binary via pct exec); traefik config as LINE-format `traefik.key=value` labels in the guest Notes, for the native first-party Hub proxmox provider |
-| [`whoami/vsphere`](./whoami/vsphere) | vSphere | whoami on vSphere VMs cloned from an Ubuntu cloud-image template (traefik config via the `guestinfo.traefik` JSON extraConfig entry; uses `whoami/cloud-init`) |
+| [`whoami/vmservice`](./whoami/vmservice) | vSphere (VM Service) | whoami on vSphere VMs the Supervisor's VM Service provisions (`VirtualMachine` CRD in a vSphere Namespace); the same Notes label block, written through govc |
+| [`whoami/vsphere`](./whoami/vsphere) | vSphere | whoami on vSphere VMs cloned from an Ubuntu cloud-image template (traefik config as LINE-format `traefik.key=value` labels in the VM Notes, for the native Hub vsphere provider; uses `whoami/cloud-init`) |
 
 ## When to add an app
 

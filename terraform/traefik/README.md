@@ -22,7 +22,8 @@ Traefik (the core demo subject for this repo) across every platform. Each platfo
 | [`oci-vm`](./oci-vm) | Traefik Hub on an OCI Compute VM (uses `cloud-init`; `hub.providers.oci` + instance principal) |
 | [`proxmox-lxc`](./proxmox-lxc) | Traefik Hub in a Proxmox VE LXC container — the container half of the per-compute-type pair (no cloud-init: `pct exec` + the Hub binary crane-extracted from the image, run under systemd; same native `hub.providers.proxmox` discovery as `proxmox-vm`, scoped to LXC guests via `guest_types = ["lxc"]`; STATIC address — the hub must dial its uplink at a plan-time-known IP) |
 | [`proxmox-vm`](./proxmox-vm) | Traefik Hub on a Proxmox VE VM (uses `cloud-init`; discovery via the native first-party `hub.providers.proxmox` provider — `--hub.providers.proxmox.*` flags, explicit read-only PVE API token) |
-| [`vsphere-vm`](./vsphere-vm) | Traefik Hub on a vSphere VM (uses `cloud-init`; `hub.providers.vsphere` + explicit read-only vCenter credentials — no ambient identity on-prem) |
+| [`vsphere-vm`](./vsphere-vm) | Traefik Hub on a vSphere VM (uses `cloud-init`; `hub.providers.vsphere` reading line-format `traefik.key=value` labels from the VM Notes + explicit read-only vCenter credentials — no ambient identity on-prem) |
+| [`vmservice`](./vmservice) | The same child on a VM the vSphere Supervisor's VM Service provisions (`VirtualMachine` CRD in a vSphere Namespace; address known only after apply) |
 
 ## How `shared/` works
 

@@ -4,7 +4,7 @@ Traefik Hub on a **vSphere VM** — the on-prem sibling of `traefik/ec2` / `trae
 
 ## The vsphere provider
 
-`var.vsphere_provider` renders `--hub.providers.vsphere.*` CLI flags. The gateway discovers workload VMs by their **`guestinfo.traefik` extraConfig entry** — a JSON object of dotted Traefik labels (see `apps/whoami/vsphere`); `constraints` match those labels plus a synthesized `name` pseudo-label. There is **no port discovery** (vSphere has no per-VM firewall primitive), so workloads must set the `server.port` label. `ipMode` `private` and `public` both resolve to a VM's primary guest IP (reported by open-vm-tools); `ipv6` picks the global IPv6 address.
+`var.vsphere_provider` renders `--hub.providers.vsphere.*` CLI flags. The gateway discovers workload VMs by the **line-format `traefik.key=value` label block in their Notes** (`config.annotation`, one label per line — see `apps/whoami/vsphere`), through one SOAP session and one property-collector round trip per refresh: no vAPI, no tags, so a standalone ESXi host works as well as vCenter. Same-named services across VMs **merge** into one load balancer. `exposed_by_default` is false (a VM opts in with `traefik.enable=true`); `constraints` (e.g. ``Label(`traefik.tags`, `vm`)``) lets two gateways on one vCenter each pick their own fleet. There is **no port discovery** (vSphere has no per-VM firewall primitive), so workloads must set the `server.port` label. `ipMode` `private` and `public` both resolve to a VM's primary guest IP (reported by open-vm-tools); `ipv6` picks the first IPv6 address.
 
 **Credentials are explicit** — vSphere has no ambient identity (no instance profile / managed identity), so the provider takes `endpoint` + `username` (in the object) and `var.vsphere_password` (sensitive). Point them at a **read-only vCenter role**; the password lands in the VM's systemd unit / container args, which is demo-grade — don't reuse an admin credential.
 
@@ -53,10 +53,12 @@ module "traefik_vsphere" {
 
 ## Notes
 
-- `enable_dashboard_discovery` (default on) self-registers the VM's dashboard through its own `guestinfo.traefik` entry (`dashboard@vsphere`); disable it when a file-rule uplink advertises the dashboard instead.
+- `enable_dashboard_discovery` (default on) self-registers the VM's dashboard through its own Notes (`dashboard@vsphere`); disable it when a file-rule uplink advertises the dashboard instead.
 - Outputs mirror the VM siblings (`instances` / `private_ips` / `public_ips`) so demo code reads identically — on vSphere both IP maps carry the same guest address.
 
 <!-- BEGIN_TF_DOCS -->
+
+
 ## Requirements
 
 | Name | Version |
@@ -66,13 +68,6 @@ module "traefik_vsphere" {
 ## Providers
 
 No providers.
-
-## Modules
-
-| Name | Source | Version |
-| ---- | ------ | ------- |
-| <a name="module_compute"></a> [compute](#module\_compute) | ../../compute/vsphere/vm | n/a |
-| <a name="module_config"></a> [config](#module\_config) | ../shared | n/a |
 
 ## Resources
 
@@ -102,7 +97,7 @@ No resources.
 | <a name="input_enable_ai_gateway"></a> [enable\_ai\_gateway](#input\_enable\_ai\_gateway) | Enable Traefik Hub AI Gateway features | `bool` | `false` | no |
 | <a name="input_enable_api_gateway"></a> [enable\_api\_gateway](#input\_enable\_api\_gateway) | Enable Traefik Hub API Gateway features | `bool` | `false` | no |
 | <a name="input_enable_dashboard"></a> [enable\_dashboard](#input\_enable\_dashboard) | Enable Traefik dashboard | `bool` | `true` | no |
-| <a name="input_enable_dashboard_discovery"></a> [enable\_dashboard\_discovery](#input\_enable\_dashboard\_discovery) | Self-register the Traefik VM via its own `guestinfo.traefik` entry (traefik.enable + dashboard router/service) so its OWN vsphere provider discovers the dashboard as dashboard@vsphere. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all. | `bool` | `true` | no |
+| <a name="input_enable_dashboard_discovery"></a> [enable\_dashboard\_discovery](#input\_enable\_dashboard\_discovery) | Self-register the Traefik VM through its own Notes (a traefik.enable + dashboard router/service label block) so its OWN vsphere provider discovers the dashboard as dashboard@vsphere. Disable when the dashboard is advertised another way (e.g. a file-rule uplink) so the VM isn't self-discovered at all. | `bool` | `true` | no |
 | <a name="input_enable_debug"></a> [enable\_debug](#input\_enable\_debug) | Enable Traefik debug mode (pprof) | `bool` | `false` | no |
 | <a name="input_enable_mcp_gateway"></a> [enable\_mcp\_gateway](#input\_enable\_mcp\_gateway) | Enable MCP Gateway (Claude, etc.) | `bool` | `false` | no |
 | <a name="input_enable_offline_mode"></a> [enable\_offline\_mode](#input\_enable\_offline\_mode) | Enable Traefik Hub Offline mode | `bool` | `false` | no |
@@ -113,7 +108,7 @@ No resources.
 | <a name="input_enable_preview_mode"></a> [enable\_preview\_mode](#input\_enable\_preview\_mode) | Enable Traefik Hub Preview features (runs the image as a docker container — required for provider builds not yet in a Hub release, e.g. vsphere) | `bool` | `false` | no |
 | <a name="input_enable_prometheus"></a> [enable\_prometheus](#input\_enable\_prometheus) | Enable Prometheus metrics | `bool` | `false` | no |
 | <a name="input_extra_files"></a> [extra\_files](#input\_extra\_files) | Extra files to write to the VM at cloud-init time | <pre>list(object({<br/>    path    = string<br/>    content = string<br/>  }))</pre> | `[]` | no |
-| <a name="input_extra_labels"></a> [extra\_labels](#input\_extra\_labels) | Extra Traefik labels merged into the VM's own `guestinfo.traefik` extraConfig entry (on top of the dashboard self-registration labels, when enabled) | `map(string)` | `{}` | no |
+| <a name="input_extra_labels"></a> [extra\_labels](#input\_extra\_labels) | Extra Traefik labels merged into the VM's own Notes (on top of the dashboard self-registration labels, when enabled), rendered as LINE-format `traefik.key=value` labels for the gateway's own vsphere provider. | `map(string)` | `{}` | no |
 | <a name="input_extra_runcmd"></a> [extra\_runcmd](#input\_extra\_runcmd) | Extra shell blocks appended to cloud-init runcmd, after Docker is installed and before traefik-hub starts. Used to run workload containers on the gateway VM itself (the docker-provider leg). | `list(string)` | `[]` | no |
 | <a name="input_file_provider_config"></a> [file\_provider\_config](#input\_file\_provider\_config) | YAML configuration for Traefik file provider | `string` | `""` | no |
 | <a name="input_file_provider_path"></a> [file\_provider\_path](#input\_file\_provider\_path) | Path where the file provider config is mounted | `string` | `"/etc/traefik-hub/dynamic"` | no |
@@ -135,8 +130,8 @@ No resources.
 | <a name="input_traefik_hub_token"></a> [traefik\_hub\_token](#input\_traefik\_hub\_token) | Traefik Hub license token | `string` | `""` | no |
 | <a name="input_traefik_tag"></a> [traefik\_tag](#input\_traefik\_tag) | Traefik OSS version tag | `string` | `"v3.7.4"` | no |
 | <a name="input_vm_name"></a> [vm\_name](#input\_vm\_name) | Base name for the Traefik VM | `string` | `"traefik"` | no |
-| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vCenter password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY vCenter role — discovery only lists VMs. Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere\_provider.enabled = false and has no business carrying a vCenter secret. | `string` | `""` | no |
-| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider is<br/>vCENTER-NATIVE: it reads service membership from vCenter TAGS and takes its routing<br/>intent from a base configuration, rather than from per-VM labels.<br/><br/>  service\_name\_category\_key  the vCenter tag CATEGORY whose tags name services. A VM<br/>                             tagged `vmrr` in that category is a server of the `vmrr`<br/>                             service; with a MULTIPLE-cardinality category a VM can<br/>                             carry several tags and back several services (that is how<br/>                             one fleet is published under three LB strategies).<br/>  config\_endpoint            URL the gateway polls for the base config (GitOps), OR<br/>  filename                   a path to it on the gateway host. Exactly one.<br/><br/>Discovery goes through vCenter's vAPI tagging service, which a standalone ESXi host<br/>does not serve — so this provider requires vCenter, by design.<br/><br/>vSphere has no ambient identity, so endpoint + username are required when enabled; the<br/>password rides the separate sensitive var.vsphere\_password. endpoint may be a bare<br/>vCenter host (the provider applies https + /sdk); insecure\_skip\_verify defaults on<br/>(self-signed vCenter certs are the norm); datacenter empty = all datacenters. | <pre>object({<br/>    enabled                     = optional(bool, true)<br/>    endpoint                    = optional(string, "")<br/>    username                    = optional(string, "")<br/>    insecure_skip_verify        = optional(bool, true)<br/>    datacenter                  = optional(string, "")<br/>    ip_mode                     = optional(string, "private")<br/>    service_name_category_key   = optional(string, "TraefikServiceName")<br/>    config_endpoint             = optional(string, "")<br/>    config_insecure_skip_verify = optional(bool, false)<br/>    filename                    = optional(string, "")<br/>    refresh_seconds             = optional(number, null)<br/>  })</pre> | `{}` | no |
+| <a name="input_vsphere_password"></a> [vsphere\_password](#input\_vsphere\_password) | vSphere password the gateway's vsphere provider authenticates with. Point it at a READ-ONLY role — discovery only reads VM properties (name, power state, guest info, uuid, Notes). Optional, because a child on vSphere need not discover BY vSphere: the docker-provider leg runs the same module with vsphere\_provider.enabled = false and has no business carrying a vCenter secret. | `string` | `""` | no |
+| <a name="input_vsphere_provider"></a> [vsphere\_provider](#input\_vsphere\_provider) | Traefik Hub vsphere provider configuration (hub.providers.vsphere). The provider reads<br/>each VM's routing intent from the VM's NOTES (config.annotation) as a LINE-FORMAT label<br/>block — one `traefik.<key>=<value>` per line, the proxmox/hyperv grammar — through one<br/>SOAP session and one property-collector round trip per refresh. No vAPI, no tags: a<br/>standalone ESXi host works as well as vCenter. Same-named services across VMs MERGE<br/>into one load balancer.<br/><br/>  exposed\_by\_default  false: a VM is published only when its Notes carry<br/>                      traefik.enable=true (gateways, templates and unrelated machines<br/>                      never become backends by accident).<br/>  constraints         a Traefik constraints expression over the VM's labels, e.g.<br/>                      Label(`traefik.tags`, `vm`) — how two gateways sharing one<br/>                      vCenter each pick their own fleet.<br/>  default\_rule        the router rule template when a VM declares none ("" = the<br/>                      provider default, Host(`{{ normalize .Name }}`)).<br/>  ip\_mode             private \| public (both resolve to the guest address VMware Tools<br/>                      reports) \| ipv6; per-VM override via the traefik.vsphere.ipmode label.<br/><br/>vSphere has no ambient identity, so endpoint + username are required when enabled; the<br/>password rides the separate sensitive var.vsphere\_password. endpoint may be a bare<br/>vCenter/ESXi host (the provider applies https + /sdk); insecure\_skip\_verify defaults on<br/>(self-signed vCenter certs are the norm); datacenter empty = all datacenters. | <pre>object({<br/>    enabled              = optional(bool, true)<br/>    endpoint             = optional(string, "")<br/>    username             = optional(string, "")<br/>    insecure_skip_verify = optional(bool, true)<br/>    datacenter           = optional(string, "")<br/>    ip_mode              = optional(string, "private")<br/>    exposed_by_default   = optional(bool, false)<br/>    constraints          = optional(string, "")<br/>    default_rule         = optional(string, "")<br/>    refresh_seconds      = optional(number, null)<br/>  })</pre> | `{}` | no |
 
 ## Outputs
 

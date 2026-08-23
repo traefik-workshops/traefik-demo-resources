@@ -8,3 +8,8 @@ output "instances" {
     }
   }
 }
+
+output "private_ips" {
+  description = "Instance key -> guest IP, the shape the other whoami fleets expose (on vSphere the guest's one primary address)."
+  value       = { for key, inst in module.compute.instances : key => inst.private_ip }
+}
