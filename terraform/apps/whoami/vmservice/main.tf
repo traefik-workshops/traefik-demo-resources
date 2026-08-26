@@ -1,26 +1,23 @@
 # whoami on vSphere VM Service VMs — the SECOND way to provision a vSphere VM.
 #
-# Same hypervisor, same vCenter inventory, same Hub vsphere provider reading the label block
-# from the VM Notes as apps/whoami/vsphere; what differs is WHO creates the machine. Not a terraform
+# Same hypervisor, same vCenter inventory as apps/whoami/vsphere; what differs is WHO
+# creates the machine — and therefore where the label block rides. Not a terraform
 # clone into a resource pool: a `VirtualMachine` object that the vSphere Supervisor's VM
 # Service (vm-operator) reconciles inside a vSphere Namespace — built from a
 # VirtualMachineImage in the namespace's content library, sized by a VirtualMachineClass,
 # stored on the namespace's storage class, attached to the namespace's own NSX segment, and
 # bootstrapped by the cloud-init user-data this module hands it in a Secret. Kubernetes-native
-# provisioning of a plain vSphere VM: the VMware-shaped sibling of a KubeVirt guest, except
-# the result IS a vCenter VM (VMware Tools, a guest address, a Notes field), so the
-# vCenter-native provider finds it exactly like a clone.
+# provisioning of a plain vSphere VM: the VMware-shaped sibling of a KubeVirt guest — and,
+# like that sibling, discovered on Kubernetes terms. The clone sibling's label block rides
+# the vCenter Notes for the vsphere provider; here the SAME block rides ONE Kubernetes
+# annotation on the VirtualMachine CR (label_annotation, default `traefik.io/config`) for
+# the Hub vmoperator provider. Same contract, carried where each provisioning model
+# natively keeps its metadata — and no vCenter credential or privilege is involved at all.
 #
-# TWO THINGS THIS MODULE DOES THAT THE CLONE SIBLING DOES NOT:
-#   * it WAITS for the guest address (status.network.primaryIP4). vm-operator assigns it
-#     from the namespace network after power-on, so nothing about the VM is known at plan
-#     time — a caller that needs the address at plan (a hub dialling a child) cannot get it
-#     from here; see the README.
-#   * it WRITES the label block into the VM Notes itself, through govc. vm-operator's
-#     VirtualMachine has no field that reaches the vCenter config.annotation, and terraform's
-#     vmware/vsphere provider can only set the Notes of a VM it created — this VM was created
-#     by the Supervisor. The VM is located by its BIOS UUID, never by name: names are not
-#     unique across vCenter folders.
+# ONE THING THIS MODULE DOES THAT THE CLONE SIBLING DOES NOT: it WAITS for the guest
+# address (status.network.primaryIP4). vm-operator assigns it from the namespace network
+# after power-on, so nothing about the VM is known at plan time — a caller that needs the
+# address at plan (a hub dialling a child) cannot get it from here; see the README.
 
 module "cloud_init" {
   for_each = var.apps
@@ -55,13 +52,25 @@ locals {
 
   api_version = "vmoperator.vmware.com/${var.api_version}"
 
-  # The native vsphere provider reads LINE-FORMAT labels from the VM Notes (one
-  # `traefik.<key>=<value>` per line; blank lines and `# comments` tolerated). Render the
-  # dotted label map into that block — the apps/whoami/vsphere renderer, deliberately
-  # duplicated rather than shared.
+  # The vmoperator provider reads LINE-FORMAT labels (one `traefik.<key>=<value>` per
+  # line; blank lines and `# comments` tolerated) out of ONE annotation on the CR. Render
+  # the dotted label map into that block — the apps/whoami/vsphere renderer, deliberately
+  # duplicated rather than shared; the vsphere sibling puts the same block in the Notes.
   descriptions = {
     for k, inst in local.instances_map :
     k => join("\n", [for lk, lv in inst.traefik_labels : "${lk}=${lv}"])
+  }
+
+  # Discovery config travels in an ANNOTATION, never labels: a label value is capped at 63
+  # characters from a restricted alphabet, and an annotation KEY's name segment carries the
+  # same cap — which real Traefik keys like `...loadbalancer.sticky.cookie.name` exceed. The
+  # single line-format annotation has no such ceilings. Set label_annotation = "" to emit
+  # discrete `traefik.*` annotations instead (short keys only).
+  vm_annotations = {
+    for k, inst in local.instances_map : k => (
+      length(inst.traefik_labels) == 0 ? {} :
+      var.label_annotation != "" ? { (var.label_annotation) = local.descriptions[k] } : inst.traefik_labels
+    )
   }
 
   labels = {
@@ -110,6 +119,9 @@ resource "kubectl_manifest" "vm" {
       name      = each.key
       namespace = var.namespace
       labels    = local.labels[each.key]
+      # The provider's refresh poll picks up an edit to this block WITHOUT touching the
+      # guest — routing changes are a kubectl annotate away.
+      annotations = local.vm_annotations[each.key]
     }
     spec = merge(
       {
@@ -132,7 +144,7 @@ resource "kubectl_manifest" "vm" {
   })
 }
 
-# Wait for the guest address, then read it back together with the identities govc needs.
+# Wait for the guest address, then read it back together with the VM's vCenter identity.
 # Ordered behind the VirtualMachine; on a destroy plan, or before the object exists, the
 # script returns empty fields instead of failing — see scripts/vm-ip.sh.
 data "external" "guest" {
@@ -145,33 +157,5 @@ data "external" "guest" {
     namespace = var.namespace
     name      = each.key
     timeout   = tostring(var.ip_wait_timeout)
-  }
-}
-
-# The label block in each VM's Notes — how the Hub vsphere provider discovers it. Written by
-# govc (see the header), keyed off the VM's BIOS UUID so a name clash with a clone-sibling VM
-# in another folder cannot annotate the wrong machine. Re-runs when the VM is replaced (new
-# uuid) or the rendered block changes; `vm.change -annotation` REPLACES the Notes, so a re-run
-# converges on the rendered block by construction.
-resource "null_resource" "annotation" {
-  for_each = { for key, inst in local.instances_map : key => inst if length(inst.traefik_labels) > 0 }
-
-  triggers = {
-    bios_uuid = data.external.guest[each.key].result.bios_uuid
-    sha       = sha256(local.descriptions[each.key])
-  }
-
-  provisioner "local-exec" {
-    command = "bash ${path.module}/scripts/annotate.sh"
-    environment = {
-      GOVC_URL      = "https://${var.vsphere_server}"
-      GOVC_USERNAME = var.vsphere_username
-      GOVC_PASSWORD = var.vsphere_password
-      GOVC_INSECURE = var.allow_unverified_ssl ? "1" : "0"
-      VM_UUID       = self.triggers.bios_uuid
-      # The block rides the environment, never a shell argument: multi-line and
-      # backtick-safe.
-      ANNOTATION = local.descriptions[each.key]
-    }
   }
 }

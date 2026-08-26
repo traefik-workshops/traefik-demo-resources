@@ -1,5 +1,5 @@
 variable "apps" {
-  description = "Map of applications to deploy as VM Service VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (map of dotted Traefik labels, e.g. traefik.enable=true + traefik.http.services.<svc>.loadbalancer.server.port=80) is rendered line by line into each VM's Notes through govc, which is where the Hub vsphere provider reads it; identical blocks on N replicas merge into one N-server service on the gateway. Optional `environment` (map) is merged over the module-level `environment` into the container. The app KEY becomes the VirtualMachine name prefix (`<key>-<n>`): make it unique in the vCenter inventory."
+  description = "Map of applications to deploy as VM Service VMs. Each app can have multiple replicas. { name = { replicas, port, name, environment, traefik_labels } } — `traefik_labels` (map of dotted Traefik labels, e.g. traefik.enable=true + traefik.http.services.<svc>.loadbalancer.server.port=80) is rendered line by line into ONE annotation on each VirtualMachine CR (see label_annotation), which is where the Hub vmoperator provider reads it; identical blocks on N replicas merge into one N-server service on the gateway. Optional `environment` (map) is merged over the module-level `environment` into the container. The app KEY becomes the VirtualMachine name prefix (`<key>-<n>`): make it unique in the vCenter inventory."
   type        = any
   default     = {}
 }
@@ -62,27 +62,11 @@ variable "common_labels" {
   default     = {}
 }
 
-# --- Discovery: the label block in the VM Notes, written through govc ---------------
-variable "vsphere_server" {
+# --- Discovery: the label block in ONE annotation on the VirtualMachine CR -----------
+variable "label_annotation" {
+  description = "Annotation on the VirtualMachine carrying the LINE-format `traefik.key=value` block — the provider's --hub.providers.vmoperator.labelAnnotation. Set to \"\" to emit each label as its OWN `traefik.*` annotation instead; that form is only safe for SHORT keys, because an annotation KEY is capped at 63 characters and several real Traefik label keys are longer."
   type        = string
-  description = "vCenter hostname (no scheme) govc writes the VM Notes against. The VM Service VMs live in this vCenter's inventory like any other VM."
-}
-
-variable "vsphere_username" {
-  type        = string
-  description = "vCenter user govc writes the Notes as. Needs the `Virtual machine > Configuration > Set annotation` privilege on the namespace's VMs — a VM-edit right, not a tagging or inventory one."
-}
-
-variable "vsphere_password" {
-  type        = string
-  sensitive   = true
-  description = "Password for vsphere_username. Passed to govc through its environment for the duration of the write; never written to disk."
-}
-
-variable "allow_unverified_ssl" {
-  type        = bool
-  default     = true
-  description = "Skip vCenter TLS verification in govc (GOVC_INSECURE) — self-signed vCenter certs are the lab norm."
+  default     = "traefik.io/config"
 }
 
 # --- Supervisor access for the wait script -------------------------------------------

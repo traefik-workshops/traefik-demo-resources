@@ -40,6 +40,30 @@ locals {
     var.vsphere_provider.refresh_seconds != null ? ["--hub.providers.vsphere.refreshSeconds=${var.vsphere_provider.refresh_seconds}"] : [],
   ) : []
 
+  # hub.providers.vmoperator static config as CLI flags. The provider reads each
+  # VM Service VM's routing intent from ONE annotation on its VirtualMachine CR
+  # (label_annotation, default traefik.io/config) via the Supervisor API, with a
+  # namespace-scoped ServiceAccount token. TOKEN FILE ONLY, never an inline token
+  # flag: every CLI argument lands in a world-readable systemd ExecStart line, so
+  # the credential must ride a file (deliver it via extra_files to a path under
+  # /data — in preview mode only /data and /etc/traefik-hub/dynamic are mounted
+  # into the container).
+  vmoperator_provider_args = var.vmoperator_provider.enabled ? concat(
+    [
+      "--hub.providers.vmoperator=true",
+      "--hub.providers.vmoperator.endpoint=${var.vmoperator_provider.endpoint}",
+      "--hub.providers.vmoperator.tokenFile=${var.vmoperator_provider.token_file}",
+      "--hub.providers.vmoperator.exposedByDefault=${var.vmoperator_provider.exposed_by_default}",
+    ],
+    var.vmoperator_provider.insecure_skip_verify ? ["--hub.providers.vmoperator.tls.insecureSkipVerify=true"] : [],
+    length(var.vmoperator_provider.namespaces) > 0 ? ["--hub.providers.vmoperator.namespaces=${join(",", var.vmoperator_provider.namespaces)}"] : [],
+    var.vmoperator_provider.constraints != "" ? ["--hub.providers.vmoperator.constraints=${var.vmoperator_provider.constraints}"] : [],
+    var.vmoperator_provider.default_rule != "" ? ["--hub.providers.vmoperator.defaultRule=${var.vmoperator_provider.default_rule}"] : [],
+    var.vmoperator_provider.label_annotation != "" ? ["--hub.providers.vmoperator.labelAnnotation=${var.vmoperator_provider.label_annotation}"] : [],
+    var.vmoperator_provider.api_version != "" ? ["--hub.providers.vmoperator.apiVersion=${var.vmoperator_provider.api_version}"] : [],
+    var.vmoperator_provider.refresh_seconds != null ? ["--hub.providers.vmoperator.refreshSeconds=${var.vmoperator_provider.refresh_seconds}"] : [],
+  ) : []
+
   # Use extracted CLI arguments from Helm template (includes file provider if configured)
   # Filter out placeholder token arg to avoid duplicates with manual injection in Systemd unit
   cli_arguments = [
@@ -230,7 +254,7 @@ module "config" {
   # Plugins & Extensions
   custom_plugins       = var.custom_plugins
   custom_ports         = var.custom_ports
-  custom_arguments     = concat(var.custom_arguments, local.vsphere_provider_args)
+  custom_arguments     = concat(var.custom_arguments, local.vsphere_provider_args, local.vmoperator_provider_args)
   custom_envs          = var.custom_envs
   file_provider_config = var.file_provider_config
   file_provider_path   = var.file_provider_path

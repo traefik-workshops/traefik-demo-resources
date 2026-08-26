@@ -172,6 +172,53 @@ variable "vsphere_password" {
   }
 }
 
+variable "vmoperator_provider" {
+  description = <<-EOT
+    Traefik Hub vmoperator provider configuration (hub.providers.vmoperator) — discovery of
+    VM Service VMs on KUBERNETES terms. The provider lists vmoperator.vmware.com
+    VirtualMachine CRs in the given Supervisor namespaces and reads each VM's routing
+    intent from ONE annotation on the CR (label_annotation, default `traefik.io/config`)
+    as the same LINE-FORMAT `traefik.<key>=<value>` block the vsphere provider reads from
+    a VM's Notes. The backend address is status.network.primaryIP4. Same-named services
+    across VMs MERGE into one load balancer.
+
+    The credential is a NAMESPACE-SCOPED ServiceAccount token delivered as a FILE
+    (token_file): mint the SA + Role(get/list/watch virtualmachines) + a long-lived
+    token Secret against the Supervisor, and hand the token to this module through
+    extra_files at a path under /data (in preview mode only /data and
+    /etc/traefik-hub/dynamic are bind-mounted into the container). No vCenter
+    credential is involved anywhere on this leg.
+
+      exposed_by_default  false: a VM is published only when its annotation carries
+                          traefik.enable=true (the gateway VM itself, cluster nodes and
+                          unrelated machines never become backends by accident).
+      constraints         a Traefik constraints expression over the parsed labels, e.g.
+                          Label(`traefik.tags`, `vmsvc`).
+      namespaces          REQUIRED: a namespace-scoped token cannot list cluster-wide.
+      api_version         the served vmoperator.vmware.com version to read ("" = the
+                          provider default).
+  EOT
+  type = object({
+    enabled              = optional(bool, false)
+    endpoint             = optional(string, "")
+    token_file           = optional(string, "/data/vmoperator-token")
+    namespaces           = optional(list(string), [])
+    insecure_skip_verify = optional(bool, true)
+    exposed_by_default   = optional(bool, false)
+    constraints          = optional(string, "")
+    default_rule         = optional(string, "")
+    label_annotation     = optional(string, "traefik.io/config")
+    api_version          = optional(string, "")
+    refresh_seconds      = optional(number, null)
+  })
+  default = {}
+
+  validation {
+    condition     = !var.vmoperator_provider.enabled || (var.vmoperator_provider.endpoint != "" && length(var.vmoperator_provider.namespaces) > 0)
+    error_message = "vmoperator_provider.endpoint and at least one entry in vmoperator_provider.namespaces are required when the provider is enabled (a namespace-scoped Supervisor token cannot list cluster-wide)."
+  }
+}
+
 variable "multicluster_provider" {
   description = "Traefik Hub multicluster provider configuration"
   type = object({

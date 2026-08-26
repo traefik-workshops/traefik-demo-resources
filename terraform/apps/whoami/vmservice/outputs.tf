@@ -1,5 +1,5 @@
 output "instances" {
-  description = "Map of all whoami VMs with their details. private_ip is status.network.primaryIP4 — the guest address vm-operator reports, the same one VMware Tools reports and the Hub vsphere provider dials. bios_uuid is what the tag attach located the vCenter object by."
+  description = "Map of all whoami VMs with their details. private_ip is status.network.primaryIP4 — the guest address vm-operator reports, the same one the Hub vmoperator provider reads off the CR and dials. bios_uuid identifies the vCenter object behind the CR (names are only unique per vCenter folder)."
   value = {
     for key, inst in local.instances_map : key => {
       name       = inst.name
