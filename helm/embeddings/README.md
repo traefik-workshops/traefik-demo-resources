@@ -2,13 +2,13 @@
 
 Lightweight embedding server using Infinity (michaelfeil/infinity)
 
-- **Chart version:** `7.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
+- **Chart version:** `8.0.0` (slaved to the repo tag — see [`../AGENTS.md`](../AGENTS.md))
 - **App version:** `0.0.77`
 
 ## Install
 
 ```bash
-helm install my-embeddings oci://ghcr.io/traefik-workshops/embeddings --version 7.0.0
+helm install my-embeddings oci://ghcr.io/traefik-workshops/embeddings --version 8.0.0
 ```
 
 From source (for development against this repo):
