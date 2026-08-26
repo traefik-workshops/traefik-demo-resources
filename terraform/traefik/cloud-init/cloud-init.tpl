@@ -126,6 +126,72 @@ write_files:
       [Install]
       WantedBy=multi-user.target
 
+%{ if anytrue([for a in cli_arguments : can(regex("uplinkEntryPoints", a))]) ~}
+  # Self-heal for the Hub uplink-mixer boot race, written ONLY on a multicluster
+  # child (one that exports an uplink entrypoint). The mixer assembles this child's
+  # exported routers once at startup; if a discovery provider (vsphere, vmoperator,
+  # ...) has not finished its first refresh yet, the mixer finds no child routers,
+  # logs "no child routers could be added to mixer", and does NOT rebuild when
+  # discovery later lands -- so the child exports nothing and the hub imports
+  # nothing. This companion watches for that exact symptom and restarts the gateway
+  # once discovery is up, so the mixer reassembles with the routers present.
+  - path: /usr/local/bin/traefik-hub-mixerheal.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -u
+      MARK=/var/lib/traefik-hub-mixer-healed
+      [ -f "$MARK" ] && exit 0
+
+      # Read the gateway's own logs, whichever way it runs. A preview child runs the
+      # image as the `traefik-hub` container (fresh logs per run, so a post-restart
+      # check sees only the new container); a binary child logs to the journal.
+      container_logs() {
+        if command -v docker >/dev/null 2>&1 && docker inspect traefik-hub >/dev/null 2>&1; then
+          docker logs traefik-hub 2>&1
+        else
+          journalctl -u traefik-hub --no-pager 2>/dev/null
+        fi
+      }
+      mixer_starved() { container_logs | grep -q 'no child routers could be added to mixer'; }
+
+      # Nothing to heal until the mixer actually reports starvation. Watch startup for
+      # ~10 min; if the message never appears, this child raced nothing -- exit clean.
+      starved=false
+      for _ in $(seq 1 120); do
+        if mixer_starved; then starved=true; break; fi
+        sleep 5
+      done
+      if ! $starved; then touch "$MARK"; exit 0; fi
+
+      # The mixer starved. Restart, each time first waiting long enough for the
+      # discovery provider's next refresh to publish, then confirm the fresh container
+      # no longer starves. Bounded to 3 attempts and marker-guarded: never a loop.
+      for _ in 1 2 3; do
+        sleep 30
+        systemctl restart traefik-hub
+        sleep 45
+        mixer_starved || break
+      done
+      touch "$MARK"
+  - path: /etc/systemd/system/traefik-hub-mixerheal.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Traefik Hub uplink-mixer boot-race self-heal
+      After=traefik-hub.service
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/bin/traefik-hub-mixerheal.sh
+
+      [Install]
+      WantedBy=multi-user.target
+
+%{ endif ~}
 %{ if dns_traefiker.enabled }
   - path: /etc/systemd/system/dns-traefiker.service
     owner: root:root
@@ -426,4 +492,10 @@ runcmd:
     ${indent(4, cmd)}
 %{ endfor ~}
   - systemctl enable --now traefik-hub
+%{ if anytrue([for a in cli_arguments : can(regex("uplinkEntryPoints", a))]) ~}
+  # Multicluster child only: heals the uplink-mixer boot race (see the unit above).
+  # Enabled without --now so its ~10 min watch runs in the background, not inline.
+  - systemctl enable traefik-hub-mixerheal
+  - systemctl start --no-block traefik-hub-mixerheal
+%{ endif ~}
   - echo "Traefik Hub provisioning complete"
