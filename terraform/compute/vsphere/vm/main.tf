@@ -97,7 +97,11 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label = "disk0"
+    # The label MUST match the template's own disk label, or the provider cannot
+    # correlate the clone's disk to the source and fails with "size for disk ...:
+    # required option not set". A govc/prep-lab import happens to label it "disk0"; a
+    # vSphere-UI / content-library import labels it "Hard disk 1". Follow the template.
+    label = try(data.vsphere_virtual_machine.template.disks[0].label, "disk0")
     # Never below the template's disk — vSphere refuses to shrink on clone. Guard the
     # template read: some imported templates (an OVA the platform team imported, a
     # streamOptimized/SATA backing) expose no readable disk to the data source, which
