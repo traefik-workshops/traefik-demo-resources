@@ -97,20 +97,20 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    # The label MUST match the template's own disk label, or the provider cannot
-    # correlate the clone's disk to the source and fails with "size for disk ...:
-    # required option not set". A govc/prep-lab import happens to label it "disk0"; a
-    # vSphere-UI / content-library import labels it "Hard disk 1". Follow the template.
-    label = try(data.vsphere_virtual_machine.template.disks[0].label, "disk0")
-    # Never below the template's disk — vSphere refuses to shrink on clone. Guard the
-    # template read: some imported templates (an OVA the platform team imported, a
-    # streamOptimized/SATA backing) expose no readable disk to the data source, which
-    # would otherwise crash the clone with "size ... required option not set". Fall back
-    # to var.disk_size (>= the actual disk, which the clone copies from the template UUID
-    # regardless of what the data source could read).
-    size             = max(try(data.vsphere_virtual_machine.template.disks[0].size, 0), var.disk_size)
-    thin_provisioned = try(data.vsphere_virtual_machine.template.disks[0].thin_provisioned, true)
-    eagerly_scrub    = try(data.vsphere_virtual_machine.template.disks[0].eagerly_scrub, false)
+    label = "disk0"
+    # Correlate the clone's disk to the template's by UNIT NUMBER, not label. The
+    # provider matches clone disks by label unless a unit_number is given; a template
+    # imported through the vSphere UI / content library labels its disk "Hard disk 1"
+    # (not "disk0"), so a label-based match fails with "size for disk disk0: required
+    # option not set" even though size is set. unit_number 0 = the template's boot disk
+    # whatever its label. (Deferred data-source reads under a module depends_on are
+    # unknown at plan, so the label must stay STATIC — a data-source-derived label
+    # renders empty and re-triggers the same error.)
+    unit_number = 0
+    # Never below the template's disk — vSphere refuses to shrink on clone.
+    size             = max(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size)
+    thin_provisioned = data.vsphere_virtual_machine.template.disks[0].thin_provisioned
+    eagerly_scrub    = data.vsphere_virtual_machine.template.disks[0].eagerly_scrub
   }
 
   clone {
