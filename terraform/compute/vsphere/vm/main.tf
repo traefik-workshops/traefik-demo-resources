@@ -98,10 +98,15 @@ resource "vsphere_virtual_machine" "vm" {
 
   disk {
     label = "disk0"
-    # Never below the template's disk — vSphere refuses to shrink on clone.
-    size             = max(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size)
-    thin_provisioned = data.vsphere_virtual_machine.template.disks[0].thin_provisioned
-    eagerly_scrub    = data.vsphere_virtual_machine.template.disks[0].eagerly_scrub
+    # Never below the template's disk — vSphere refuses to shrink on clone. Guard the
+    # template read: some imported templates (an OVA the platform team imported, a
+    # streamOptimized/SATA backing) expose no readable disk to the data source, which
+    # would otherwise crash the clone with "size ... required option not set". Fall back
+    # to var.disk_size (>= the actual disk, which the clone copies from the template UUID
+    # regardless of what the data source could read).
+    size             = max(try(data.vsphere_virtual_machine.template.disks[0].size, 0), var.disk_size)
+    thin_provisioned = try(data.vsphere_virtual_machine.template.disks[0].thin_provisioned, true)
+    eagerly_scrub    = try(data.vsphere_virtual_machine.template.disks[0].eagerly_scrub, false)
   }
 
   clone {
