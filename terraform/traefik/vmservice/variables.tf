@@ -141,7 +141,10 @@ variable "vsphere_provider" {
     (self-signed vCenter certs are the norm); datacenter empty = all datacenters.
   EOT
   type = object({
-    enabled              = optional(bool, true)
+    # Default OFF (BREAKING in v8): with the vmoperator sibling this module no longer
+    # assumes vCenter-based discovery — a caller enables exactly the provider its leg
+    # uses, and omitting both is legal (a docker/file-only child).
+    enabled              = optional(bool, false)
     endpoint             = optional(string, "")
     username             = optional(string, "")
     insecure_skip_verify = optional(bool, true)
