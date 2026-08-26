@@ -97,20 +97,18 @@ resource "vsphere_virtual_machine" "vm" {
   }
 
   disk {
-    label = "disk0"
-    # Correlate the clone's disk to the template's by UNIT NUMBER, not label. The
-    # provider matches clone disks by label unless a unit_number is given; a template
-    # imported through the vSphere UI / content library labels its disk "Hard disk 1"
-    # (not "disk0"), so a label-based match fails with "size for disk disk0: required
-    # option not set" even though size is set. unit_number 0 = the template's boot disk
-    # whatever its label. (Deferred data-source reads under a module depends_on are
-    # unknown at plan, so the label must stay STATIC — a data-source-derived label
-    # renders empty and re-triggers the same error.)
+    label       = "disk0"
     unit_number = 0
-    # Never below the template's disk — vSphere refuses to shrink on clone.
-    size             = max(data.vsphere_virtual_machine.template.disks[0].size, var.disk_size)
-    thin_provisioned = data.vsphere_virtual_machine.template.disks[0].thin_provisioned
-    eagerly_scrub    = data.vsphere_virtual_machine.template.disks[0].eagerly_scrub
+    # EVERY field here must be KNOWN AT PLAN. A caller can put this module behind a
+    # `depends_on` (the vcf lab orders it after a DNS gate), which defers the
+    # `data.vsphere_virtual_machine.template` read to APPLY -- so any disk field derived
+    # from that data source is UNKNOWN at plan, and the vsphere provider rejects an
+    # unknown size as "size for disk disk0: required option not set". So: size is
+    # var.disk_size (concrete; must be >= the template's disk, which the clone copies
+    # from the template UUID and then grows to this), unit_number correlates the clone
+    # disk to the template's boot disk regardless of its label ("disk0" vs a UI import's
+    # "Hard disk 1"), and thin/scrub are left to the clone to inherit from the template.
+    size = var.disk_size
   }
 
   clone {
