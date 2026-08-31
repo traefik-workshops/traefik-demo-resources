@@ -154,8 +154,10 @@ locals {
 }
 
 # Resolve var.image_name -> the VirtualMachineImage RESOURCE name (see local.resolved_image).
-# Published to the namespace before terraform runs, so it exists at plan; a miss falls back to
-# var.image_name (also the destroy-plan case).
+# Published before terraform runs, but the Supervisor materialises the VirtualMachineImage CR
+# asynchronously, so resolve-image.sh POLLS for it: a fresh plan can outrun the reconcile, and
+# spec.imageName is immutable so a fallback-at-create is unrecoverable (see the script header). A
+# miss after the poll budget falls back to var.image_name (the destroy / torn-down case).
 data "external" "image" {
   program = ["bash", "${path.module}/scripts/resolve-image.sh"]
   query = {
