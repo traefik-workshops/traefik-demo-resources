@@ -6,7 +6,7 @@ Provisions Traefik `whoami` services (default image: the OTel-instrumented fork 
 
 ```hcl
 module "whoami_ecs" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/ecs?ref=v8.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/ecs?ref=v8.1.0"
 
   name = "whoami"
 

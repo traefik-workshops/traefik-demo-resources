@@ -19,7 +19,7 @@ Traefik Hub on a **vSphere VM Service VM** — the child gateway of `traefik/vsp
 
 ```hcl
 module "traefik_vmsvc" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vmservice?ref=v8.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/vmservice?ref=v8.1.0"
 
   providers = { kubectl = kubectl.supervisor }
 

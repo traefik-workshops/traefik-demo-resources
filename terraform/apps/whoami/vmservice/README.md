@@ -22,7 +22,7 @@ Because the address is known only after apply, **a caller that needs it at plan 
 
 ```hcl
 module "whoami" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/vmservice?ref=v8.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/apps/whoami/vmservice?ref=v8.1.0"
 
   providers = { kubectl = kubectl.supervisor }
 

@@ -6,7 +6,7 @@ Renders a cloud-init template that installs and starts Traefik Hub on a VM, with
 
 ```hcl
 module "traefik_cloud_init" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/cloud-init?ref=v8.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/traefik/cloud-init?ref=v8.1.0"
 
   traefik_hub_version = "v3.16.0"
   arch                = "amd64"

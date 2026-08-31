@@ -20,7 +20,7 @@ Auth is **cert-based** (AKS/k3d-style): consume `host` / `cluster_ca_certificate
 
 ```hcl
 module "k3s" {
-  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/morpheus/k3s?ref=v8.0.0"
+  source = "git::https://github.com/traefik-workshops/traefik-demo-resources.git//terraform/compute/morpheus/k3s?ref=v8.1.0"
 
   cloud              = "hvm-cloud"
   group              = "demo"
