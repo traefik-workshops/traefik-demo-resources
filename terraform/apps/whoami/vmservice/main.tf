@@ -56,6 +56,11 @@ locals {
   # and powerState is the lowercase enum. v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit.
   is_v1a1 = var.api_version == "v1alpha1"
 
+  # spec.imageName is the VirtualMachineImage RESOURCE name and is IMMUTABLE. v1alpha2+ names the
+  # image by var.image_name (resolves to itself); v1alpha1 names it vmi-<hash> and carries
+  # var.image_name only in status.imageName. Resolve it up front so the VM is created correct.
+  resolved_image = try(data.external.image.result.name, var.image_name)
+
   # The vmoperator provider reads LINE-FORMAT labels (one `traefik.<key>=<value>` per
   # line; blank lines and `# comments` tolerated) out of ONE annotation on the CR. Render
   # the dotted label map into that block — the apps/whoami/vsphere renderer, deliberately
@@ -89,6 +94,18 @@ locals {
     var.kubeconfig != "" ? "--kubeconfig ${var.kubeconfig}" : "",
     var.kubeconfig_context != "" ? "--context ${var.kubeconfig_context}" : "",
   ]))
+}
+
+# Resolve var.image_name -> the VirtualMachineImage RESOURCE name (see local.resolved_image).
+# The image is published to the namespace BEFORE terraform runs (host/setup-vm-service-image.sh),
+# so it exists at plan time; a miss falls back to var.image_name (also the destroy-plan case).
+data "external" "image" {
+  program = ["bash", "${path.module}/scripts/resolve-image.sh"]
+  query = {
+    kubectl    = local.kubectl
+    namespace  = var.namespace
+    image_name = var.image_name
+  }
 }
 
 # The guest's cloud-init lives in a Secret: vm-operator's rawCloudConfig bootstrap reads the
@@ -134,7 +151,7 @@ resource "kubectl_manifest" "vm" {
     spec = merge(
       {
         className    = var.class_name
-        imageName    = var.image_name
+        imageName    = local.resolved_image
         storageClass = var.storage_class
         powerState   = "poweredOn"
         vmMetadata   = { secretName = "${each.key}-bootstrap", transport = "CloudInit" }
@@ -155,7 +172,7 @@ resource "kubectl_manifest" "vm" {
     spec = merge(
       {
         className    = var.class_name
-        imageName    = var.image_name
+        imageName    = local.resolved_image
         storageClass = var.storage_class
         powerState   = "PoweredOn"
         bootstrap    = { cloudInit = { rawCloudConfig = { name = "${each.key}-bootstrap", key = "user-data" } } }

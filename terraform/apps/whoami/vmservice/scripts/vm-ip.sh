@@ -27,13 +27,13 @@ while :; do
     echo "vm-ip: kubectl failed for $NS/$NAME: $out" >&2
     exit 1
   fi
-  ip=$(echo "$out" | jq -r '.status.network.primaryIP4 // empty')
+  ip=$(echo "$out" | jq -r '.status.network.primaryIP4 // .status.vmIp // empty')
   if [ -n "$ip" ]; then
-    echo "$out" | jq -c '{ip: .status.network.primaryIP4, bios_uuid: (.status.biosUUID // ""), instance_uuid: (.status.instanceUUID // "")}'
+    echo "$out" | jq -c '{ip: (.status.network.primaryIP4 // .status.vmIp), bios_uuid: (.status.biosUUID // ""), instance_uuid: (.status.instanceUUID // "")}'
     exit 0
   fi
   if [ "$(date +%s)" -ge "$deadline" ]; then
-    echo "vm-ip: $NS/$NAME has no status.network.primaryIP4 after ${TIMEOUT}s (powerState: $(echo "$out" | jq -r '.status.powerState // "unknown"'))" >&2
+    echo "vm-ip: $NS/$NAME has no status.network.primaryIP4 / status.vmIp after ${TIMEOUT}s (powerState: $(echo "$out" | jq -r '.status.powerState // "unknown"'))" >&2
     exit 1
   fi
   sleep 10

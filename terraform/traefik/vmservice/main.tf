@@ -100,6 +100,11 @@ locals {
   is_v1a1 = var.api_version == "v1alpha1"
   labels  = { "app.kubernetes.io/name" = var.vm_name }
 
+  # spec.imageName is the VirtualMachineImage RESOURCE name and is IMMUTABLE. v1alpha2+ names the
+  # image by var.image_name (resolves to itself); v1alpha1 names it vmi-<hash> and carries
+  # var.image_name only in status.imageName. Resolve up front so the VM is created correct.
+  resolved_image = try(data.external.image.result.name, var.image_name)
+
   # The kubectl the wait script runs: pinned to the caller's kubeconfig + context, never the
   # machine-global current-context (a parallel standup repoints that mid-apply).
   kubectl = join(" ", compact([
@@ -148,6 +153,18 @@ locals {
   })
 }
 
+# Resolve var.image_name -> the VirtualMachineImage RESOURCE name (see local.resolved_image).
+# Published to the namespace before terraform runs, so it exists at plan; a miss falls back to
+# var.image_name (also the destroy-plan case).
+data "external" "image" {
+  program = ["bash", "${path.module}/scripts/resolve-image.sh"]
+  query = {
+    kubectl    = local.kubectl
+    namespace  = var.namespace
+    image_name = var.image_name
+  }
+}
+
 # The gateway's cloud-init lives in a Secret: vm-operator's rawCloudConfig bootstrap reads the
 # user-data out of a Secret key. Same shape as apps/whoami/vmservice.
 resource "kubectl_manifest" "bootstrap" {
@@ -181,7 +198,7 @@ resource "kubectl_manifest" "vm" {
     spec = merge(
       {
         className    = var.class_name
-        imageName    = var.image_name
+        imageName    = local.resolved_image
         storageClass = var.storage_class
         powerState   = "poweredOn"
         vmMetadata   = { secretName = "${local.instance_key}-bootstrap", transport = "CloudInit" }
@@ -197,7 +214,7 @@ resource "kubectl_manifest" "vm" {
     spec = merge(
       {
         className    = var.class_name
-        imageName    = var.image_name
+        imageName    = local.resolved_image
         storageClass = var.storage_class
         powerState   = "PoweredOn"
         bootstrap    = { cloudInit = { rawCloudConfig = { name = "${local.instance_key}-bootstrap", key = "user-data" } } }
