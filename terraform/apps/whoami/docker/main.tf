@@ -49,10 +49,22 @@ locals {
     ]
   ])
 
+  # The OTLP collector these whoamis export to is typically a LAB-INTERNAL hostname
+  # (e.g. collector.<domain>) that resolves on the VM via lab DNS but NOT inside a
+  # bridge-networked container: a container inherits the docker daemon's resolver, which on a
+  # systemd-resolved host is a stub address the daemon cannot use, so it silently falls back to
+  # a public resolver that cannot see lab DNS. The exporter then fails and the leg reports no
+  # telemetry (the gateway, on --network host, is unaffected — which is why only the container
+  # backend goes dark in the service graph). Pull the endpoint host out so the runcmd can
+  # resolve it on the VM, where lab DNS works, and pin it into each container via --add-host.
+  otlp_endpoint = try(var.environment["OTEL_EXPORTER_OTLP_ENDPOINT"], "")
+  otlp_host     = local.otlp_endpoint != "" ? try(regex("^[a-zA-Z]+://([^:/]+)", local.otlp_endpoint)[0], "") : ""
+
   # Rendered once: the caller passes this straight into extra_runcmd, and cloud-init runs
   # it after Docker is installed and before the gateway starts.
   runcmd = templatefile("${path.module}/run-containers.sh.tpl", {
     containers = local.containers
     image      = local.image
+    otlp_host  = local.otlp_host
   })
 }
