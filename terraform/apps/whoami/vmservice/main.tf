@@ -116,15 +116,19 @@ resource "kubectl_manifest" "vm" {
   # rejected and the guest powers on with no user-data.
   depends_on = [kubectl_manifest.bootstrap]
 
-  yaml_body = yamlencode({
+  # v1alpha1 (vSphere 8U2) and v1alpha2+ (VCF 9) have DIFFERENT VirtualMachine schemas, so the
+  # whole body is version-split at yamlencode (two strings unify where two differently-shaped
+  # objects would not). metadata is identical; only the spec differs: v1alpha1 rides cloud-init
+  # on spec.vmMetadata (Secret + CloudInit transport) with the lowercase powerState and expresses
+  # a named net as spec.networkInterfaces; v1alpha2+ uses spec.bootstrap.cloudInit.rawCloudConfig,
+  # PoweredOn and spec.network.interfaces. The same "${each.key}-bootstrap" Secret feeds both.
+  yaml_body = local.is_v1a1 ? yamlencode({
     apiVersion = local.api_version
     kind       = "VirtualMachine"
     metadata = {
-      name      = each.key
-      namespace = var.namespace
-      labels    = local.labels[each.key]
-      # The provider's refresh poll picks up an edit to this block WITHOUT touching the
-      # guest — routing changes are a kubectl annotate away.
+      name        = each.key
+      namespace   = var.namespace
+      labels      = local.labels[each.key]
       annotations = local.vm_annotations[each.key]
     }
     spec = merge(
@@ -132,25 +136,33 @@ resource "kubectl_manifest" "vm" {
         className    = var.class_name
         imageName    = var.image_name
         storageClass = var.storage_class
+        powerState   = "poweredOn"
+        vmMetadata   = { secretName = "${each.key}-bootstrap", transport = "CloudInit" }
       },
-      # Cloud-init bootstrap. v1alpha1 (vSphere 8U2) has no spec.bootstrap: it points a
-      # vmMetadata Secret at the guest over the CloudInit transport and takes the lowercase
-      # powerState enum. v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit.rawCloudConfig. The
-      # same "${each.key}-bootstrap" Secret (key user-data) feeds both.
-      local.is_v1a1 ? {
-        powerState = "poweredOn"
-        vmMetadata = { secretName = "${each.key}-bootstrap", transport = "CloudInit" }
-        } : {
-        powerState = "PoweredOn"
-        bootstrap  = { cloudInit = { rawCloudConfig = { name = "${each.key}-bootstrap", key = "user-data" } } }
-      },
-      # Omitted = the namespace's default network. Named = one interface on that network.
-      # v1alpha1 expresses this as spec.networkInterfaces; v1alpha2+ as spec.network.interfaces.
-      var.network_name == "" ? {} : (local.is_v1a1 ? {
+      var.network_name != "" ? {
         networkInterfaces = [{ networkName = var.network_name, networkType = "vsphere-distributed" }]
-        } : {
+      } : {},
+    )
+    }) : yamlencode({
+    apiVersion = local.api_version
+    kind       = "VirtualMachine"
+    metadata = {
+      name        = each.key
+      namespace   = var.namespace
+      labels      = local.labels[each.key]
+      annotations = local.vm_annotations[each.key]
+    }
+    spec = merge(
+      {
+        className    = var.class_name
+        imageName    = var.image_name
+        storageClass = var.storage_class
+        powerState   = "PoweredOn"
+        bootstrap    = { cloudInit = { rawCloudConfig = { name = "${each.key}-bootstrap", key = "user-data" } } }
+      },
+      var.network_name != "" ? {
         network = { interfaces = [{ name = "eth0", network = { name = var.network_name } }] }
-      }),
+      } : {},
     )
   })
 }
