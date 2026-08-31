@@ -95,7 +95,10 @@ locals {
   instance_key = "${var.vm_name}-1"
 
   api_version = "vmoperator.vmware.com/${var.api_version}"
-  labels      = { "app.kubernetes.io/name" = var.vm_name }
+  # vSphere 8U2's WCP serves only v1alpha1, whose VirtualMachine predates spec.bootstrap
+  # (cloud-init rides spec.vmMetadata over the CloudInit transport, powerState is lowercase).
+  is_v1a1 = var.api_version == "v1alpha1"
+  labels  = { "app.kubernetes.io/name" = var.vm_name }
 
   # The kubectl the wait script runs: pinned to the caller's kubeconfig + context, never the
   # machine-global current-context (a parallel standup repoints that mid-apply).
@@ -178,17 +181,24 @@ resource "kubectl_manifest" "vm" {
         className    = var.class_name
         imageName    = var.image_name
         storageClass = var.storage_class
-        powerState   = "PoweredOn"
-        bootstrap = {
-          cloudInit = {
-            rawCloudConfig = { name = "${local.instance_key}-bootstrap", key = "user-data" }
-          }
-        }
+      },
+      # Cloud-init bootstrap. v1alpha1 (vSphere 8U2) has no spec.bootstrap: it points a
+      # vmMetadata Secret at the guest over the CloudInit transport and takes the lowercase
+      # powerState enum. v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit.rawCloudConfig.
+      local.is_v1a1 ? {
+        powerState = "poweredOn"
+        vmMetadata = { secretName = "${local.instance_key}-bootstrap", transport = "CloudInit" }
+        } : {
+        powerState = "PoweredOn"
+        bootstrap  = { cloudInit = { rawCloudConfig = { name = "${local.instance_key}-bootstrap", key = "user-data" } } }
       },
       # Omitted = the namespace's default network. Named = one interface on that network.
-      var.network_name != "" ? {
+      # v1alpha1 expresses this as spec.networkInterfaces; v1alpha2+ as spec.network.interfaces.
+      var.network_name == "" ? {} : (local.is_v1a1 ? {
+        networkInterfaces = [{ networkName = var.network_name, networkType = "vsphere-distributed" }]
+        } : {
         network = { interfaces = [{ name = "eth0", network = { name = var.network_name } }] }
-      } : {},
+      }),
     )
   })
 }

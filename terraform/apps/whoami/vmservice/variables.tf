@@ -34,7 +34,7 @@ variable "network_name" {
 variable "api_version" {
   type        = string
   default     = "v1alpha3"
-  description = "vmoperator.vmware.com API version to write the VirtualMachine with. A Supervisor serves several (`kubectl api-resources | grep vmoperator`); v1alpha3 carries the rawCloudConfig bootstrap this module uses and is served by vSphere 8U2+ and 9."
+  description = "vmoperator.vmware.com API version to write the VirtualMachine with (`kubectl api-resources | grep vmoperator` shows what a Supervisor serves). The module adapts the VM spec to it: v1alpha1 (vSphere 8U2's WCP serves ONLY this) uses spec.vmMetadata + the lowercase powerState enum; v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit. Point the vmoperator PROVIDER at the same version."
 }
 
 # --- Workload -----------------------------------------------------------------------

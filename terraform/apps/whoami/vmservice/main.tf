@@ -51,6 +51,10 @@ locals {
   instances_map = { for inst in local.instances : inst.key => inst }
 
   api_version = "vmoperator.vmware.com/${var.api_version}"
+  # vSphere 8U2's WCP serves ONLY vmoperator.vmware.com/v1alpha1, whose VirtualMachine schema
+  # predates spec.bootstrap: cloud-init rides spec.vmMetadata (a Secret + transport CloudInit)
+  # and powerState is the lowercase enum. v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit.
+  is_v1a1 = var.api_version == "v1alpha1"
 
   # The vmoperator provider reads LINE-FORMAT labels (one `traefik.<key>=<value>` per
   # line; blank lines and `# comments` tolerated) out of ONE annotation on the CR. Render
@@ -128,18 +132,25 @@ resource "kubectl_manifest" "vm" {
         className    = var.class_name
         imageName    = var.image_name
         storageClass = var.storage_class
-        powerState   = "PoweredOn"
-        bootstrap = {
-          cloudInit = {
-            rawCloudConfig = { name = "${each.key}-bootstrap", key = "user-data" }
-          }
-        }
       },
-      # Omitted = the namespace's default network. Named = one interface on that network
-      # (an NSX segment or VDS port group the namespace is allowed to use).
-      var.network_name != "" ? {
+      # Cloud-init bootstrap. v1alpha1 (vSphere 8U2) has no spec.bootstrap: it points a
+      # vmMetadata Secret at the guest over the CloudInit transport and takes the lowercase
+      # powerState enum. v1alpha2+ (VCF 9) uses spec.bootstrap.cloudInit.rawCloudConfig. The
+      # same "${each.key}-bootstrap" Secret (key user-data) feeds both.
+      local.is_v1a1 ? {
+        powerState = "poweredOn"
+        vmMetadata = { secretName = "${each.key}-bootstrap", transport = "CloudInit" }
+        } : {
+        powerState = "PoweredOn"
+        bootstrap  = { cloudInit = { rawCloudConfig = { name = "${each.key}-bootstrap", key = "user-data" } } }
+      },
+      # Omitted = the namespace's default network. Named = one interface on that network.
+      # v1alpha1 expresses this as spec.networkInterfaces; v1alpha2+ as spec.network.interfaces.
+      var.network_name == "" ? {} : (local.is_v1a1 ? {
+        networkInterfaces = [{ networkName = var.network_name, networkType = "vsphere-distributed" }]
+        } : {
         network = { interfaces = [{ name = "eth0", network = { name = var.network_name } }] }
-      } : {},
+      }),
     )
   })
 }
